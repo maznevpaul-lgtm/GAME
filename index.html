@@ -31,12 +31,29 @@
             right: 15px;
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             pointer-events: none;
             z-index: 5;
-            font-size: 24px;
+            font-size: 18px; /* Уменьшено для 3 элементов */
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .ui-left, .ui-right {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .ui-right {
+            text-align: right;
+        }
+
+        #bonusDisplay {
+            color: #f1c40f;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #000;
         }
 
         /* Наэкранные элементы управления для телефонов */
@@ -146,8 +163,14 @@
 <body>
 
     <div id="uiLayer">
-        <div id="livesDisplay">Жизни: ❤️❤️❤️</div>
-        <div id="ringsDisplay">Кольца: 0/0</div>
+        <div class="ui-left">
+            <div id="levelDisplay">Ур: 1</div>
+            <div id="bonusDisplay"></div>
+        </div>
+        <div class="ui-right">
+            <div id="livesDisplay">Жизни: ❤️❤️❤️</div>
+            <div id="ringsDisplay">Кольца: 0/0</div>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -164,7 +187,7 @@
     <!-- Стартовый экран -->
     <div id="startScreen" class="overlay">
         <h1>Bounce Classic</h1>
-        <p>Соберите все золотые кольца, чтобы открыть дверь. Берегитесь шипов!<br><br><i>Управление: Кнопки на экране или стрелочки на клавиатуре.</i></p>
+        <p>Соберите все золотые кольца, чтобы открыть дверь. Берегитесь шипов!<br><br><i>Управление: Наклоняйте телефон (гироскоп) для движения, жмите ВВЕРХ для прыжка.</i></p>
         <button id="startBtn" class="action-btn">Играть</button>
     </div>
 
@@ -194,8 +217,10 @@
     const ctx = canvas.getContext('2d');
 
     // Элементы UI
+    const levelDisplay = document.getElementById('levelDisplay');
     const livesDisplay = document.getElementById('livesDisplay');
     const ringsDisplay = document.getElementById('ringsDisplay');
+    const bonusDisplay = document.getElementById('bonusDisplay');
     
     const screens = {
         start: document.getElementById('startScreen'),
@@ -208,10 +233,11 @@
     const CELL_SIZE = 40;
     const GRAVITY = 0.5;
     const FRICTION = 0.85;
-    const BOUNCINESS = 0.5; // Насколько сильно шарик отскакивает от пола
-    const JUMP_FORCE = -11;
-    const MOVE_SPEED = 1.2;
-    const MAX_SPEED_X = 7;
+    const BOUNCINESS = 0.4; // Снизил отскок, чтобы шарик не улетал при падении
+    const NORMAL_JUMP_FORCE = -12; // Сделал базовый прыжок чуть выше для удобства
+    const SUPER_JUMP_FORCE = -16; // Сила прыжка с бонусом
+    const MOVE_SPEED = 0.8; // Снизил скорость разгона (было 1.2)
+    const MAX_SPEED_X = 5; // Снизил максимальную скорость (было 7)
     const MAX_SPEED_Y = 15;
 
     // Состояние игры
@@ -222,11 +248,16 @@
 
     // Статистика игрока
     let lives = 3;
+    let currentLevel = 1;
     let ringsTotal = 0;
     let ringsCollected = 0;
+    let hasSuperJump = false;
+    let jumpForce = NORMAL_JUMP_FORCE;
     
     // Ввод
     let keys = { left: false, right: false, up: false };
+    let tiltX = 0;
+    let useGyro = false;
 
     // Шарик
     let ball = {
@@ -242,31 +273,77 @@
     let spikes = [];
     let rings = [];
     let lifeBonuses = [];
+    let jumpBonuses = [];
     let door = null;
 
-    // Карта уровня
-    // # - Стена, S - Старт, R - Кольцо, L - Жизнь, ^ - Колючки, D - Дверь
-    const levelData = [
-        "##################################################",
-        "#                                                #",
-        "#                                            D   #",
-        "#        R      L                            #   #",
-        "#       ###    ###    R        R             #   #",
-        "#S                   ###      ###           ##   #",
-        "####                                     ####    #",
-        "#  #        ^^^                  ^^      #       #",
-        "#  #^^^    ^^^^^^^^^      ^^^^^^^^^^^    #       #",
-        "##################################################"
-    ];
+    let levelData = [];
+
+    // Процедурная генерация уровней
+    function generateLevel(levelIndex) {
+        const width = 30 + levelIndex * 10; // С каждым уровнем карта длиннее
+        const height = 12;
+        let grid = Array.from({length: height}, () => Array(width).fill(' '));
+
+        // Стены по краям
+        for(let c=0; c<width; c++) { grid[0][c] = '#'; grid[height-1][c] = '#'; }
+        for(let r=0; r<height; r++) { grid[r][0] = '#'; grid[r][width-1] = '#'; }
+
+        // Точка старта и выход
+        grid[height-2][2] = 'S';
+        grid[height-3][width-3] = 'D';
+
+        // Генерация ландшафта
+        let currentH = height - 2;
+        for (let c = 5; c < width - 5; c++) {
+            grid[currentH][c] = '#'; // Пол
+
+            let r = Math.random();
+            if (r < 0.2) {
+                grid[currentH-1][c] = '^'; // Колючка
+            } else if (r < 0.4 && c < width - 6) {
+                // Пропасть
+                grid[currentH][c] = ' ';
+                grid[currentH][c+1] = ' ';
+                grid[currentH-2][c+1] = 'R'; // Кольцо над пропастью (опустил пониже)
+                c++;
+            } else if (r < 0.6) {
+                // Парящая платформа (опустил пониже)
+                grid[currentH-3][c] = '#';
+                grid[currentH-3][c+1] = '#';
+                if(Math.random() < 0.5) grid[currentH-4][c] = 'R'; // Кольцо на платформе
+                c++;
+            } else if (r < 0.75 && currentH > 5) {
+                currentH--; // Ступенька вверх
+                grid[currentH][c] = '#';
+                if(Math.random() < 0.2) grid[currentH-1][c] = 'J'; // Бонус суперпрыжка перед подъемом
+            } else if (r < 0.9 && currentH < height - 2) {
+                currentH++; // Ступенька вниз
+                grid[currentH][c] = '#';
+            } else {
+                grid[currentH-1][c] = 'R'; // Кольцо на полу
+            }
+        }
+
+        // Даем жизнь каждые 2 уровня
+        if (levelIndex % 2 === 0) {
+            grid[height-4][Math.floor(width/2)] = 'L';
+        }
+
+        return grid.map(row => row.join(''));
+    }
 
     function initLevel() {
+        levelData = generateLevel(currentLevel);
         walls = [];
         spikes = [];
         rings = [];
         lifeBonuses = [];
+        jumpBonuses = [];
         door = null;
         ringsTotal = 0;
         ringsCollected = 0;
+        hasSuperJump = false;
+        jumpForce = NORMAL_JUMP_FORCE;
 
         for (let r = 0; r < levelData.length; r++) {
             for (let c = 0; c < levelData[r].length; c++) {
@@ -283,6 +360,8 @@
                     ringsTotal++;
                 } else if (char === 'L') {
                     lifeBonuses.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
+                } else if (char === 'J') {
+                    jumpBonuses.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
                 } else if (char === 'D') {
                     door = { x, y, w: CELL_SIZE, h: CELL_SIZE * 2 }; // Дверь высотой в 2 блока
                 } else if (char === 'S') {
@@ -305,10 +384,12 @@
     }
 
     function updateUI() {
+        levelDisplay.innerText = `Ур: ${currentLevel}`;
         let hearts = '';
         for(let i=0; i<lives; i++) hearts += '❤️';
         livesDisplay.innerText = `Жизни: ${hearts}`;
         ringsDisplay.innerText = `Кольца: ${ringsCollected}/${ringsTotal}`;
+        bonusDisplay.innerText = hasSuperJump ? '🚀 Суперпрыжок' : '';
     }
 
     // Обработка клавиатуры
@@ -342,11 +423,50 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // Обработка гироскопа
+    function handleOrientation(event) {
+        let gamma = event.gamma; 
+        let beta = event.beta;
+        if (gamma === null) return;
+        useGyro = true;
+        
+        // Учет поворота экрана (портретный/ландшафтный)
+        let orientation = (screen.orientation || {}).angle || window.orientation || 0;
+        if (orientation === 90) tiltX = beta;
+        else if (orientation === -90 || orientation === 270) tiltX = -beta;
+        else tiltX = gamma;
+        
+        // "Мертвая зона" чтобы шарик не дергался при прямом держании
+        if (Math.abs(tiltX) < 5) {
+            tiltX = 0;
+        }
+    }
+
+    // Запрос разрешений для iOS 13+
+    function requestGyro() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                    }
+                }).catch(console.error);
+        } else {
+            // Для Android и старых iOS
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
+    }
+
     // Физика и коллизии
     function updatePhysics() {
-        // Управление по X
+        // Управление по X (Кнопки)
         if (keys.left) ball.vx -= MOVE_SPEED;
         if (keys.right) ball.vx += MOVE_SPEED;
+        
+        // Управление по X (Гироскоп)
+        if (useGyro && tiltX !== 0) {
+            ball.vx += (tiltX / 15) * MOVE_SPEED;
+        }
         
         // Трение и лимиты
         ball.vx *= FRICTION;
@@ -361,7 +481,7 @@
         // Гравитация и прыжок
         ball.vy += GRAVITY;
         if (keys.up && ball.isGrounded) {
-            ball.vy = JUMP_FORCE;
+            ball.vy = jumpForce;
             ball.isGrounded = false;
             keys.up = false; // Требует повторного нажатия для следующего прыжка (опционально)
         }
@@ -447,6 +567,20 @@
             }
         }
 
+        // Суперпрыжок (бонусы)
+        for (let j of jumpBonuses) {
+            if (!j.collected) {
+                let dx = ball.x - j.x;
+                let dy = ball.y - j.y;
+                if (Math.sqrt(dx*dx + dy*dy) < ball.r + 12) {
+                    j.collected = true;
+                    hasSuperJump = true;
+                    jumpForce = SUPER_JUMP_FORCE;
+                    updateUI();
+                }
+            }
+        }
+
         // Дверь (выход)
         if (door) {
             if (ringsCollected === ringsTotal) {
@@ -473,6 +607,9 @@
 
     function win() {
         gameState = 'WON';
+        currentLevel++;
+        document.querySelector('#winScreen p').innerText = "Вы прошли уровень! Готовы к следующему?";
+        document.getElementById('nextBtn').innerText = "Следующий уровень";
         showScreen('win');
     }
 
@@ -581,6 +718,29 @@
             }
         }
 
+        // Бонусы суперпрыжка (синие со стрелочкой)
+        for (let j of jumpBonuses) {
+            if (!j.collected) {
+                let floatY = Math.sin(frameCount * 0.1) * 5;
+                
+                ctx.beginPath();
+                ctx.arc(j.x, j.y + floatY, 10, 0, Math.PI*2);
+                ctx.fillStyle = '#3498db'; // Синий цвет
+                ctx.fill();
+                
+                // Рисуем стрелочку вверх
+                ctx.beginPath();
+                ctx.moveTo(j.x, j.y + floatY + 4);
+                ctx.lineTo(j.x, j.y + floatY - 4);
+                ctx.lineTo(j.x - 3, j.y + floatY - 1);
+                ctx.moveTo(j.x, j.y + floatY - 4);
+                ctx.lineTo(j.x + 3, j.y + floatY - 1);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
         // Шарик (Bounce)
         if (gameState === 'PLAYING') {
             // Рисуем тень
@@ -629,10 +789,18 @@
 
     function startGame() {
         hideAllScreens();
-        if(gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'WON') {
-            lives = 3;
-            initLevel();
+        if(gameState === 'START') {
+            requestGyro();
         }
+
+        if(gameState === 'START' || gameState === 'GAMEOVER') {
+            lives = 3;
+            currentLevel = 1;
+            initLevel();
+        } else if (gameState === 'WON') {
+            initLevel(); // Генерируем новый уровень
+        }
+
         // Если возрождаемся после смерти, кольца и уровень не сбрасываются
         resetBall();
         keys = { left: false, right: false, up: false }; // Сброс кнопок
