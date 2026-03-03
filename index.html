@@ -34,16 +34,23 @@
             align-items: flex-start;
             pointer-events: none;
             z-index: 5;
-            font-size: 18px; /* Уменьшено для 3 элементов */
+            font-size: 18px;
             font-weight: bold;
             color: white;
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
         }
 
-        .ui-left, .ui-right {
+        .ui-left, .ui-center, .ui-right {
             display: flex;
             flex-direction: column;
             gap: 5px;
+            flex: 1;
+        }
+
+        .ui-center {
+            text-align: center;
+            font-size: 22px;
+            color: #f1c40f;
         }
 
         .ui-right {
@@ -167,6 +174,9 @@
             <div id="levelDisplay">Ур: 1</div>
             <div id="bonusDisplay"></div>
         </div>
+        <div class="ui-center">
+            <div id="timeDisplay">0.0с</div>
+        </div>
         <div class="ui-right">
             <div id="livesDisplay">Жизни: ❤️❤️❤️</div>
             <div id="ringsDisplay">Кольца: 0/0</div>
@@ -200,7 +210,7 @@
     <!-- Экран смерти (потеря жизни) -->
     <div id="deathScreen" class="overlay hidden">
         <h1 style="color: #ff4757;">Ой!</h1>
-        <p>Вы напоролись на колючку.</p>
+        <p>Вы потеряли жизнь.</p>
         <button id="respawnBtn" class="action-btn">Продолжить</button>
     </div>
 
@@ -214,7 +224,7 @@
     <!-- Экран Победы -->
     <div id="winScreen" class="overlay hidden">
         <h1 style="color: #2ed573;">Уровень Пройден!</h1>
-        <p>Вы собрали все кольца и дошли до выхода!</p>
+        <p id="winMessage">Вы собрали все кольца и дошли до выхода!</p>
         <button id="nextBtn" class="action-btn">Играть еще раз</button>
     </div>
 
@@ -227,6 +237,7 @@
     const livesDisplay = document.getElementById('livesDisplay');
     const ringsDisplay = document.getElementById('ringsDisplay');
     const bonusDisplay = document.getElementById('bonusDisplay');
+    const timeDisplay = document.getElementById('timeDisplay');
     
     const screens = {
         start: document.getElementById('startScreen'),
@@ -242,8 +253,8 @@
     const BOUNCINESS = 0.4; // Снизил отскок, чтобы шарик не улетал при падении
     const NORMAL_JUMP_FORCE = -12; // Сделал базовый прыжок чуть выше для удобства
     const SUPER_JUMP_FORCE = -16; // Сила прыжка с бонусом
-    const MOVE_SPEED = 0.8; // Снизил скорость разгона (было 1.2)
-    const MAX_SPEED_X = 5; // Снизил максимальную скорость (было 7)
+    const MOVE_SPEED = 0.8; // Снизил скорость разгона
+    const MAX_SPEED_X = 5; // Снизил максимальную скорость
     const MAX_SPEED_Y = 15;
 
     // Состояние игры
@@ -251,6 +262,10 @@
     let animationId;
     let camera = { x: 0, y: 0 };
     let frameCount = 0;
+    
+    // Таймер
+    let startTime = 0;
+    let elapsedTime = 0;
 
     // Статистика игрока
     let lives = 3;
@@ -262,6 +277,7 @@
     
     // Ввод
     let keys = { left: false, right: false, up: false };
+    let jumpHeld = false; // Блокировка зажатия кнопки прыжка
     let tiltX = 0;
     let useGyro = false;
 
@@ -280,17 +296,14 @@
     let rings = [];
     let lifeBonuses = [];
     let jumpBonuses = [];
-    let checkpoints = []; // Добавлен массив для чекпойнтов
     let door = null;
-
-    let floatingTexts = []; // Массив для всплывающих текстов (например "Чекпойнт!")
 
     let levelData = [];
 
     // Процедурная генерация уровней
     function generateLevel(levelIndex) {
         const width = 30 + levelIndex * 10; // С каждым уровнем карта длиннее
-        const height = 12; // Возвращаем старую (меньшую) высоту уровня
+        const height = 12; // Высота уровня
         let grid = Array.from({length: height}, () => Array(width).fill(' '));
 
         // Стены по краям (верх, лево, право. Низ открыт для пропастей)
@@ -307,7 +320,6 @@
 
         // Генерация ландшафта
         let currentH = height - 2;
-        let checkpointCounter = 0;
 
         for (let c = 5; c < width - 5; c++) {
             grid[currentH][c] = '#'; // Пол
@@ -348,13 +360,6 @@
                     c++; // Пропускаем следующий блок
                 }
             }
-
-            // Ставим чекпойнт периодически на ровных участках
-            checkpointCounter++;
-            if (checkpointCounter >= 8 && grid[currentH][c] === '#' && grid[currentH-1][c] === ' ') {
-                grid[currentH-1][c] = 'C';
-                checkpointCounter = 0;
-            }
         }
 
         // Даем жизнь каждые 2 уровня
@@ -372,8 +377,6 @@
         rings = [];
         lifeBonuses = [];
         jumpBonuses = [];
-        checkpoints = [];
-        floatingTexts = [];
         door = null;
         ringsTotal = 0;
         ringsCollected = 0;
@@ -397,9 +400,6 @@
                     lifeBonuses.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
                 } else if (char === 'J') {
                     jumpBonuses.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
-                } else if (char === 'C') {
-                    // C - Чекпойнт
-                    checkpoints.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE, collected: false });
                 } else if (char === 'D') {
                     door = { x, y, w: CELL_SIZE, h: CELL_SIZE * 2 }; // Дверь высотой в 2 блока
                 } else if (char === 'S') {
@@ -434,7 +434,9 @@
     window.addEventListener('keydown', (e) => {
         if (e.code === 'ArrowLeft') keys.left = true;
         if (e.code === 'ArrowRight') keys.right = true;
-        if (e.code === 'ArrowUp') keys.up = true;
+        if (e.code === 'ArrowUp') {
+            if (!e.repeat) keys.up = true; // Игнорируем автоповтор зажатой клавиши
+        }
     });
     window.addEventListener('keyup', (e) => {
         if (e.code === 'ArrowLeft') keys.left = false;
@@ -447,7 +449,6 @@
         const btn = document.getElementById(id);
         btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
         btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
-        // На случай, если палец ушел с кнопки
         btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[key] = false; });
     }
     setupTouchBtn('btnLeft', 'left');
@@ -520,10 +521,16 @@
 
         // Гравитация и прыжок
         ball.vy += GRAVITY;
-        if (keys.up && ball.isGrounded) {
-            ball.vy = jumpForce;
-            ball.isGrounded = false;
-            keys.up = false; // Требует повторного нажатия для следующего прыжка (опционально)
+        
+        // Блокировка постоянного прыжка при зажатии
+        if (keys.up) {
+            if (ball.isGrounded && !jumpHeld) {
+                ball.vy = jumpForce;
+                ball.isGrounded = false;
+            }
+            jumpHeld = true;
+        } else {
+            jumpHeld = false;
         }
         
         if (ball.vy > MAX_SPEED_Y) ball.vy = MAX_SPEED_Y;
@@ -633,20 +640,6 @@
             }
         }
 
-        // Чекпойнты
-        for (let cp of checkpoints) {
-            if (!cp.collected) {
-                let dx = ball.x - cp.x;
-                let dy = ball.y - (cp.y - CELL_SIZE/2);
-                if (Math.sqrt(dx*dx + dy*dy) < ball.r + 20) {
-                    cp.collected = true;
-                    ball.startX = cp.x;
-                    ball.startY = cp.y - CELL_SIZE/2 - ball.r;
-                    floatingTexts.push({ text: 'Чекпойнт!', x: cp.x, y: cp.y - CELL_SIZE - 20, alpha: 1 });
-                }
-            }
-        }
-
         // Дверь (выход)
         if (door) {
             if (ringsCollected === ringsTotal) {
@@ -664,7 +657,7 @@
         updateUI();
         
         if (lives <= 0) {
-            gameState = 'GAMEOVER'; // ИСПРАВЛЕНО: Правильный статус при конце жизней
+            gameState = 'GAMEOVER';
             showScreen('gameOver');
         } else {
             gameState = 'DEAD';
@@ -675,7 +668,7 @@
     function win() {
         gameState = 'WON';
         currentLevel++;
-        document.querySelector('#winScreen p').innerText = "Вы прошли уровень! Готовы к следующему?";
+        document.querySelector('#winMessage').innerHTML = `Вы прошли уровень!<br><span style="color: #f1c40f;">Время: ${(elapsedTime / 1000).toFixed(1)}с</span>`;
         document.getElementById('nextBtn').innerText = "Следующий уровень";
         showScreen('win');
     }
@@ -811,21 +804,6 @@
             }
         }
 
-        // Чекпойнты (Флажки)
-        for (let cp of checkpoints) {
-            // Древко
-            ctx.fillStyle = '#7f8c8d';
-            ctx.fillRect(cp.x - 2, cp.y - CELL_SIZE, 4, CELL_SIZE);
-            
-            // Флаг
-            ctx.fillStyle = cp.collected ? '#2ecc71' : '#e74c3c'; // Зеленый если взят, красный если нет
-            ctx.beginPath();
-            ctx.moveTo(cp.x + 2, cp.y - CELL_SIZE);
-            ctx.lineTo(cp.x + 20, cp.y - CELL_SIZE + 10);
-            ctx.lineTo(cp.x + 2, cp.y - CELL_SIZE + 20);
-            ctx.fill();
-        }
-
         // Шарик (Bounce)
         if (gameState === 'PLAYING') {
             // Рисуем тень
@@ -846,25 +824,16 @@
             ctx.fill();
         }
 
-        // Всплывающий текст (Floating Text) для Чекпойнтов
-        for (let i = floatingTexts.length - 1; i >= 0; i--) {
-            let ft = floatingTexts[i];
-            ctx.fillStyle = `rgba(255, 255, 255, ${ft.alpha})`;
-            ctx.font = 'bold 20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(ft.text, ft.x, ft.y);
-            
-            ft.y -= 1; // Поднимается вверх
-            ft.alpha -= 0.02; // Плавно исчезает
-            if (ft.alpha <= 0) floatingTexts.splice(i, 1);
-        }
-
         ctx.restore();
     }
 
     // Главный цикл
     function loop() {
         if (gameState === 'PLAYING') {
+            // Обновляем таймер
+            elapsedTime = Date.now() - startTime;
+            timeDisplay.innerText = (elapsedTime / 1000).toFixed(1) + 'с';
+            
             updatePhysics();
             checkInteractions();
             updateCamera();
@@ -901,9 +870,11 @@
             initLevel(); // Генерируем новый уровень
         }
 
-        // Если возрождаемся после смерти, кольца и уровень не сбрасываются
+        // Сбрасываем шарик, кнопки и стартуем таймер
         resetBall();
-        keys = { left: false, right: false, up: false }; // Сброс кнопок
+        keys = { left: false, right: false, up: false }; 
+        jumpHeld = false;
+        startTime = Date.now();
         gameState = 'PLAYING';
     }
 
