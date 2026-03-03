@@ -302,8 +302,8 @@
 
     // Процедурная генерация уровней
     function generateLevel(levelIndex) {
-        const width = 30 + levelIndex * 10; // С каждым уровнем карта длиннее
-        const height = 12; // Высота уровня
+        const width = 40 + levelIndex * 15; // Уровни стали длиннее
+        const height = 16; // Увеличили высоту для добавления верхних ярусов
         let grid = Array.from({length: height}, () => Array(width).fill(' '));
 
         // Стены по краям (верх, лево, право. Низ открыт для пропастей)
@@ -311,15 +311,16 @@
         for(let r=0; r<height; r++) { grid[r][0] = '#'; grid[r][width-1] = '#'; }
 
         // Точка старта и выход
-        grid[height-2][2] = 'S';
-        grid[height-3][width-3] = 'D';
+        let startY = height - 4; // Базовый уровень пола
+        grid[startY][2] = 'S';
+        grid[startY-1][width-3] = 'D'; // Дверь (занимает 2 блока вниз)
         
         // Надежный пол под стартом и финишем
-        for(let c=1; c<=4; c++) grid[height-1][c] = '#';
-        for(let c=width-4; c<width-1; c++) grid[height-1][c] = '#';
+        for(let c=1; c<=4; c++) grid[startY+1][c] = '#';
+        for(let c=width-4; c<width-1; c++) grid[startY+1][c] = '#';
 
-        // Генерация ландшафта
-        let currentH = height - 2;
+        // 1. Генерация основного ландшафта (нижний ярус)
+        let currentH = startY + 1;
 
         for (let c = 5; c < width - 5; c++) {
             grid[currentH][c] = '#'; // Пол
@@ -328,7 +329,7 @@
             if (r < 0.2 && c < width - 6) {
                 grid[currentH-1][c] = '^'; // Колючка
                 grid[currentH][c+1] = '#'; // Гарантируем безопасный пол после колючки
-                c++; // Пропускаем следующий блок
+                c++; 
             } else if (r < 0.4 && c < width - 6) {
                 // Пропасть (убираем пол)
                 grid[currentH][c] = ' ';
@@ -340,13 +341,13 @@
                     grid[currentH][c+1] = '#';
                     c++;
                 }
-            } else if (r < 0.6 && c < width - 6) {
-                // Парящая платформа
+            } else if (r < 0.55 && c < width - 6) {
+                // Парящая платформа низкая
                 grid[currentH-3][c] = '#';
                 grid[currentH-3][c+1] = '#';
-                if(Math.random() < 0.5) grid[currentH-4][c] = 'R'; // Кольцо на платформе
+                if(Math.random() < 0.5) grid[currentH-4][c] = 'R'; 
                 c++;
-            } else if (r < 0.75 && currentH > 5) {
+            } else if (r < 0.75 && currentH > 8) {
                 currentH--; // Ступенька вверх
                 grid[currentH][c] = '#';
                 if(Math.random() < 0.2) grid[currentH-1][c] = 'J'; // Бонус суперпрыжка
@@ -356,15 +357,60 @@
             } else {
                 if (Math.random() < 0.6 && c < width - 6) {
                     grid[currentH-1][c] = 'R'; // Кольцо на полу
-                    grid[currentH][c+1] = '#'; // Гарантируем безопасный пол после кольца
-                    c++; // Пропускаем следующий блок
+                    grid[currentH][c+1] = '#'; 
+                    c++; 
+                }
+            }
+        }
+
+        // 2. ВТОРОЙ ПРОХОД: Добавляем верхние платформы с кучей колец!
+        for (let c = 8; c < width - 12; c++) {
+            if (Math.random() < 0.3) { // 30% шанс сгенерировать верхнюю структуру
+                // Находим уровень земли в этом столбце
+                let groundY = -1;
+                for (let r = 5; r < height; r++) {
+                    if (grid[r][c] === '#') { groundY = r; break; }
+                }
+                
+                // Если есть место для верхней платформы
+                if (groundY > 8) {
+                    let platLen = Math.floor(Math.random() * 5) + 4; // от 4 до 8 блоков в длину
+                    let platY = groundY - 5; // Высоко над землей
+                    
+                    // Проверяем, не перекроем ли мы существующие препятствия (колючки, кольца)
+                    let isClear = true;
+                    for(let checkC = c-1; checkC <= c+platLen+2; checkC++) {
+                        for(let checkR = platY-2; checkR <= groundY-1; checkR++) {
+                            if(grid[checkR] && grid[checkR][checkC] !== ' ' && grid[checkR][checkC] !== 'R') {
+                                isClear = false;
+                            }
+                        }
+                    }
+
+                    if (isClear) {
+                        // Ступенька заскока
+                        grid[groundY - 3][c] = '#';
+                        if (Math.random() < 0.4) grid[groundY - 1][c-1] = 'J'; // Бонус прыжка перед лестницей
+
+                        // Сама верхняя платформа
+                        for(let i=1; i<=platLen; i++) {
+                            grid[platY][c+i] = '#';
+                            // Расставляем кольца наверху!
+                            if (Math.random() < 0.8) grid[platY-1][c+i] = 'R';
+                        }
+                        
+                        // Ступенька спрыгивания
+                        grid[groundY - 3][c+platLen+1] = '#';
+
+                        c += platLen + 4; // Пропускаем столбцы, чтобы платформы не слипались
+                    }
                 }
             }
         }
 
         // Даем жизнь каждые 2 уровня
         if (levelIndex % 2 === 0) {
-            grid[height-4][Math.floor(width/2)] = 'L';
+            grid[startY-1][Math.floor(width/2)] = 'L';
         }
 
         return grid.map(row => row.join(''));
@@ -682,8 +728,9 @@
         camera.y += (targetY - camera.y) * 0.1;
 
         // Ограничение камеры (чтобы не показывать пустоту за картой)
-        let maxCamX = levelData[0].length * CELL_SIZE - canvas.width;
-        let maxCamY = levelData.length * CELL_SIZE - canvas.height;
+        // ИСПРАВЛЕНО: Добавлен Math.max, чтобы камера не "ломалась", если экран больше уровня
+        let maxCamX = Math.max(0, levelData[0].length * CELL_SIZE - canvas.width);
+        let maxCamY = Math.max(0, levelData.length * CELL_SIZE - canvas.height);
         
         if (camera.x < 0) camera.x = 0;
         if (camera.y < 0) camera.y = 0;
