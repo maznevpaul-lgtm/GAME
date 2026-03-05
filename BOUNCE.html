@@ -23,10 +23,32 @@
             height: 100%;
         }
 
+        #homeLink {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.1s, background 0.1s;
+        }
+
+        #homeLink:active {
+            background: rgba(0,0,0,0.8);
+            transform: scale(0.95);
+        }
+
         /* UI */
         #uiLayer {
             position: absolute;
-            top: 15px;
+            top: 45px;
             left: 15px;
             right: 15px;
             display: flex;
@@ -169,6 +191,8 @@
 </head>
 <body>
 
+    <a id="homeLink" href="index.html">🏠 В меню</a>
+
     <div id="uiLayer">
         <div class="ui-left">
             <div id="levelDisplay">Ур: 1</div>
@@ -199,9 +223,15 @@
         <h1>Bounce Classic</h1>
         <p>Соберите все золотые кольца, чтобы открыть дверь. Берегитесь шипов!<br><br><i>Управление: Наклоняйте телефон (гироскоп) для движения, жмите ВВЕРХ для прыжка.</i></p>
         
-        <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.5); padding: 15px 25px; border-radius: 15px;">
-            <input type="checkbox" id="gyroToggle" style="width: 25px; height: 25px; cursor: pointer;" checked>
-            <label for="gyroToggle" style="font-size: 1.2rem; cursor: pointer; color: #2ed573; font-weight: bold;">Управление гироскопом</label>
+        <div style="margin-bottom: 30px; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.5); padding: 15px 25px; border-radius: 15px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <input type="checkbox" id="gyroToggle" style="width: 25px; height: 25px; cursor: pointer;" checked>
+                <label for="gyroToggle" style="font-size: 1.2rem; cursor: pointer; color: #2ed573; font-weight: bold;">Управление гироскопом</label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <input type="checkbox" id="soundToggle" style="width: 25px; height: 25px; cursor: pointer;" checked>
+                <label for="soundToggle" style="font-size: 1.2rem; cursor: pointer; color: #f1c40f; font-weight: bold;">Включить звук</label>
+            </div>
         </div>
 
         <button id="startBtn" class="action-btn">Играть</button>
@@ -280,6 +310,51 @@
     let jumpHeld = false; // Блокировка зажатия кнопки прыжка
     let tiltX = 0;
     let useGyro = false;
+
+    // Звуковая система (8-bit ретро синтезатор)
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    const sounds = {
+        init: () => {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            soundEnabled = document.getElementById('soundToggle').checked;
+        },
+        play: (freq, type, duration, slideFreq = null) => {
+            if (!soundEnabled || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if (slideFreq) {
+                osc.frequency.exponentialRampToValueAtTime(slideFreq, audioCtx.currentTime + duration);
+            }
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime); // Громкость
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        },
+        jump: () => sounds.play(300, 'sine', 0.2, 500),
+        ring: () => sounds.play(800, 'sine', 0.1),
+        door: () => {
+            sounds.play(400, 'square', 0.2);
+            setTimeout(() => sounds.play(600, 'square', 0.2), 150);
+            setTimeout(() => sounds.play(800, 'square', 0.4), 300);
+        },
+        die: () => {
+            sounds.play(200, 'sawtooth', 0.3, 100);
+            setTimeout(() => sounds.play(150, 'sawtooth', 0.4, 50), 200);
+        },
+        start: () => {
+            sounds.play(440, 'square', 0.1);
+            setTimeout(() => sounds.play(554, 'square', 0.1), 100);
+            setTimeout(() => sounds.play(659, 'square', 0.2), 200);
+        }
+    };
 
     // Шарик
     let ball = {
@@ -573,6 +648,7 @@
             if (ball.isGrounded && !jumpHeld) {
                 ball.vy = jumpForce;
                 ball.isGrounded = false;
+                sounds.jump(); // Звук прыжка
             }
             jumpHeld = true;
         } else {
@@ -654,6 +730,13 @@
                 if (Math.sqrt(dx*dx + dy*dy) < ball.r + 15) { // 15 - радиус кольца
                     r.collected = true;
                     ringsCollected++;
+                    sounds.ring(); // Звук кольца
+                    
+                    // Звук открытия двери
+                    if (ringsCollected === ringsTotal) {
+                        sounds.door();
+                    }
+                    
                     updateUI();
                 }
             }
@@ -699,6 +782,7 @@
     }
 
     function die() {
+        sounds.die(); // Звук проигрыша
         lives--;
         updateUI();
         
@@ -903,10 +987,15 @@
 
     function startGame() {
         hideAllScreens();
+        
+        // Инициализация звука (разрешается только после клика пользователя)
+        sounds.init();
+
         if(gameState === 'START') {
             if (document.getElementById('gyroToggle').checked) {
                 requestGyro();
             }
+            sounds.start(); // Звук начала игры
         }
 
         if(gameState === 'START' || gameState === 'GAMEOVER') {

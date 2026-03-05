@@ -68,7 +68,8 @@
 
         /* Цвета для кнопок при наведении */
         .btn-game.flexis { border-color: #4CAF50; }
-        .btn-game.other { border-color: #2196F3; }
+        .btn-game.BOUNCE { border-color: #2196F3; }
+        .btn-game.TANKS { border-color: #FF9800; } /* Цвет новой кнопки */
 
         .btn-game:hover {
             transform: translateY(-3px);
@@ -76,7 +77,8 @@
         }
 
         .btn-game.flexis:hover { background: #4CAF50; color: #000; }
-        .btn-game.other:hover { background: #2196F3; color: #000; }
+        .btn-game.BOUNCE:hover { background: #2196F3; color: #000; }
+        .btn-game.TANKS:hover { background: #FF9800; color: #000; } /* Эффект наведения новой кнопки */
 
         .btn-game:active {
             transform: translateY(2px);
@@ -96,8 +98,13 @@
         </a>
 
         <!-- Ссылка на вашу вторую игру -->
-        <a href="BOUNCE.html" class="btn-game other">
+        <a href="BOUNCE.html" class="btn-game BOUNCE">
             🔵 BOUNCE
+        </a>
+
+        <!-- Ссылка на новую (третью) игру -->
+        <a href="TANKS.html" class="btn-game TANKS">
+            🟠 TANKS
         </a>
     </div>
 

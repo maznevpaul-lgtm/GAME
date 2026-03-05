@@ -28,10 +28,31 @@
             background-color: #050505;
         }
 
-        #score-board {
+        #home-btn {
             position: absolute;
             top: 15px;
             left: 15px;
+            padding: 8px 12px;
+            font-size: 14px;
+            background: #1a1a1a;
+            color: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 105; /* Поверх стартового экрана */
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #home-btn:active { background: #4CAF50; transform: translateY(2px); border-color: #4CAF50; }
+
+        #score-board {
+            position: absolute;
+            top: 15px;
+            right: 15px; /* Перенесли вправо, чтобы освободить место для кнопки меню */
             font-size: 32px;
             font-weight: 900;
             color: #4CAF50;
@@ -82,7 +103,7 @@
             justify-content: space-between;
             padding: 15px 20px;
             box-sizing: border-box;
-            margin-top: 10px; /* Теперь кнопки привязаны жестко к стакану, а не к низу экрана */
+            margin-top: 10px;
         }
 
         .control-group {
@@ -114,7 +135,6 @@
             box-shadow: 0 0px 0 #000;
         }
 
-        /* Умное масштабирование с подтягиванием кнопок вверх */
         @media (max-height: 850px) {
             #game-wrapper { transform: scale(0.85); transform-origin: top; margin-bottom: -90px; }
         }
@@ -133,12 +153,14 @@
 <body>
 
     <div id="game-wrapper">
+        <a href="index.html" id="home-btn">🏠 В меню</a>
         <div id="score-board"><span id="score">0</span></div>
         
         <div id="start-screen">
             <h1 class="green">FLEXIS</h1>
-            <p style="color: #666; margin-bottom: 25px;">Tetris with physics</p>
-            <button class="btn" onclick="startGame()">ИГРАТЬ</button>
+            <p style="color: #666; margin-bottom: 25px;">Тетрис с физикой</p>
+            <button class="btn" style="margin-bottom: 15px;" onclick="startGame()">ИГРАТЬ</button>
+            <button id="mute-btn" class="btn" onclick="toggleMute()" style="background: #1a1a1a; border: 2px solid #333; font-size: 16px; padding: 10px 30px;">🔊 Звук: ВКЛ</button>
         </div>
 
         <div id="game-over">
@@ -162,6 +184,69 @@
     </div>
 
     <script>
+        // --- ЗВУКОВОЙ ДВИЖОК ---
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-btn').innerText = isMuted ? '🔇 Звук: ВЫКЛ' : '🔊 Звук: ВКЛ';
+        }
+
+        function playSound(type) {
+            if (isMuted) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'start') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554, now + 0.1);
+                osc.frequency.setValueAtTime(659, now + 0.2);
+                gainNode.gain.setValueAtTime(0.05, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'lock') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'clear') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(1760, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'gameover') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                osc.start(now);
+                osc.stop(now + 0.8);
+            }
+        }
+
         const { Engine, Render, Runner, Bodies, Body, Composite, Events, Vector, Sleeping } = Matter;
 
         const GAME_WIDTH = 360;
@@ -297,6 +382,7 @@
             });
 
             lockedBodies.push(piece);
+            playSound('lock'); // Звук фиксации
             checkGameOver();
             setTimeout(() => { if (!isGameOver) spawnPiece(); }, 150);
         }
@@ -368,6 +454,7 @@
                 lockedBodies = nextLockedBodies;
                 score += partsToRemove.size * 10;
                 document.getElementById('score').innerText = score;
+                playSound('clear'); // Звук удаления линии
             }
         }
 
@@ -376,9 +463,12 @@
                 if (!body) return;
                 const highestPoint = body.bounds.min.y;
                 if (highestPoint < 80 && Math.abs(body.velocity.y) < 0.1) {
-                    isGameOver = true;
-                    document.getElementById('final-score').innerText = score;
-                    document.getElementById('game-over').style.display = 'flex';
+                    if (!isGameOver) { // Чтобы звук играл только один раз
+                        isGameOver = true;
+                        playSound('gameover'); // Звук проигрыша
+                        document.getElementById('final-score').innerText = score;
+                        document.getElementById('game-over').style.display = 'flex';
+                    }
                 }
             });
         }
@@ -429,6 +519,8 @@
         Events.on(engine, 'collisionStart', () => wakeAll());
 
         window.startGame = () => {
+            initAudio(); // Включаем аудио при первом клике пользователя
+            playSound('start'); // Звук старта
             document.getElementById('start-screen').style.display = 'none';
             isGameStarted = true;
             spawnPiece();

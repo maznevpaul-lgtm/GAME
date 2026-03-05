@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Танки: Эволюция</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            touch-action: none; /* Запрет свайпов на мобильных */
+            overflow: hidden;
+        }
+        #game-wrapper {
+            width: 100%;
+            max-width: 488px; /* 480 + 8px border */
+            margin: 0 auto;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #111;
+            border: 4px solid #4a4a4a;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+        }
+        .hidden { display: none !important; }
+        
+        /* Виртуальные кнопки для мобильных */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 150px;
+        }
+        .btn {
+            background: #333;
+            border: 2px solid #555;
+            color: white;
+            border-radius: 8px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            cursor: pointer;
+        }
+        .btn:active { background: #555; }
+        .btn-fire {
+            background: #b91c1c;
+            border-color: #f87171;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+        .btn-fire:active { background: #ef4444; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center">
+
+    <!-- Кнопка возврата в меню -->
+    <a href="index.html" class="absolute top-2 left-2 sm:top-4 sm:left-4 z-50 bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-3 sm:px-4 rounded border-2 border-gray-600 transition-colors shadow-lg text-xs sm:text-sm flex items-center gap-2 no-underline cursor-pointer">
+        🏠 В меню
+    </a>
+
+    <div id="game-wrapper">
+        <!-- Верхний интерфейс -->
+        <div class="w-full flex justify-between items-center mb-1 px-1 text-xs sm:text-sm font-bold">
+            <div class="text-yellow-400">СЧЕТ: <span id="scoreUI">0</span></div>
+            <div class="text-blue-300">УРОВ: <span id="levelUI">1</span></div>
+            <div class="text-green-400">ЖИЗНИ: <span id="livesUI">3</span></div>
+            <div class="text-purple-400">ПОПЫТКИ: <span id="continuesUI">3</span></div>
+        </div>
+        <div class="w-full text-center mb-2 font-bold text-gray-300 bg-gray-800 rounded py-1 border border-gray-600 text-xs sm:text-sm">
+            <span id="objectiveUI">ЦЕЛЬ: УНИЧТОЖИТЬ ВСЕХ (ОСТАЛОСЬ 5)</span>
+        </div>
+
+        <!-- Контейнер игры -->
+        <div id="game-container">
+            <canvas id="gameCanvas" width="480" height="480"></canvas>
+            
+            <!-- Стартовый экран -->
+            <div id="startScreen" class="overlay">
+                <h1 class="text-4xl font-bold text-yellow-500 mb-2 tracking-widest">ТАНКИ</h1>
+                <h2 class="text-xl text-white mb-6">КАМПАНИЯ</h2>
+                <p class="mb-6 text-gray-300 text-sm max-w-xs">
+                    Управление: WASD / Стрелки.<br>Огонь: ПРОБЕЛ.<br><br>
+                    Настройте звук перед игрой:
+                </p>
+                <button id="startBtn" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-3 px-8 rounded border-4 border-yellow-700 text-xl transition-colors">
+                    В БОЙ!
+                </button>
+                <button id="muteBtn" class="mt-6 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded border-2 border-green-700 text-sm transition-colors">
+                    ЗВУК: ВКЛ
+                </button>
+            </div>
+
+            <!-- Экран перехода между уровнями -->
+            <div id="transitionScreen" class="overlay hidden">
+                <h1 class="text-3xl font-bold text-green-400 mb-4 whitespace-pre-line" id="transitionText">УРОВЕНЬ ПРОЙДЕН!</h1>
+            </div>
+
+            <!-- Экран проигрыша -->
+            <div id="gameOverScreen" class="overlay hidden">
+                <h1 class="text-4xl font-bold text-red-500 mb-2">МИССИЯ ПРОВАЛЕНА</h1>
+                <p class="text-xl mb-6">Итоговый счет: <span id="finalScore" class="text-yellow-400">0</span></p>
+                <button id="restartBtn" class="bg-white hover:bg-gray-200 text-black font-bold py-3 px-8 rounded border-4 border-gray-400 text-xl transition-colors">
+                    ЗАНОВО
+                </button>
+            </div>
+        </div>
+
+        <!-- Мобильное управление -->
+        <div class="w-full mt-6 flex justify-between sm:hidden">
+            <div class="controls-grid">
+                <div></div>
+                <div class="btn" id="btn-up">▲</div>
+                <div></div>
+                <div class="btn" id="btn-left">◀</div>
+                <div class="btn" id="btn-down">▼</div>
+                <div class="btn" id="btn-right">▶</div>
+            </div>
+            <div class="flex items-center justify-center">
+                <div class="btn-fire" id="btn-fire">ОГОНЬ</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * НАСТРОЙКИ И КОНСТАНТЫ
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const TILE_SIZE = 32; 
+const COLS = 15; 
+let ROWS = 15;   
+
+const EMPTY = 0;
+const BRICK = 1;
+const STEEL = 2;
+const BASE = 3;
+const ENEMY_BASE = 4;
+
+const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
+const BONUS_TYPES = ['LIFE', 'SHIELD', 'FIRE', 'BASE'];
+
+/**
+ * 8-БИТНЫЙ АУДИО ДВИЖОК (Web Audio API)
+ */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const sfx = {
+    isMuted: false,
+    init() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    },
+    createNoiseBuffer() {
+        const bufferSize = audioCtx.sampleRate * 2; 
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+        return buffer;
+    },
+    noiseBuffer: null,
+    
+    playShoot(isPlayer = true) {
+        if (this.isMuted || audioCtx.state === 'suspended') return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(isPlayer ? 400 : 300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(isPlayer ? 0.05 : 0.02, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    },
+    
+    playExplosion(isBig = false) {
+        if (this.isMuted || audioCtx.state === 'suspended') return;
+        if (!this.noiseBuffer) this.noiseBuffer = this.createNoiseBuffer();
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = isBig ? 800 : 2000; // Большой взрыв - глуше, маленький - звонче
+        const gain = audioCtx.createGain();
+        
+        let dur = isBig ? 0.5 : 0.15;
+        let vol = isBig ? 0.3 : 0.1;
+        
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        noise.start();
+        noise.stop(audioCtx.currentTime + dur);
+    },
+
+    playArmorHit() {
+        if (this.isMuted || audioCtx.state === 'suspended') return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+    },
+
+    playBonus() {
+        this.playMelody([[600,0.1], [800,0.2]]);
+    },
+
+    engineOsc: null,
+    engineGain: null,
+    startEngine() {
+        if (this.isMuted || this.engineOsc || audioCtx.state === 'suspended') return;
+        this.engineOsc = audioCtx.createOscillator();
+        this.engineGain = audioCtx.createGain();
+        this.engineOsc.type = 'square';
+        this.engineOsc.frequency.value = 55; // Низкий гул
+        this.engineGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        this.engineOsc.connect(this.engineGain);
+        this.engineGain.connect(audioCtx.destination);
+        this.engineOsc.start();
+    },
+    
+    stopEngine() {
+        if (this.engineOsc) {
+            this.engineGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+            this.engineOsc.stop(audioCtx.currentTime + 0.1);
+            this.engineOsc = null;
+        }
+    },
+
+    playMelody(notes, type='square') { 
+        if (this.isMuted || audioCtx.state === 'suspended') return;
+        let time = audioCtx.currentTime;
+        notes.forEach(([freq, dur]) => {
+            if (freq > 0) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.05, time);
+                gain.gain.linearRampToValueAtTime(0, time + dur * 0.9);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(time);
+                osc.stop(time + dur);
+            }
+            time += dur;
+        });
+    },
+
+    playStart() {
+        // Узнаваемый короткий мотив
+        this.playMelody([[330,0.15], [330,0.15], [330,0.15], [261,0.15], [330,0.15], [392,0.3]]);
+    },
+    playWin() {
+        this.playMelody([[261,0.1],[330,0.1],[392,0.1],[523,0.4]]);
+    },
+    playLose() {
+        this.playMelody([[392,0.2],[370,0.2],[349,0.2],[330,0.8]], 'sawtooth');
+    }
+};
+
+
+/**
+ * СОСТОЯНИЕ ИГРЫ
+ */
+let grid = [];
+let player = null;
+let enemies = [];
+let bullets = [];
+let particles = [];
+let bonuses = [];
+let score = 0;
+let lives = 3;
+let continues = 3;
+let level = 1;
+let levelType = 'CLASSIC'; 
+let gameState = 'START'; 
+let baseAlive = true;
+
+let enemiesToSpawn = 0;
+let enemySpawnTimer = 0;
+const ENEMY_SPAWN_RATE = 2500;
+let MAX_ENEMIES_ON_SCREEN = 3;
+
+let camera = { x: 0, y: 0 };
+let enemyBaseCol = 7;
+let baseDefTimer = 0;
+
+// Сохранение состояния для повторной попытки
+let savedGrid = [];
+let savedLevelType = 'CLASSIC';
+let savedEnemyBaseCol = 7;
+let savedEnemiesToSpawn = 0;
+
+let lastTime = 0;
+let animationId;
+
+const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, ' ': false };
+let touchDirs = { up: false, down: false, left: false, right: false };
+let touchFire = false;
+
+/**
+ * ГЕНЕРАЦИЯ УРОВНЯ
+ */
+function generateLevel() {
+    let validLevel = false;
+    levelType = level === 1 ? 'CLASSIC' : (Math.random() > 0.5 ? 'CLASSIC' : 'ASSAULT');
+    
+    if (levelType === 'CLASSIC') {
+        ROWS = 15;
+        enemiesToSpawn = Math.min(4 + level * 2, 15);
+        MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 6);
+    } else {
+        ROWS = Math.floor(Math.random() * 15) + 20; 
+        enemiesToSpawn = Math.min(4 + level * 2, 25); 
+        MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8);
+    }
+    
+    baseAlive = true;
+    baseDefTimer = 0;
+    updateObjectiveUI();
+
+    while (!validLevel) {
+        grid = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+        let safeZones = [];
+
+        if (levelType === 'CLASSIC') {
+            grid[14][7] = BASE;
+            grid[14][6] = BRICK; grid[14][8] = BRICK;
+            grid[13][6] = BRICK; grid[13][7] = BRICK; grid[13][8] = BRICK;
+            
+            safeZones.push({r: 14, c: 4}); 
+            safeZones.push({r: 0, c: 0}, {r: 0, c: 7}, {r: 0, c: 14}); 
+        } else {
+            enemyBaseCol = Math.floor(Math.random() * 9) + 3;
+            grid[1][enemyBaseCol] = ENEMY_BASE;
+            
+            for(let r=0; r<=2; r++) {
+                for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
+                    if(r===1 && c===enemyBaseCol) continue;
+                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK;
+                }
+            }
+            safeZones.push({r: ROWS - 1, c: 7}); 
+            safeZones.push({r: 4, c: 2}, {r: 4, c: 7}, {r: 4, c: 12}); 
+        }
+
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c] !== EMPTY) continue;
+                let inSafeZone = false;
+                for (let zone of safeZones) {
+                    if (Math.abs(r - zone.r) <= 1 && Math.abs(c - zone.c) <= 1) {
+                        inSafeZone = true; break;
+                    }
+                }
+                if (!inSafeZone) {
+                    let rand = Math.random();
+                    if (rand < 0.20) grid[r][c] = BRICK; 
+                    else if (rand < 0.28) grid[r][c] = STEEL;
+                }
+            }
+        }
+        validLevel = checkLevelPlayability();
+    }
+
+    // Сохраняем состояние для попыток (ретраев)
+    savedGrid = grid.map(row => [...row]);
+    savedLevelType = levelType;
+    savedEnemyBaseCol = enemyBaseCol;
+    savedEnemiesToSpawn = enemiesToSpawn;
+}
+
+function checkLevelPlayability() {
+    let visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    let startR = levelType === 'CLASSIC' ? 14 : ROWS - 1;
+    let startC = levelType === 'CLASSIC' ? 4 : 7;
+    let queue = [{ r: startR, c: startC }];
+    visited[startR][startC] = true;
+
+    while (queue.length > 0) {
+        let curr = queue.shift();
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (let dir of directions) {
+            let nr = curr.r + dir[0]; let nc = curr.c + dir[1];
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                if (!visited[nr][nc] && grid[nr][nc] !== STEEL) {
+                    visited[nr][nc] = true; queue.push({ r: nr, c: nc });
+                }
+            }
+        }
+    }
+
+    if (levelType === 'CLASSIC') {
+        if (!visited[0][0] || !visited[0][7] || !visited[0][14]) return false;
+        if (!visited[13][7]) return false; 
+    } else {
+        if (!visited[2][enemyBaseCol] && !visited[1][enemyBaseCol-1] && !visited[1][enemyBaseCol+1]) return false;
+    }
+    return true; 
+}
+
+function updateObjectiveUI() {
+    const objUI = document.getElementById('objectiveUI');
+    if (levelType === 'CLASSIC') {
+        objUI.innerText = `ЦЕЛЬ: ЗАЩИТИТЬ БАЗУ (ВРАГОВ: ${enemiesToSpawn + enemies.length})`;
+        objUI.className = "w-full text-center mb-2 font-bold text-green-300 bg-gray-800 rounded py-1 border border-green-700";
+    } else {
+        objUI.innerText = `ЦЕЛЬ: ПРОРВАТЬСЯ К КРАСНОМУ ФОРТУ`;
+        objUI.className = "w-full text-center mb-2 font-bold text-red-300 bg-gray-800 rounded py-1 border border-red-700";
+    }
+}
+
+/**
+ * КЛАССЫ СУЩНОСТЕЙ
+ */
+class Bonus {
+    constructor(x, y, type) {
+        this.x = x; this.y = y; this.w = 20; this.h = 20;
+        this.type = type;
+        this.blinkTimer = 0; this.markForDeletion = false;
+        this.lifeTime = 15000; 
+    }
+    update(dt) {
+        this.lifeTime -= dt;
+        if (this.lifeTime <= 0) this.markForDeletion = true;
+        this.blinkTimer += dt;
+    }
+    draw(ctx) {
+        if (this.blinkTimer % 400 < 200 && this.lifeTime > 3000) return; 
+        if (this.blinkTimer % 200 < 100 && this.lifeTime <= 3000) return;
+
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        
+        let char = '';
+        if(this.type === 'LIFE') { ctx.fillStyle = '#ef4444'; char = '♥'; }
+        else if(this.type === 'SHIELD') { ctx.fillStyle = '#3b82f6'; char = 'S'; }
+        else if(this.type === 'FIRE') { ctx.fillStyle = '#eab308'; char = 'F'; }
+        else if(this.type === 'BASE') { ctx.fillStyle = '#22c55e'; char = 'B'; }
+        
+        ctx.fillRect(this.x+2, this.y+2, this.w-4, this.h-4);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(char, this.x + this.w/2, this.y + this.h/2 + 2);
+    }
+}
+
+class Tank {
+    constructor(x, y, isPlayer, eType = 'NORMAL') {
+        this.w = 28; this.h = 28;
+        this.x = x * TILE_SIZE + (TILE_SIZE - this.w)/2; 
+        this.y = y * TILE_SIZE + (TILE_SIZE - this.h)/2;
+        this.isPlayer = isPlayer;
+        this.dir = DIR_UP;
+        this.speed = isPlayer ? 120 : 80; 
+        this.cooldown = 0;
+        this.markForDeletion = false;
+        
+        this.eType = eType;
+        this.hp = 1;
+        this.shieldTimer = isPlayer ? 3000 : 0; 
+        this.rapidTimer = 0;
+
+        if (!isPlayer) {
+            this.dir = DIR_DOWN;
+            this.aiTimer = 0;
+            this.blockedTimer = 0;
+            if (eType === 'FAST') this.speed = 140;
+            if (eType === 'ARMORED') this.hp = 3;
+            if (eType === 'RAPID') this.speed = 70;
+        }
+    }
+
+    update(dt) {
+        if (this.cooldown > 0) this.cooldown -= dt;
+        if (this.shieldTimer > 0) this.shieldTimer -= dt;
+        if (this.rapidTimer > 0) this.rapidTimer -= dt;
+
+        let dx = 0, dy = 0;
+        let moving = false;
+
+        if (this.isPlayer) {
+            if (keys.ArrowUp || keys.w || touchDirs.up) { dy = -1; this.dir = DIR_UP; moving = true; }
+            else if (keys.ArrowDown || keys.s || touchDirs.down) { dy = 1; this.dir = DIR_DOWN; moving = true; }
+            else if (keys.ArrowLeft || keys.a || touchDirs.left) { dx = -1; this.dir = DIR_LEFT; moving = true; }
+            else if (keys.ArrowRight || keys.d || touchDirs.right) { dx = 1; this.dir = DIR_RIGHT; moving = true; }
+
+            if ((keys[' '] || touchFire) && this.cooldown <= 0) this.shoot();
+            
+            // Звук мотора для игрока
+            if (moving && gameState === 'PLAYING') sfx.startEngine();
+            else sfx.stopEngine();
+
+        } else {
+            moving = true;
+            this.aiTimer -= dt;
+            if (this.aiTimer <= 0) {
+                this.aiTimer = 500 + Math.random() * 800;
+                let targetX = player ? player.x : null;
+                let targetY = player ? player.y : null;
+
+                if (levelType === 'CLASSIC' && baseAlive && Math.random() < 0.3) {
+                    targetX = 7 * TILE_SIZE; targetY = 14 * TILE_SIZE;
+                }
+
+                if (targetX !== null && targetY !== null && Math.random() < 0.7) {
+                    let diffX = targetX - this.x; let diffY = targetY - this.y;
+                    if (Math.abs(diffX) > Math.abs(diffY)) this.dir = diffX > 0 ? DIR_RIGHT : DIR_LEFT;
+                    else this.dir = diffY > 0 ? DIR_DOWN : DIR_UP;
+                } else {
+                    this.dir = Math.floor(Math.random() * 4);
+                }
+            }
+
+            if (this.dir === DIR_UP) dy = -1;
+            if (this.dir === DIR_DOWN) dy = 1;
+            if (this.dir === DIR_LEFT) dx = -1;
+            if (this.dir === DIR_RIGHT) dx = 1;
+
+            if (Math.random() < 0.04 && this.cooldown <= 0) this.shoot();
+        }
+
+        if (moving) {
+            let nextX = this.x + dx * this.speed * (dt / 1000);
+            let nextY = this.y + dy * this.speed * (dt / 1000);
+
+            if (nextX < 0) nextX = 0;
+            if (nextY < 0) nextY = 0;
+            if (nextX + this.w > COLS * TILE_SIZE) nextX = COLS * TILE_SIZE - this.w;
+            if (nextY + this.h > ROWS * TILE_SIZE) nextY = ROWS * TILE_SIZE - this.h;
+
+            if (!this.checkCollision(nextX, nextY)) {
+                this.x = nextX; this.y = nextY;
+                if(!this.isPlayer) this.blockedTimer = 0;
+            } else if (!this.isPlayer) {
+                this.blockedTimer += dt;
+                if (this.blockedTimer > 200) {
+                    let possibleDirs = [DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT].filter(d => d !== this.dir);
+                    this.dir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                    this.aiTimer = 600; this.blockedTimer = 0;
+                }
+            }
+        }
+    }
+
+    checkCollision(nextX, nextY) {
+        let leftCol = Math.floor(nextX / TILE_SIZE); let rightCol = Math.floor((nextX + this.w - 0.1) / TILE_SIZE);
+        let topRow = Math.floor(nextY / TILE_SIZE); let bottomRow = Math.floor((nextY + this.h - 0.1) / TILE_SIZE);
+
+        for (let r = topRow; r <= bottomRow; r++) {
+            for (let c = leftCol; c <= rightCol; c++) {
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                    if (grid[r][c] !== EMPTY) return true; 
+                }
+            }
+        }
+        
+        const allTanks = [player, ...enemies].filter(t => t && t !== this);
+        for (let other of allTanks) {
+            if (nextX < other.x + other.w && nextX + this.w > other.x &&
+                nextY < other.y + other.h && nextY + this.h > other.y) return true;
+        }
+        return false;
+    }
+
+    shoot() {
+        const activeBullets = bullets.filter(b => b.ownerId === this);
+        let maxBul = this.isPlayer ? (this.rapidTimer > 0 ? 3 : 1) : (this.eType === 'RAPID' ? 2 : 1);
+        if (activeBullets.length >= maxBul) return;
+
+        let bx = this.x + this.w / 2; let by = this.y + this.h / 2;
+        let bdx = 0, bdy = 0;
+
+        if (this.dir === DIR_UP) { bdy = -1; by = this.y - 4; }
+        if (this.dir === DIR_DOWN) { bdy = 1; by = this.y + this.h + 4; }
+        if (this.dir === DIR_LEFT) { bdx = -1; bx = this.x - 4; }
+        if (this.dir === DIR_RIGHT) { bdx = 1; bx = this.x + this.w + 4; }
+
+        bullets.push(new Bullet(bx, by, bdx, bdy, this.isPlayer, this));
+        
+        sfx.playShoot(this.isPlayer);
+
+        if (this.isPlayer) this.cooldown = this.rapidTimer > 0 ? 150 : 400;
+        else this.cooldown = this.eType === 'RAPID' ? 200 : 500;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+        
+        if (this.dir === DIR_RIGHT) ctx.rotate(Math.PI / 2);
+        else if (this.dir === DIR_DOWN) ctx.rotate(Math.PI);
+        else if (this.dir === DIR_LEFT) ctx.rotate(-Math.PI / 2);
+
+        if (this.isPlayer) ctx.fillStyle = '#eab308'; 
+        else if (this.eType === 'FAST') ctx.fillStyle = '#f472b6'; 
+        else if (this.eType === 'ARMORED') ctx.fillStyle = '#14532d'; 
+        else if (this.eType === 'RAPID') ctx.fillStyle = '#f97316'; 
+        else ctx.fillStyle = '#cbd5e1'; 
+
+        ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-this.w/2, -this.h/2, 6, this.h);
+        ctx.fillRect(this.w/2 - 6, -this.h/2, 6, this.h);
+        ctx.fillStyle = this.isPlayer ? '#16a34a' : '#ef4444';
+        ctx.fillRect(-3, -this.h/2 - 8, 6, 18);
+        ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        if (this.shieldTimer > 0) {
+            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(this.x + this.w/2, this.y + this.h/2, 20, 0, Math.PI * 2); ctx.stroke();
+        }
+    }
+}
+
+class Bullet {
+    constructor(x, y, dx, dy, isPlayer, ownerId) {
+        this.x = x; this.y = y; this.dx = dx; this.dy = dy;
+        this.speed = (isPlayer && ownerId.rapidTimer > 0) ? 450 : 350;
+        this.isPlayer = isPlayer; this.ownerId = ownerId;
+        this.radius = 4; this.markForDeletion = false;
+    }
+
+    update(dt) {
+        this.x += this.dx * this.speed * (dt / 1000);
+        this.y += this.dy * this.speed * (dt / 1000);
+
+        if (this.x < 0 || this.x > COLS * TILE_SIZE || this.y < 0 || this.y > ROWS * TILE_SIZE) {
+            this.markForDeletion = true;
+            createExplosion(this.x, this.y, '#aaa', 5);
+            sfx.playArmorHit(); // Звук попадания в стену/край экрана
+            return;
+        }
+
+        let col = Math.floor(this.x / TILE_SIZE);
+        let row = Math.floor(this.y / TILE_SIZE);
+
+        if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+            let cell = grid[row][col];
+            if (cell !== EMPTY) {
+                this.markForDeletion = true;
+                createExplosion(this.x, this.y, '#ff9900', 10);
+
+                if (cell === BRICK) {
+                    grid[row][col] = EMPTY; 
+                    sfx.playExplosion(false); // Звук разрушения кирпича
+                } else if (cell === STEEL) {
+                    sfx.playArmorHit(); // Звук попадания в сталь
+                } else if (cell === BASE) {
+                    baseAlive = false;
+                    createExplosion(this.x, this.y, '#ff0000', 40);
+                    sfx.playExplosion(true); // Мощный взрыв
+                    levelFailed("БАЗА УНИЧТОЖЕНА!");
+                    return;
+                } else if (cell === ENEMY_BASE && this.isPlayer) {
+                    grid[row][col] = EMPTY;
+                    createExplosion(this.x, this.y, '#ff00ff', 50);
+                    sfx.playExplosion(true); // Мощный взрыв форта
+                    winLevel(); 
+                }
+                return;
+            }
+        }
+
+        if (this.isPlayer) {
+            for (let enemy of enemies) {
+                if (!enemy.markForDeletion && this.checkTankHit(enemy)) {
+                    this.markForDeletion = true;
+                    enemy.hp--;
+                    
+                    if (enemy.hp <= 0) {
+                        enemy.markForDeletion = true;
+                        score += (enemy.eType === 'NORMAL' ? 100 : 300);
+                        document.getElementById('scoreUI').innerText = score;
+                        createExplosion(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ff4400', 25);
+                        sfx.playExplosion(true); // Взрыв танка
+                        updateObjectiveUI();
+                        
+                        if (Math.random() < 0.20) {
+                            let bType = BONUS_TYPES[Math.floor(Math.random() * BONUS_TYPES.length)];
+                            bonuses.push(new Bonus(enemy.x + 4, enemy.y + 4, bType));
+                        }
+                    } else {
+                        createExplosion(this.x, this.y, '#fff', 8);
+                        sfx.playArmorHit(); // Попали по броне
+                    }
+                    break;
+                }
+            }
+        } else {
+            if (player && !player.markForDeletion && this.checkTankHit(player)) {
+                this.markForDeletion = true;
+                if (player.shieldTimer > 0) {
+                    createExplosion(this.x, this.y, '#3b82f6', 10); 
+                    sfx.playArmorHit(); // Попали в щит
+                } else {
+                    playerDeath();
+                }
+            }
+        }
+    }
+
+    checkTankHit(tank) {
+        return this.x > tank.x && this.x < tank.x + tank.w &&
+               this.y > tank.y && this.y < tank.y + tank.h;
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = this.isPlayer ? '#fff' : '#fca5a5';
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y; this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 80 + 30;
+        this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+        this.life = 1.0; this.decay = Math.random() * 2 + 1;
+    }
+    update(dt) {
+        this.x += this.vx * (dt / 1000); this.y += this.vy * (dt / 1000);
+        this.life -= this.decay * (dt / 1000);
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, 4, 4);
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+function createExplosion(x, y, color, count) {
+    for(let i=0; i<count; i++) particles.push(new Particle(x, y, color));
+}
+
+/**
+ * УПРАВЛЕНИЕ ИГРОЙ
+ */
+function initGame() {
+    sfx.init(); // Инициализация звука
+    score = 0;
+    lives = 3;
+    continues = 3;
+    level = 1;
+    document.getElementById('scoreUI').innerText = score;
+    document.getElementById('livesUI').innerText = lives;
+    document.getElementById('continuesUI').innerText = continues;
+    initLevel(false);
+}
+
+function initLevel(retry = false) {
+    bullets = []; particles = []; enemies = []; bonuses = [];
+    document.getElementById('levelUI').innerText = level;
+    
+    if (!retry) {
+        generateLevel();
+    } else {
+        // Восстановление уровня при потере попытки
+        grid = savedGrid.map(row => [...row]);
+        levelType = savedLevelType;
+        enemyBaseCol = savedEnemyBaseCol;
+        enemiesToSpawn = savedEnemiesToSpawn;
+        ROWS = grid.length;
+        baseAlive = true;
+        baseDefTimer = 0;
+        updateObjectiveUI();
+    }
+    
+    if (levelType === 'CLASSIC') player = new Tank(4, 14, true); 
+    else player = new Tank(7, ROWS - 1, true);
+    
+    camera.y = levelType === 'ASSAULT' ? (ROWS * TILE_SIZE - canvas.height) : 0;
+    
+    gameState = 'PLAYING';
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('transitionScreen').classList.add('hidden');
+    
+    sfx.playStart(); // Мелодия старта
+
+    if (animationId) cancelAnimationFrame(animationId);
+    lastTime = performance.now();
+    animationId = requestAnimationFrame(gameLoop);
+}
+
+function winLevel() {
+    if (gameState === 'LEVEL_TRANSITION' || gameState === 'DYING') return;
+    gameState = 'LEVEL_TRANSITION';
+    
+    sfx.stopEngine();
+    sfx.playWin(); // Победная мелодия
+
+    level++;
+    lives = 3; // Восстанавливаем жизни
+    document.getElementById('livesUI').innerText = lives;
+
+    let transitionText = document.getElementById('transitionText');
+    transitionText.innerHTML = `УРОВЕНЬ ПРОЙДЕН!<br><br><span class="text-white text-xl">ПРИГОТОВЬТЕСЬ К УРОВНЮ ${level}</span>`;
+    document.getElementById('transitionScreen').classList.remove('hidden');
+    
+    setTimeout(() => { initLevel(false); }, 3500); 
+}
+
+function levelFailed(reason) {
+    if (gameState === 'DYING' || gameState === 'GAMEOVER' || gameState === 'LEVEL_TRANSITION') return;
+    gameState = 'DYING'; 
+    sfx.stopEngine();
+    sfx.playLose();
+    
+    setTimeout(() => {
+        if (continues > 0) {
+            continues--;
+            document.getElementById('continuesUI').innerText = continues;
+            
+            gameState = 'LEVEL_TRANSITION';
+            let transitionText = document.getElementById('transitionText');
+            transitionText.innerHTML = `${reason}<br><br><span class="text-white text-xl">ОСТАЛОСЬ ПОПЫТОК: ${continues}</span>`;
+            document.getElementById('transitionScreen').classList.remove('hidden');
+            
+            setTimeout(() => { 
+                lives = 3; 
+                document.getElementById('livesUI').innerText = lives;
+                initLevel(true); // Запускаем ретрай
+            }, 3500);
+        } else {
+            gameOver();
+        }
+    }, 1500); // Даем 1.5 секунды посмотреть на взрыв
+}
+
+function playerDeath() {
+    createExplosion(player.x + player.w/2, player.y + player.h/2, '#ff0000', 40);
+    sfx.playExplosion(true);
+    sfx.stopEngine();
+    
+    player.markForDeletion = true;
+    lives--;
+    document.getElementById('livesUI').innerText = lives;
+    
+    if (lives <= 0) {
+        levelFailed("ТАНКИ КОНЧИЛИСЬ!");
+    } else {
+        setTimeout(() => {
+            if(gameState === 'PLAYING') {
+                player = new Tank(levelType==='CLASSIC'?4:7, levelType==='CLASSIC'?14:ROWS-1, true);
+            }
+        }, 1000);
+    }
+}
+
+function gameOver() {
+    gameState = 'GAMEOVER';
+    document.getElementById('gameOverScreen').classList.remove('hidden');
+    document.getElementById('finalScore').innerText = score;
+}
+
+function spawnEnemy() {
+    if (enemies.length >= MAX_ENEMIES_ON_SCREEN || enemiesToSpawn <= 0) return;
+    
+    let eType = 'NORMAL';
+    if (level >= 3 && Math.random() < Math.min(0.1 + level * 0.05, 0.5)) {
+        let types = ['FAST', 'ARMORED', 'RAPID'];
+        eType = types[Math.floor(Math.random() * types.length)];
+    }
+
+    let spawnPoints = levelType === 'CLASSIC' ? 
+        [{c: 0, r: 0}, {c: 7, r: 0}, {c: 14, r: 0}] : 
+        [{c: 2, r: 4}, {c: 7, r: 4}, {c: 12, r: 4}]; 
+        
+    let validSpawns = spawnPoints.filter(pt => {
+        let px = pt.c * TILE_SIZE; let py = pt.r * TILE_SIZE;
+        for(let e of enemies) if(Math.abs(e.x - px) < TILE_SIZE && Math.abs(e.y - py) < TILE_SIZE) return false;
+        if(player && Math.abs(player.x - px) < TILE_SIZE && Math.abs(player.y - py) < TILE_SIZE) return false;
+        return true;
+    });
+
+    if (validSpawns.length > 0) {
+        let sp = validSpawns[Math.floor(Math.random() * validSpawns.length)];
+        enemies.push(new Tank(sp.c, sp.r, false, eType));
+        enemiesToSpawn--;
+        updateObjectiveUI();
+    }
+}
+
+function update(dt) {
+    if (gameState === 'GAMEOVER' || gameState === 'LEVEL_TRANSITION' || gameState === 'DYING') {
+        particles.forEach(p => p.update(dt));
+        particles = particles.filter(p => p.life > 0);
+        return;
+    }
+
+    if (levelType === 'CLASSIC' && enemiesToSpawn <= 0 && enemies.length === 0) {
+        winLevel();
+        return;
+    }
+
+    enemySpawnTimer -= dt;
+    if (enemySpawnTimer <= 0) {
+        spawnEnemy();
+        enemySpawnTimer = ENEMY_SPAWN_RATE;
+    }
+
+    if (baseDefTimer > 0) {
+        baseDefTimer -= dt;
+        if (baseDefTimer <= 0 && levelType === 'CLASSIC') {
+            let pts = [[14,6], [14,8], [13,6], [13,7], [13,8]];
+            pts.forEach(p => { if (grid[p[0]][p[1]] === STEEL) grid[p[0]][p[1]] = BRICK; });
+        }
+    }
+
+    if (player && !player.markForDeletion) {
+        player.update(dt);
+        
+        for (let bonus of bonuses) {
+            if (!bonus.markForDeletion && player.x < bonus.x + bonus.w && player.x + player.w > bonus.x &&
+                player.y < bonus.y + bonus.h && player.y + player.h > bonus.y) {
+                
+                bonus.markForDeletion = true;
+                score += 500;
+                document.getElementById('scoreUI').innerText = score;
+                sfx.playBonus(); // Звук бонуса
+
+                if (bonus.type === 'LIFE') {
+                    lives++; document.getElementById('livesUI').innerText = lives;
+                } else if (bonus.type === 'SHIELD') {
+                    player.shieldTimer = 10000;
+                } else if (bonus.type === 'FIRE') {
+                    player.rapidTimer = 10000;
+                } else if (bonus.type === 'BASE' && levelType === 'CLASSIC') {
+                    baseDefTimer = 15000; 
+                    let pts = [[14,6], [14,8], [13,6], [13,7], [13,8]];
+                    pts.forEach(p => { if (grid[p[0]][p[1]] !== BASE && grid[p[0]][p[1]] !== EMPTY) grid[p[0]][p[1]] = STEEL; });
+                }
+            }
+        }
+        
+        if (levelType === 'ASSAULT') {
+            let targetCamY = player.y - canvas.height / 2 + player.h / 2;
+            camera.y += (targetCamY - camera.y) * 0.1;
+            if (camera.y < 0) camera.y = 0;
+            if (camera.y > ROWS * TILE_SIZE - canvas.height) camera.y = ROWS * TILE_SIZE - canvas.height;
+        } else {
+            camera.y = 0;
+        }
+    }
+    
+    enemies.forEach(e => e.update(dt));
+    bullets.forEach(b => b.update(dt));
+    particles.forEach(p => p.update(dt));
+    bonuses.forEach(b => b.update(dt));
+
+    enemies = enemies.filter(e => !e.markForDeletion);
+    bullets = bullets.filter(b => !b.markForDeletion);
+    particles = particles.filter(p => p.life > 0);
+    bonuses = bonuses.filter(b => !b.markForDeletion);
+    if (player && player.markForDeletion) player = null;
+}
+
+function draw() {
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.save(); ctx.translate(0, -camera.y);
+
+    let startRow = Math.max(0, Math.floor(camera.y / TILE_SIZE));
+    let endRow = Math.min(ROWS - 1, Math.floor((camera.y + canvas.height) / TILE_SIZE) + 1);
+
+    for (let r = startRow; r <= endRow; r++) {
+        for (let c = 0; c < COLS; c++) {
+            let cell = grid[r][c]; let px = c * TILE_SIZE; let py = r * TILE_SIZE;
+
+            if (cell === BRICK) {
+                ctx.fillStyle = '#b94022'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#e67357'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(px, py + TILE_SIZE/2); ctx.lineTo(px + TILE_SIZE, py + TILE_SIZE/2);
+                ctx.moveTo(px + TILE_SIZE/2, py); ctx.lineTo(px + TILE_SIZE/2, py + TILE_SIZE/2); ctx.stroke();
+            } 
+            else if (cell === STEEL) {
+                ctx.fillStyle = '#ccc'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#fff'; ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+                ctx.fillStyle = '#999'; ctx.fillRect(px + 8, py + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+            }
+            else if (cell === BASE) {
+                if (baseAlive) {
+                    ctx.fillStyle = '#16a34a'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                    ctx.fillStyle = '#15803d';
+                    ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE/2 - 4, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = '#555'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                }
+            }
+            else if (cell === ENEMY_BASE) {
+                ctx.fillStyle = '#b91c1c'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#7f1d1d'; ctx.beginPath(); 
+                ctx.moveTo(px + TILE_SIZE/2, py + 4); ctx.lineTo(px + TILE_SIZE - 4, py + TILE_SIZE - 4);
+                ctx.lineTo(px + 4, py + TILE_SIZE - 4); ctx.fill();
+            }
+        }
+    }
+
+    bonuses.forEach(b => b.draw(ctx));
+    if (player && !player.markForDeletion) player.draw(ctx);
+    enemies.forEach(e => e.draw(ctx));
+    bullets.forEach(b => b.draw(ctx));
+    particles.forEach(p => p.draw(ctx));
+    ctx.restore();
+}
+
+function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    let dt = timestamp - lastTime; lastTime = timestamp;
+    if (dt > 100) dt = 16; 
+    update(dt); draw();
+
+    if (gameState === 'PLAYING' || gameState === 'LEVEL_TRANSITION' || gameState === 'DYING') {
+        animationId = requestAnimationFrame(gameLoop);
+    }
+}
+
+/**
+ * СОБЫТИЯ
+ */
+window.addEventListener('keydown', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+document.getElementById('startBtn').addEventListener('click', initGame);
+document.getElementById('restartBtn').addEventListener('click', () => { sfx.init(); initGame(); });
+
+document.getElementById('muteBtn').addEventListener('click', (e) => {
+    sfx.isMuted = !sfx.isMuted;
+    const btn = e.target;
+    if (sfx.isMuted) {
+        btn.innerText = 'ЗВУК: ВЫКЛ';
+        btn.classList.replace('bg-green-600', 'bg-red-600');
+        btn.classList.replace('hover:bg-green-500', 'hover:bg-red-500');
+        btn.classList.replace('border-green-700', 'border-red-700');
+    } else {
+        btn.innerText = 'ЗВУК: ВКЛ';
+        btn.classList.replace('bg-red-600', 'bg-green-600');
+        btn.classList.replace('hover:bg-red-500', 'hover:bg-green-500');
+        btn.classList.replace('border-red-700', 'border-green-700');
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+});
+
+const setupTouchBtn = (id, actionDown, actionUp) => {
+    const btn = document.getElementById(id);
+    const triggerDown = (e) => { e.preventDefault(); actionDown(); };
+    const triggerUp = (e) => { e.preventDefault(); actionUp(); };
+    
+    btn.addEventListener('mousedown', triggerDown);
+    btn.addEventListener('touchstart', triggerDown, {passive: false});
+    btn.addEventListener('mouseup', triggerUp);
+    btn.addEventListener('mouseleave', triggerUp);
+    btn.addEventListener('touchend', triggerUp);
+    btn.addEventListener('touchcancel', triggerUp);
+};
+
+setupTouchBtn('btn-up', () => touchDirs.up = true, () => touchDirs.up = false);
+setupTouchBtn('btn-down', () => touchDirs.down = true, () => touchDirs.down = false);
+setupTouchBtn('btn-left', () => touchDirs.left = true, () => touchDirs.left = false);
+setupTouchBtn('btn-right', () => touchDirs.right = true, () => touchDirs.right = false);
+setupTouchBtn('btn-fire', () => touchFire = true, () => touchFire = false);
+
+</script>
+</body>
+</html>
