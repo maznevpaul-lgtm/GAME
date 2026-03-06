@@ -50,15 +50,15 @@
         .controls-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 4px; /* Уменьшили зазор для лучшего скольжения */
-            width: 180px; /* Сделали крестовину пошире */
+            gap: 4px;
+            width: 180px;
         }
         .btn {
             background: #333;
             border: 2px solid #555;
             color: white;
             border-radius: 8px;
-            height: 56px; /* Увеличили высоту кнопок */
+            height: 56px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -66,7 +66,6 @@
             cursor: pointer;
             font-size: 1.25rem;
         }
-        /* Класс active-btn добавляется через JS при наведении пальца (скольжении) */
         .btn:active, .btn.active-btn { background: #555; border-color: #777; }
         
         .btn-fire {
@@ -134,9 +133,15 @@
                     <button id="startBtn" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-3 px-4 rounded border-4 border-yellow-700 text-lg transition-colors">
                         НОВАЯ ИГРА
                     </button>
-                    <button id="startLoadBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-lg transition-colors">
-                        ПРОДОЛЖИТЬ
-                    </button>
+                    <div class="flex gap-2">
+                        <button id="startLoadBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-2 rounded border-4 border-blue-700 text-sm transition-colors" title="Загрузить из браузера">
+                            ПРОДОЛЖИТЬ
+                        </button>
+                        <label class="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-2 rounded border-4 border-purple-700 text-[10px] leading-tight transition-colors text-center cursor-pointer flex items-center justify-center" title="Загрузить из файла (.json)">
+                            ФАЙЛ СОХРАНЕНИЯ
+                            <input type="file" id="fileLoadStart" class="hidden" accept=".json">
+                        </label>
+                    </div>
                     <button id="muteBtn" class="mt-2 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded border-2 border-green-700 text-sm transition-colors">
                         ЗВУК: ВКЛ
                     </button>
@@ -146,16 +151,31 @@
             <!-- Экран Паузы -->
             <div id="pauseScreen" class="overlay hidden backdrop-blur-sm">
                 <h1 class="text-4xl font-bold text-white mb-6 tracking-widest">ПАУЗА</h1>
-                <div class="flex flex-col gap-4 w-full max-w-[240px]">
-                    <button id="resumeBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-lg">
+                <div class="flex flex-col gap-3 w-full max-w-[240px]">
+                    <button id="resumeBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-lg mb-2">
                         ПРОДОЛЖИТЬ
                     </button>
-                    <button id="saveBtn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded border-4 border-green-700 text-lg">
-                        СОХРАНИТЬ
-                    </button>
-                    <button id="pauseLoadBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded border-4 border-yellow-700 text-lg text-shadow">
-                        ЗАГРУЗИТЬ
-                    </button>
+                    
+                    <div class="text-xs text-gray-300 text-center mt-1 border-b border-gray-600 pb-1">Кэш браузера</div>
+                    <div class="flex gap-2">
+                        <button id="saveBtn" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-2 rounded border-4 border-green-700 text-xs">
+                            СОХРАНИТЬ
+                        </button>
+                        <button id="pauseLoadBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-2 rounded border-4 border-yellow-700 text-xs">
+                            ЗАГРУЗИТЬ
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-gray-300 text-center mt-2 border-b border-gray-600 pb-1">Файл на устройстве</div>
+                    <div class="flex gap-2">
+                        <button id="exportBtn" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-2 rounded border-4 border-teal-700 text-xs">
+                            СКАЧАТЬ
+                        </button>
+                        <label class="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-2 rounded border-4 border-purple-700 text-xs text-center cursor-pointer flex items-center justify-center">
+                            ЗАГРУЗИТЬ
+                            <input type="file" id="fileLoadPause" class="hidden" accept=".json">
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -174,7 +194,7 @@
             </div>
         </div>
 
-        <!-- Мобильное управление с id для перехвата свайпов -->
+        <!-- Мобильное управление -->
         <div id="mobile-controls" class="w-full mt-2 mb-4 flex justify-between items-center sm:hidden">
             <div class="controls-grid">
                 <div></div>
@@ -188,7 +208,7 @@
                 <div></div>
             </div>
             <div class="flex items-center justify-center gap-2">
-                <div class="btn-mine text-center" id="btn-mine">МИНА<br>(B)</div>
+                <div class="btn-mine text-center" id="btn-mine">МИНА<br>(B/И)</div>
                 <div class="btn-fire" id="btn-fire"></div>
             </div>
         </div>
@@ -343,8 +363,8 @@ let enemyBaseCol = 7;
 let baseDefTimer = 0;
 let mineCooldown = 0;
 
-let playerHasRapidFire = false; // Новая переменная для бесконечной скорострельности
-let lastBossLevel = 0; // Отслеживание последнего уровня с боссом
+let playerHasRapidFire = false; 
+let lastBossLevel = 0; 
 
 let savedGrid = [];
 let savedLevelType = 'CLASSIC';
@@ -355,6 +375,7 @@ let savedEnemyMinesCoords = [];
 let lastTime = 0;
 let animationId;
 
+// Добавлена поддержка русской раскладки
 const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, W: false, A: false, S: false, D: false, 'ц': false, 'ф': false, 'ы': false, 'в': false, 'Ц': false, 'Ф': false, 'Ы': false, 'В': false, ' ': false, 'b': false, 'B': false, 'и': false, 'И': false };
 let touchDirs = { up: false, down: false, left: false, right: false };
 let touchFire = false;
@@ -410,7 +431,6 @@ function loadGame(buttonId) {
 function generateLevel() {
     let validLevel = false;
     
-    // Проверка на уровень Босса (не чаще чем раз в 8 уровней)
     if (level >= 8 && (level - lastBossLevel) >= 8 && Math.random() < 0.4) {
         levelType = 'BOSS';
         lastBossLevel = level;
@@ -428,7 +448,7 @@ function generateLevel() {
         MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8);
     } else if (levelType === 'BOSS') {
         ROWS = 18; 
-        enemiesToSpawn = 0; // Только босс
+        enemiesToSpawn = 0; 
         MAX_ENEMIES_ON_SCREEN = 1;
     }
     
@@ -478,14 +498,12 @@ function generateLevel() {
                 substationAlive = true;
             }
         } else if (levelType === 'BOSS') {
-            // Арена босса
             grid[17][7] = BASE;
             grid[17][6] = BRICK; grid[17][8] = BRICK;
             grid[16][6] = BRICK; grid[16][7] = BRICK; grid[16][8] = BRICK;
-            safeZones.push({r: 17, c: 4}); // игрок
-            safeZones.push({r: 2, c: 7});  // босс
+            safeZones.push({r: 17, c: 4});
+            safeZones.push({r: 2, c: 7});
             
-            // Симметричные колонны для укрытия
             for (let r = 4; r < 14; r += 3) {
                 grid[r][3] = STEEL; grid[r][11] = STEEL;
                 grid[r][4] = BRICK; grid[r][10] = BRICK;
@@ -499,7 +517,7 @@ function generateLevel() {
                 for (let zone of safeZones) {
                     if (Math.abs(r - zone.r) <= 1 && Math.abs(c - zone.c) <= 1) { inSafeZone = true; break; }
                 }
-                if (!inSafeZone && levelType !== 'BOSS') { // На арене босса нет лишнего рандомного мусора
+                if (!inSafeZone && levelType !== 'BOSS') { 
                     let rand = Math.random();
                     if (rand < 0.20) grid[r][c] = BRICK; 
                     else if (rand < 0.28) grid[r][c] = STEEL;
@@ -558,7 +576,7 @@ function checkLevelPlayability() {
     }
 
     if (levelType === 'CLASSIC' || levelType === 'BOSS') {
-        if (!visited[0][7]) return false; // Хотя бы проход к центру верха
+        if (!visited[0][7]) return false; 
     } else {
         if (!visited[2][enemyBaseCol] && !visited[1][enemyBaseCol-1] && !visited[1][enemyBaseCol+1]) return false;
         if (subR !== -1) {
@@ -629,7 +647,7 @@ class Mine {
                     e.markForDeletion = true;
                     createExplosion(this.x, this.y, '#ff0000', 30);
                     sfx.playExplosion(true);
-                    score += (e.eType === 'NORMAL' ? 100 : 300);
+                    score += (e.isBoss ? 1000 : (e.eType === 'NORMAL' ? 100 : 300));
                     document.getElementById('scoreUI').innerText = score;
                     updateObjectiveUI();
                 }
@@ -710,7 +728,7 @@ class Turret {
         if (this.dir === DIR_DOWN) { bdy = 1; by += 12; }
         if (this.dir === DIR_LEFT) { bdx = -1; bx -= 12; }
         if (this.dir === DIR_RIGHT) { bdx = 1; bx += 12; }
-        bullets.push(new Bullet(bx, by, bdx, bdy, true, { rapidTimer: 0 })); sfx.playShoot(true);
+        bullets.push(new Bullet(bx, by, bdx, bdy, true, { hasRapidFire: false })); sfx.playShoot(true);
     }
     draw(ctx) {
         ctx.save(); ctx.translate(this.x + TILE_SIZE/2, this.y + TILE_SIZE/2);
@@ -850,7 +868,6 @@ class Tank {
             for (let c = leftCol; c <= rightCol; c++) {
                 if (r >= 0 && r < ROWS && c >= 0 && c < COLS) { 
                     if (grid[r][c] !== EMPTY) {
-                        // Босс проламывает кирпичи своей массой
                         if (this.isBoss && grid[r][c] === BRICK) {
                             grid[r][c] = EMPTY;
                             createExplosion(c * TILE_SIZE + 16, r * TILE_SIZE + 16, '#ff9900', 5);
@@ -889,7 +906,7 @@ class Tank {
             bullets.push(new Bullet(bx1, by1, bdx1, bdy1, false, this));
             bullets.push(new Bullet(bx2, by2, bdx2, bdy2, false, this));
             sfx.playShoot(false);
-            this.cooldown = 800; // Босс стреляет чуть реже, но двойным
+            this.cooldown = 800; 
         } else {
             let bx = this.x + this.w / 2; let by = this.y + this.h / 2; let bdx = 0, bdy = 0;
             if (this.dir === DIR_UP) { bdy = -1; by = this.y - 4; }
@@ -909,15 +926,12 @@ class Tank {
         if (this.dir === DIR_RIGHT) ctx.rotate(Math.PI / 2); else if (this.dir === DIR_DOWN) ctx.rotate(Math.PI); else if (this.dir === DIR_LEFT) ctx.rotate(-Math.PI / 2);
 
         if (this.isBoss) {
-            ctx.fillStyle = '#7f1d1d'; ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h); // body
-            ctx.fillStyle = '#111'; ctx.fillRect(-this.w/2, -this.h/2, 12, this.h); // left track
-            ctx.fillRect(this.w/2 - 12, -this.h/2, 12, this.h); // right track
-            
-            ctx.fillStyle = '#b91c1c'; // пушки
-            ctx.fillRect(-16, -this.h/2 - 14, 8, 28);
-            ctx.fillRect(8, -this.h/2 - 14, 8, 28);
-            
-            ctx.fillStyle = '#991b1b'; // башня
+            ctx.fillStyle = '#7f1d1d'; ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h); 
+            ctx.fillStyle = '#111'; ctx.fillRect(-this.w/2, -this.h/2, 12, this.h); 
+            ctx.fillRect(this.w/2 - 12, -this.h/2, 12, this.h); 
+            ctx.fillStyle = '#b91c1c'; 
+            ctx.fillRect(-16, -this.h/2 - 14, 8, 28); ctx.fillRect(8, -this.h/2 - 14, 8, 28);
+            ctx.fillStyle = '#991b1b'; 
             ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
         } else {
             if (this.isPlayer && !this.isAllyAI) ctx.fillStyle = '#eab308'; 
@@ -1013,7 +1027,6 @@ class Bullet {
                         }
                     } else { 
                         createExplosion(this.x, this.y, '#fff', 8); sfx.playArmorHit(); 
-                        // Шанс дропа лута при попадании по броне босса
                         if (enemy.isBoss && Math.random() < 0.05) {
                             let dropTypes = ['FIRE', 'LIFE', 'ALLY', 'TURRET', 'SHIELD'];
                             bonuses.push(new Bonus(this.x, this.y, dropTypes[Math.floor(Math.random() * dropTypes.length)]));
@@ -1070,7 +1083,7 @@ function createExplosion(x, y, color, count) { for(let i=0; i<count; i++) partic
  */
 function initGame() {
     sfx.init();
-    score = 0; lives = 3; continues = 3; level = 1;
+    score = 0; lives = 3; continues = 3; level = 1; lastBossLevel = 0; playerHasRapidFire = false;
     document.getElementById('scoreUI').innerText = score; document.getElementById('livesUI').innerText = lives; document.getElementById('continuesUI').innerText = continues;
     initLevel(false);
 }
@@ -1163,7 +1176,7 @@ function levelFailed(reason) {
 function playerDeath() {
     createExplosion(player.x + player.w/2, player.y + player.h/2, '#ff0000', 40); sfx.playExplosion(true); sfx.stopEngine();
     player.markForDeletion = true; lives--; document.getElementById('livesUI').innerText = lives;
-    playerHasRapidFire = false; // Теряем скорострельность при смерти
+    playerHasRapidFire = false; 
     
     if (lives <= 0) levelFailed("ТАНКИ КОНЧИЛИСЬ!");
     else setTimeout(() => { 
@@ -1224,7 +1237,6 @@ function update(dt) {
     if (player && !player.markForDeletion) {
         player.update(dt);
         
-        // Установка мины
         if ((keys['b'] || keys['B'] || keys['и'] || keys['И'] || touchMine) && mineCooldown <= 0 && minesCount > 0) {
             placedMines.push(new Mine(player.x + player.w/2, player.y + player.h/2));
             minesCount--;
@@ -1259,8 +1271,8 @@ function update(dt) {
                 else if (bonus.type === 'BOMB') {
                     sfx.playExplosion(true);
                     enemies.forEach(e => {
-                        e.markForDeletion = true; createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', 30);
-                        score += (e.eType === 'NORMAL' ? 100 : 300);
+                        e.markForDeletion = true; createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', e.isBoss ? 80 : 30);
+                        score += (e.isBoss ? 1000 : (e.eType === 'NORMAL' ? 100 : 300));
                     });
                     document.getElementById('scoreUI').innerText = score;
                     updateObjectiveUI();
@@ -1321,7 +1333,8 @@ function draw() {
             }
             else if (cell === ENEMY_BASE) {
                 ctx.fillStyle = '#b91c1c'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE); ctx.fillStyle = '#7f1d1d'; ctx.beginPath(); 
-                ctx.moveTo(px + TILE_SIZE/2, py + 4); ctx.lineTo(px + TILE_SIZE - 4, py + TILE_SIZE - 4); ctx.lineTo(px + 4, py + TILE_SIZE - 4); ctx.fill();
+                ctx.moveTo(px + TILE_SIZE/2, py + 4); ctx.lineTo(px + TILE_SIZE - 4, py + TILE_SIZE - 4);
+                ctx.lineTo(px + 4, py + TILE_SIZE - 4); ctx.fill();
                 
                 if (substationAlive) {
                     ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
@@ -1377,6 +1390,62 @@ document.getElementById('resumeBtn').addEventListener('click', togglePause);
 document.getElementById('saveBtn').addEventListener('click', saveGame);
 document.getElementById('startLoadBtn').addEventListener('click', () => { sfx.init(); loadGame('startLoadBtn'); });
 document.getElementById('pauseLoadBtn').addEventListener('click', () => { loadGame('pauseLoadBtn'); });
+
+// Экспорт в физический файл на ПК/Телефон
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = { level, score, lives, continues, lastBossLevel, playerHasRapidFire };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", `tanks_save_lvl${level}.json`);
+    document.body.appendChild(dlAnchorElem);
+    dlAnchorElem.click();
+    dlAnchorElem.remove();
+    
+    let btn = document.getElementById('exportBtn');
+    let old = btn.innerText;
+    btn.innerText = 'СКАЧАНО!';
+    setTimeout(() => { btn.innerText = old; }, 2000);
+});
+
+// Импорт сохранения из файла
+const handleFileLoad = (event) => {
+    sfx.init();
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            level = data.level || 1;
+            score = data.score || 0;
+            lives = data.lives || 3;
+            continues = data.continues || 3;
+            lastBossLevel = data.lastBossLevel || 0;
+            playerHasRapidFire = data.playerHasRapidFire || false;
+
+            document.getElementById('scoreUI').innerText = score;
+            document.getElementById('livesUI').innerText = lives;
+            document.getElementById('continuesUI').innerText = continues;
+
+            document.getElementById('pauseScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            initLevel(false);
+            if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                lastTime = performance.now();
+            }
+        } catch (err) {
+            alert("Ошибка чтения файла сохранения! Возможно файл поврежден.");
+        }
+        event.target.value = ''; 
+    };
+    reader.readAsText(file);
+};
+
+document.getElementById('fileLoadStart').addEventListener('change', handleFileLoad);
+document.getElementById('fileLoadPause').addEventListener('change', handleFileLoad);
 
 document.getElementById('muteBtn').addEventListener('click', (e) => {
     sfx.isMuted = !sfx.isMuted;
