@@ -311,40 +311,7 @@
         <button id="nextBtn" class="action-btn">Играть еще раз</button>
     </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    let db = null;
-    let auth = null;
-    let currentUser = null;
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'bounce-default';
-
-    async function initFirebase() {
-        try {
-            if (typeof __firebase_config !== 'undefined') {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, (u) => {
-                    currentUser = u;
-                });
-            }
-        } catch (e) {
-            console.warn("Firebase не инициализирован (локальный режим или ошибка).");
-        }
-    }
-    initFirebase();
-
+<script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -1405,32 +1372,23 @@
         }
     }
 
-    // --- ОБЛАЧНЫЕ СОХРАНЕНИЯ ---
-    async function saveGame() {
-        if (!currentUser || !db) {
-            alert("Облачное сохранение недоступно.");
-            return;
-        }
+    // --- ЛОКАЛЬНЫЕ СОХРАНЕНИЯ ---
+    function saveGame() {
         try {
-            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'bouncesave', 'slot1');
-            await setDoc(docRef, { currentLevel, lives });
-            alert("✅ Прогресс успешно сохранен!");
+            const saveData = { currentLevel, lives };
+            localStorage.setItem('bounce_save_slot1', JSON.stringify(saveData));
+            alert("✅ Прогресс успешно сохранен локально!");
         } catch (e) {
             console.error(e);
             alert("Ошибка сохранения.");
         }
     }
 
-    async function loadGame() {
-        if (!currentUser || !db) {
-            alert("Облачное сохранение недоступно.");
-            return;
-        }
+    function loadGame() {
         try {
-            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'bouncesave', 'slot1');
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
+            const savedData = localStorage.getItem('bounce_save_slot1');
+            if (savedData) {
+                const data = JSON.parse(savedData);
                 currentLevel = data.currentLevel || 1;
                 lives = data.lives || 3;
                 alert("✅ Прогресс загружен!");
