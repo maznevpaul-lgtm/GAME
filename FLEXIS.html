@@ -235,40 +235,15 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // --- ОБЛАЧНОЕ СОХРАНЕНИЕ (FIRESTORE) ---
-        const fbConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-        let db = null;
-        let auth = null;
-        let currentUser = null;
-        let appId = typeof __app_id !== 'undefined' ? __app_id : 'flexis-tetris';
-
-        if (fbConfigStr) {
-            try {
-                const config = JSON.parse(fbConfigStr);
-                const app = initializeApp(config);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                };
-                initAuth();
-
-                onAuthStateChanged(auth, user => {
-                    currentUser = user;
-                    if(user) document.getElementById('btn-load-main').style.display = 'block';
-                });
-            } catch(e) { console.error("Firebase err:", e); }
-        }
+    <script>
+        // --- ЛОКАЛЬНОЕ СОХРАНЕНИЕ (LOCALSTORAGE) ---
+        
+        // Проверяем наличие сохранения при загрузке страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('flexis_save')) {
+                document.getElementById('btn-load-main').style.display = 'inline-block';
+            }
+        });
 
         window.showToast = (msg) => {
             const toast = document.getElementById('toast');
@@ -281,11 +256,7 @@
             }, 2000);
         };
 
-        window.saveGame = async () => {
-            if (!db || !currentUser) {
-                window.showToast("Облако недоступно ❌");
-                return;
-            }
+        window.saveGame = () => {
             const blocksToSave = [];
             lockedBodies.forEach(body => {
                 if(!body) return;
@@ -306,22 +277,21 @@
             };
             
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'tetris_saves', 'save1'), saveData);
+                // Сохраняем в память браузера
+                localStorage.setItem('flexis_save', JSON.stringify(saveData));
                 window.showToast("Игра сохранена! 💾");
+                document.getElementById('btn-load-main').style.display = 'inline-block'; // Показываем кнопку продолжения
             } catch(e) {
                 window.showToast("Ошибка сохранения");
             }
         };
 
-        window.loadGame = async () => {
-            if (!db || !currentUser) {
-                window.showToast("Облако недоступно ❌");
-                return;
-            }
+        window.loadGame = () => {
             try {
-                const docSnap = await getDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'tetris_saves', 'save1'));
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
+                // Читаем из памяти браузера
+                const savedStr = localStorage.getItem('flexis_save');
+                if (savedStr) {
+                    const data = JSON.parse(savedStr);
                     
                     lockedBodies.forEach(b => Composite.remove(engine.world, b));
                     if (activePiece) Composite.remove(engine.world, activePiece);
@@ -336,7 +306,7 @@
                             frictionStatic: 0.5,
                             density: 0.01,
                             restitution: 0.1,
-                            sleepThreshold: 360
+                            sleepThreshold: 480 // Синхронизировано с вашими настройками засыпания
                         });
                         Composite.add(engine.world, block);
                         lockedBodies.push(block);
