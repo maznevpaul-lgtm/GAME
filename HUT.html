@@ -93,11 +93,12 @@
               scissors: { name: 'Ножницы', desc: 'Уничтожает карту противника' }
             },
             rules: [
-              '<strong>🩸 Жертвоприношение:</strong> Чтобы разыграть карту зверя, вам нужна кровь. Выберите карту в руке, кликните по существам на доске, чтобы принести их в жертву, а затем на пустой слот.',
-              '<strong>⚖️ Весы:</strong> Вы побеждаете в раунде, если нанесете на 5 урона больше.',
-              '<strong>🕯️ Свечи и Расплата:</strong> Если гаснет ваша свеча, вы сможете выбрать новую карту. Если гаснет свеча тени — она в ярости уничтожит случайные карты на доске! Победите 3 раза.',
-              '<strong>🔔 Бой:</strong> Карты атакуют автоматически слева направо.',
-              '<strong>Сигилы:</strong>'
+              '<strong>🎴 Начало хода:</strong> Каждый ход начинается с добора. Возьмите карту из <strong>Колоды</strong> (случайный зверь) ИЛИ возьмите <strong>Белку</strong> (бесплатная жертва, не атакует). С небольшим шансом вместе с белкой можно найти предмет!',
+              '<strong>🩸 Жертвоприношение:</strong> Звери требуют крови. Чтобы разыграть карту за 1 каплю, нужно убить 1 свое существо на доске (обычно Белку). Выберите карту в руке, кликните по жертве на доске, а затем на пустой слот.',
+              '<strong>🔔 Бой:</strong> Расставив существ, нажмите кнопку «Ход». Ваши карты и карты тени по очереди бьют в слот напротив. Если врага напротив нет, урон идет напрямую на весы.',
+              '<strong>⚖️ Весы:</strong> Раунд заканчивается, когда одна из сторон наносит на 5 урона больше (полностью перевешивает чашу).',
+              '<strong>🕯️ Свечи и Расплата:</strong> Проигрыш раунда тушит 1 свечу. Если гаснет ваша свеча, вы получаете подмогу (выбор новой карты). Если гаснет свеча тени — она в ярости уничтожает случайные карты на доске! Для победы потушите все 3 свечи врага.',
+              '<strong>Сигилы (особые свойства):</strong>'
             ],
             rulesSigils: [
               '🕊️ <em>Воздушный</em>: Бьет по весам, игнорируя врага.',
@@ -180,11 +181,12 @@
               scissors: { name: 'Scissors', desc: 'Destroys an enemy card' }
             },
             rules: [
-              '<strong>🩸 Sacrifice:</strong> To play a beast card, you need blood. Select a card in your hand, click on your creatures on the board to sacrifice them, and then on an empty slot.',
-              '<strong>⚖️ Scales:</strong> You win the round if you deal 5 more damage.',
-              '<strong>🕯️ Candles & Retribution:</strong> If your candle goes out, you can choose a new card. If the shadow\'s candle goes out — it furiously destroys random cards! Win 3 times.',
-              '<strong>🔔 Combat:</strong> Cards attack automatically from left to right.',
-              '<strong>Sigils:</strong>'
+              '<strong>🎴 Draw Phase:</strong> Start your turn by drawing a card. Choose from the <strong>Deck</strong> (beasts) OR draw a <strong>Squirrel</strong> (free sacrifice, 0 power). There is a small chance to find an item with a squirrel!',
+              '<strong>🩸 Sacrifice:</strong> Beasts cost blood. To play a 1-blood beast, sacrifice 1 creature on your board (usually a Squirrel). Select a card in your hand, click the creature to sacrifice, and then an empty slot.',
+              '<strong>🔔 Combat:</strong> When ready, click "Ring". Cards attack the slot directly opposite them. If the opposite slot is empty, damage is dealt directly to the scales.',
+              '<strong>⚖️ Scales:</strong> You win the round if you deal 5 more damage than the opponent, tipping the scales completely.',
+              '<strong>🕯️ Candles & Retribution:</strong> Losing a round extinguishes 1 candle. If your candle dies, you choose a new reinforcement card. If the shadow\'s candle dies, it furiously destroys cards on the board! Extinguish 3 enemy candles to win.',
+              '<strong>Sigils (Special Abilities):</strong>'
             ],
             rulesSigils: [
               '🕊️ <em>Airborne</em>: Strikes the scales directly, ignoring blockers.',
@@ -439,7 +441,41 @@
           };
 
           useEffect(() => {
+            let idleTimeout;
+            let randomLookTimeout;
+
+            // Остановка самостоятельного движения глаз
+            const stopIdle = () => {
+              clearTimeout(idleTimeout);
+              clearTimeout(randomLookTimeout);
+            };
+
+            // Функция случайного взгляда
+            const lookAround = () => {
+              if (!leftPupilRef.current || !rightPupilRef.current) return;
+              const isMobile = window.innerWidth < 640;
+              const maxX = isMobile ? 10 : 15;
+              const maxY = isMobile ? 4 : 7;
+
+              // Выбираем случайное направление и расстояние (не дальше 80% от края)
+              const angle = Math.random() * Math.PI * 2;
+              const distance = Math.random() * 0.8;
+
+              const px = Math.cos(angle) * distance * maxX;
+              const py = Math.sin(angle) * distance * maxY;
+
+              leftPupilRef.current.style.setProperty('--px', `${px}px`);
+              leftPupilRef.current.style.setProperty('--py', `${py}px`);
+              rightPupilRef.current.style.setProperty('--px', `${px}px`);
+              rightPupilRef.current.style.setProperty('--py', `${py}px`);
+
+              // Планируем следующий перевод взгляда через 1 - 3 секунды
+              randomLookTimeout = setTimeout(lookAround, 1000 + Math.random() * 2000);
+            };
+
             const handlePointerMove = (e) => {
+              stopIdle(); // Игрок двигается — прекращаем смотреть по сторонам
+
               if (!eyesContainerRef.current || !leftPupilRef.current || !rightPupilRef.current) return;
 
               let clientX, clientY;
@@ -471,13 +507,24 @@
               leftPupilRef.current.style.setProperty('--py', `${py}px`);
               rightPupilRef.current.style.setProperty('--px', `${px}px`);
               rightPupilRef.current.style.setProperty('--py', `${py}px`);
+
+              // Если игрок ничего не делает 3 секунды, глаза снова начнут смотреть по сторонам
+              idleTimeout = setTimeout(() => {
+                lookAround();
+              }, 3000);
             };
 
             window.addEventListener('mousemove', handlePointerMove);
             window.addEventListener('touchmove', handlePointerMove, { passive: true });
             window.addEventListener('touchstart', handlePointerMove, { passive: true });
 
+            // Запускаем таймер бездействия при старте
+            idleTimeout = setTimeout(() => {
+              lookAround();
+            }, 2000);
+
             return () => {
+              stopIdle();
               window.removeEventListener('mousemove', handlePointerMove);
               window.removeEventListener('touchmove', handlePointerMove);
               window.removeEventListener('touchstart', handlePointerMove);
