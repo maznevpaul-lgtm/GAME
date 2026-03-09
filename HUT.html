@@ -215,6 +215,7 @@
 
           const [isSoundEnabled, setIsSoundEnabled] = useState(initialData.isSoundEnabled);
           const [showRules, setShowRules] = useState(false);
+          const [showMenu, setShowMenu] = useState(false);
 
           // Новые состояния для событий
           const [cardChoices, setCardChoices] = useState(null);
@@ -292,10 +293,45 @@
             };
             localStorage.setItem('inscryption_save', JSON.stringify(stateToSave));
             setMessage('💾 Игра успешно сохранена!');
+            setShowMenu(false);
             triggerEyeReaction();
             setTimeout(() => {
               setMessage(prev => prev === '💾 Игра успешно сохранена!' ? 'Продолжайте игру...' : prev);
             }, 2000);
+          };
+
+          const handleLoad = () => {
+            try {
+              const saved = localStorage.getItem('inscryption_save');
+              if (saved) {
+                const parsed = JSON.parse(saved);
+                setPhase(parsed.phase || 'draw');
+                setMessage('📂 Игра загружена!');
+                setScale(parsed.scale || 0);
+                setPlayerLives(parsed.playerLives !== undefined ? parsed.playerLives : 3);
+                setEnemyLives(parsed.enemyLives !== undefined ? parsed.enemyLives : 3);
+                setItems(parsed.items || []);
+                setEnemyItems(parsed.enemyItems || []);
+                setDeck(parsed.deck || []);
+                setPlayerHand(parsed.playerHand || []);
+                setPlayerBoard(parsed.playerBoard || [null, null, null, null]);
+                setOpponentBoard(parsed.opponentBoard || [null, null, null, null]);
+                setOpponentQueue(parsed.opponentQueue || [null, null, null, null]);
+                setIsSoundEnabled(parsed.isSoundEnabled !== undefined ? parsed.isSoundEnabled : true);
+                setActiveItem(null);
+                setSelectedHandCard(null);
+                setSacrifices([]);
+                setShowMenu(false);
+                triggerEyeReaction();
+              } else {
+                setMessage('Нет сохранений!');
+                setShowMenu(false);
+              }
+            } catch (e) {
+              console.error('Ошибка загрузки:', e);
+              setMessage('Ошибка загрузки!');
+              setShowMenu(false);
+            }
           };
 
           const handleItemClick = (index) => {
@@ -528,44 +564,57 @@
                   setPhase('event');
                   return; // Ждем выбора игрока
               } else if (winner === 'player') {
-                  // Тень потеряла свечу: расплата (уничтожение карт)
-                  setPunishment("Свеча тени погасла.\nГрядет расплата...");
-                  await sleep(2500);
+                  // Тень потеряла свечу: расплата с крутой анимацией
+                  setPunishment("Свеча тени погасла.\nГРЯДЕТ РАСПЛАТА!");
+                  playSound('bell', isSoundEnabled);
+                  await sleep(1200); // Табличка висит гораздо меньше времени
+                  setPunishment(null); // Убираем табличку, чтобы игрок ВИДЕЛ поле!
+                  await sleep(300); // Короткая пугающая пауза...
 
                   const punishType = Math.random() > 0.5 ? 'column' : 'random';
+                  let didPunish = false;
                   
                   if (punishType === 'column') {
                       const col = Math.floor(Math.random() * 4);
-                      if (currentPlayerBoard[col]) currentPlayerBoard[col] = { ...currentPlayerBoard[col], isDying: true };
-                      if (currentOppBoard[col]) currentOppBoard[col] = { ...currentOppBoard[col], isDying: true };
+                      // Помечаем карты специальным статусом isPunished для запуска анимации
+                      if (currentPlayerBoard[col]) { currentPlayerBoard[col] = { ...currentPlayerBoard[col], isPunished: true }; didPunish = true; }
+                      if (currentOppBoard[col]) { currentOppBoard[col] = { ...currentOppBoard[col], isPunished: true }; didPunish = true; }
+                      
                       setPlayerBoard([...currentPlayerBoard]);
                       setOpponentBoard([...currentOppBoard]);
-                      if (currentPlayerBoard[col] || currentOppBoard[col]) playSound('sacrifice', isSoundEnabled);
-                      await sleep(500);
+                      
+                      if (didPunish) {
+                          playSound('hit', isSoundEnabled);
+                          setTimeout(() => playSound('die', isSoundEnabled), 300);
+                          await sleep(800); // Ждем завершения анимации порчи/уничтожения
+                      }
+                      
                       currentPlayerBoard[col] = null;
                       currentOppBoard[col] = null;
                   } else {
-                      const pIndexes = currentPlayerBoard.map((c, i) => c && !c.isDying ? i : -1).filter(i => i !== -1);
-                      const oIndexes = currentOppBoard.map((c, i) => c && !c.isDying ? i : -1).filter(i => i !== -1);
+                      const pIndexes = currentPlayerBoard.map((c, i) => c && !c.isDying && !c.isPunished ? i : -1).filter(i => i !== -1);
+                      const oIndexes = currentOppBoard.map((c, i) => c && !c.isDying && !c.isPunished ? i : -1).filter(i => i !== -1);
                       let pTarget = pIndexes.length > 0 ? pIndexes[Math.floor(Math.random() * pIndexes.length)] : -1;
                       let oTarget = oIndexes.length > 0 ? oIndexes[Math.floor(Math.random() * oIndexes.length)] : -1;
 
-                      if (pTarget !== -1) currentPlayerBoard[pTarget] = { ...currentPlayerBoard[pTarget], isDying: true };
-                      if (oTarget !== -1) currentOppBoard[oTarget] = { ...currentOppBoard[oTarget], isDying: true };
+                      if (pTarget !== -1) { currentPlayerBoard[pTarget] = { ...currentPlayerBoard[pTarget], isPunished: true }; didPunish = true; }
+                      if (oTarget !== -1) { currentOppBoard[oTarget] = { ...currentOppBoard[oTarget], isPunished: true }; didPunish = true; }
 
                       setPlayerBoard([...currentPlayerBoard]);
                       setOpponentBoard([...currentOppBoard]);
-                      if (pTarget !== -1 || oTarget !== -1) {
-                          playSound('sacrifice', isSoundEnabled);
-                          await sleep(500);
+                      
+                      if (didPunish) {
+                          playSound('hit', isSoundEnabled);
+                          setTimeout(() => playSound('die', isSoundEnabled), 300);
+                          await sleep(800);
                       }
+
                       if (pTarget !== -1) currentPlayerBoard[pTarget] = null;
                       if (oTarget !== -1) currentOppBoard[oTarget] = null;
                   }
 
                   setPlayerBoard([...currentPlayerBoard]);
                   setOpponentBoard([...currentOppBoard]);
-                  setPunishment(null);
                   
                   if (droppedItemsText.length > 0) {
                       setMessage(`Найдено: ${droppedItemsText.join(', ')}. Ваш ход.`);
@@ -786,6 +835,7 @@
             setActiveItem(null);
             setScale(0);
             setPhase('draw');
+            setShowMenu(false);
             setMessage('Новая игра. Возьмите карту.');
           };
 
@@ -820,10 +870,10 @@
               <div 
                 onClick={onClick}
                 className={`${cardBaseClass} flex flex-col justify-between p-[min(0.4vw,0.3vh)] shadow-md transition-all duration-300 select-none cursor-pointer relative overflow-hidden
-                  ${isSelected ? 'border-yellow-500 scale-105 shadow-yellow-900/50 -translate-y-2 animate-pulse' : 'border-[#111]'}
-                  ${isSacrifice ? 'border-red-600 animate-pulse' : ''}
+                  ${isSelected ? 'border-yellow-500 scale-105 shadow-[0_0_15px_rgba(234,179,8,0.6)] animate-pulse' : 'border-[#111] hover:border-[#4a4231]'}
+                  ${isSacrifice ? 'border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.6)] animate-pulse' : ''}
                   ${isAttacking ? 'scale-110 z-10 border-red-500 shadow-red-500/50' : ''}
-                  ${card?.isDying ? 'anim-die' : ''}
+                  ${card?.isPunished ? 'anim-punish' : (card?.isDying ? 'anim-die' : '')}
                   ${activeItem?.type === 'scissors' && !isSelected && !isHidden ? 'hover:border-blue-500 hover:shadow-blue-900/50 cursor-crosshair' : ''}
                   bg-[#e6d8ba] text-[#2c241b]
                 `}
@@ -882,9 +932,18 @@
                 @keyframes bellRing { 0%, 100% { transform: rotate(0); } 20%, 60% { transform: rotate(15deg); } 40%, 80% { transform: rotate(-15deg); } }
                 @keyframes blink { 0%, 96%, 98%, 100% { transform: scaleY(1); } 97%, 99% { transform: scaleY(0.1); } }
                 
+                @keyframes punish {
+                  0% { filter: drop-shadow(0 0 0px red) brightness(1); transform: scale(1); opacity: 1; }
+                  20% { filter: drop-shadow(0 0 20px red) brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(5); transform: scale(1.15) rotate(-5deg); }
+                  40% { filter: drop-shadow(0 0 20px red) brightness(0.3) sepia(1) hue-rotate(-50deg) saturate(5); transform: scale(1.1) rotate(5deg); }
+                  60% { filter: drop-shadow(0 0 10px red) brightness(0); transform: scale(0.9) translateY(10px); opacity: 0.8; }
+                  100% { filter: drop-shadow(0 0 0px red) brightness(0); transform: scale(0.5) translateY(40px); opacity: 0; }
+                }
+
                 .anim-shake { animation: shakeScale 0.2s ease-in-out 2; }
                 .anim-shake-vertical { animation: shakeScaleVertical 0.2s ease-in-out 2; }
                 .anim-die { animation: die 0.5s ease-in forwards; }
+                .anim-punish { animation: punish 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; z-index: 50; }
                 .anim-bell { animation: bellRing 0.5s ease-in-out; }
                 .anim-eyes { animation: blink 8s infinite; }
                 
@@ -900,7 +959,7 @@
                   <div className="flex items-center gap-[min(2vw,1.5vh)]">
                     <a href="index.html" className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer text-white no-underline" title="В меню">🏠</a>
                     <button onClick={() => setShowRules(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Правила">📖</button>
-                    <button onClick={handleManualSave} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Сохранить игру">💾</button>
+                    <button onClick={() => setShowMenu(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Меню">💾</button>
                   </div>
                   <div className="text-[min(2.5vw,1.5vh)] font-bold tracking-widest text-[#8c7a61] border-b border-[#8c7a61] pb-[min(0.5vw,0.2vh)] uppercase w-fit mt-[min(0.5vw,0.2vh)]">
                     Лесная Хижина
@@ -1057,16 +1116,19 @@
 
                 <div className="flex flex-row justify-center items-end w-full p-[min(1vw,0.5vh)] border border-dashed border-[#2a241c] rounded bg-[#0a0806]/50 touch-manipulation shrink-0 min-h-[min(25vw,16vh)] pt-[min(1.5vw,1vh)]" style={{ WebkitOverflowScrolling: 'touch' }}>
                   {playerHand.length === 0 && <span className="m-auto opacity-30 italic text-[min(3vw,1.5vh)]">Рука пуста</span>}
-                  {playerHand.map((card, i) => (
-                    <div key={card.id} 
-                         className="relative transition-all duration-300 hover:z-40 hover:-translate-y-[min(2vw,1.5vh)] group"
-                         style={{ 
-                             marginLeft: getHandMarginLeft(i, playerHand.length),
-                             zIndex: selectedHandCard?.id === card.id ? 50 : i 
-                         }}>
-                      <Card card={card} isSelected={selectedHandCard?.id === card.id} onClick={() => handleHandClick(card)} />
-                    </div>
-                  ))}
+                  {playerHand.map((card, i) => {
+                    const isSelected = selectedHandCard?.id === card.id;
+                    return (
+                      <div key={card.id} 
+                           className={`relative transition-all duration-300 ease-out hover:z-40 ${isSelected ? '-translate-y-[min(12vw,8vh)] z-50' : 'hover:-translate-y-[min(5vw,3.5vh)]'}`}
+                           style={{ 
+                               marginLeft: getHandMarginLeft(i, playerHand.length),
+                               zIndex: isSelected ? 50 : i 
+                           }}>
+                        <Card card={card} isSelected={isSelected} onClick={() => handleHandClick(card)} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1084,11 +1146,25 @@
                 </div>
               )}
 
+              {/* БЫСТРАЯ ТАБЛИЧКА РАСПЛАТЫ */}
               {punishment && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
-                  <div className="bg-[#1a1612] border-2 border-red-900 p-[3vh] rounded-xl flex flex-col items-center text-center shadow-[0_0_50px_rgba(220,38,38,0.6)] animate-pulse">
-                    <h2 className="text-[min(5vw,3.5vh)] font-black text-red-600 mb-[1vh]">РАСПЛАТА</h2>
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 p-4 pointer-events-none">
+                  <div className="bg-[#1a1612] border-2 border-red-900 p-[3vh] rounded-xl flex flex-col items-center text-center shadow-[0_0_80px_rgba(220,38,38,0.8)] animate-pulse">
+                    <h2 className="text-[min(6vw,4.5vh)] font-black text-red-600 mb-[1vh]">РАСПЛАТА</h2>
                     <p className="text-[#d4c3a3] text-[min(3vw,2vh)] whitespace-pre-line">{punishment}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* --- ГЛАВНОЕ МЕНЮ --- */}
+              {showMenu && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowMenu(false)}>
+                  <div className="bg-[#1a1612] text-[#e6d8ba] border-4 border-[#3a3022] p-[3vh] rounded-xl shadow-[0_0_50px_rgba(0,0,0,1)] w-full max-w-xs flex flex-col gap-[2vh]" onClick={e => e.stopPropagation()}>
+                    <h2 className="text-[3vh] font-black text-center mb-[1vh] border-b-2 border-[#3a3022] pb-2 text-[#8c7a61] tracking-widest">МЕНЮ</h2>
+                    <button onClick={handleManualSave} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#2a241c] hover:bg-[#3d3121] border border-[#5c4a35] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold shadow-md">💾 Сохранить</button>
+                    <button onClick={handleLoad} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#2a241c] hover:bg-[#3d3121] border border-[#5c4a35] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold shadow-md">📂 Загрузить</button>
+                    <button onClick={restartGame} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#4a1c1c] hover:bg-[#6b2525] border border-[#7a2e2e] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold mt-[1vh] shadow-md">💀 Новая игра</button>
+                    <button onClick={() => setShowMenu(false)} className="px-[2vh] py-[1vh] text-[1.6vh] bg-transparent hover:bg-[#111] text-gray-500 rounded uppercase tracking-widest transition-all font-bold mt-[1vh]">Отмена</button>
                   </div>
                 </div>
               )}
