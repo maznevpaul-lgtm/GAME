@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Лесная Хижина</title>
+    <title>Лесная Хижина / Leshy's Cabin</title>
     <!-- Подключаем Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Подключаем React и ReactDOM -->
@@ -19,26 +19,204 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // --- СЛОВАРЬ ПЕРЕВОДОВ ---
+        const DICT = {
+          ru: {
+            title: 'Лесная Хижина',
+            shadow: 'ТЕНЬ:',
+            you: 'ВЫ:',
+            turn: 'Ход',
+            emptyHand: 'Рука пуста',
+            coming: 'Грядет',
+            empty: 'Пусто',
+            noItems: 'Нет\nвещей',
+            menu: 'МЕНЮ',
+            save: '💾 Сохранить',
+            load: '📂 Загрузить',
+            newGame: '💀 Новая игра',
+            cancel: 'Отмена',
+            understood: 'Понятно',
+            rulesTitle: 'Правила Игры',
+            victory: 'ПОБЕДА',
+            defeat: 'ВЫ ПОГИБЛИ',
+            victoryDesc: 'Все свечи тени погасли. Вы прошли это испытание.',
+            defeatDesc: 'Последняя свеча потухла. Тьма поглотила вас...',
+            restart: 'Начать заново',
+            squirrel: 'Белка',
+            deck: 'Колода',
+            yourAdvantage: 'Ваш перевес',
+            shadowAdvantage: 'Перевес тени',
+            sigilAirborne: 'Воздушный (Бьет напрямую)',
+            sigilTouchOfDeath: 'Смертельное касание',
+            sigilWorthySacrifice: 'Достойная жертва (Кровь: {val})',
+            sigilManyLives: 'Много жизней',
+            sigilMightyLeap: 'Страж (Блокирует Воздушный)',
+            sigilSharpQuills: 'Острые иглы (Урон атакующему)',
+            msgDraw: 'Ваш ход. Возьмите карту.',
+            msgSaved: '💾 Игра успешно сохранена!',
+            msgContinue: 'Продолжайте игру...',
+            msgLoaded: '📂 Игра загружена!',
+            msgNoSave: 'Нет сохранений!',
+            msgLoadError: 'Ошибка загрузки!',
+            msgPliers: 'Вы положили зуб на весы. +1 урон.',
+            msgBottle: 'Вы разбили бутылку. Белка добавлена в руку!',
+            msgScissorsSelect: 'Выберите карту противника, чтобы разрезать её.',
+            msgScissorsDone: 'Карта противника разрезана!',
+            msgScissorsEmpty: 'Здесь нет карты для разрезания.',
+            msgFoundItem: (icon, name) => `Вы нашли: ${icon} ${name}! Можете тянуть еще раз.`,
+            msgDeckEmpty: 'Колода пуста! От голода вы получаете 1 урон.',
+            msgDeathDarkness: 'Тьма поглотила вас... Свеча гаснет навсегда.',
+            msgPlayCreatures: 'Сыграйте существ. Выберите карту в руке.',
+            msgSacrificeNeeded: (cost) => `Выберите ${cost} существ на доске для жертвы.`,
+            msgSelectEmpty: 'Выберите пустой слот на доске.',
+            msgCardPlayed: 'Карта разыграна. Звоните в колокольчик.',
+            msgNotEnoughBlood: (need, have) => `Не хватает крови! Нужно ${need}, есть ${have}.`,
+            msgBloodReady: 'Крови достаточно! Кликните на пульсирующую жертву.',
+            msgCombatStart: 'Начинается бой...',
+            msgShadowLosesCandle: 'Тень теряет свечу.',
+            msgYouLoseCandle: 'Вы теряете свечу.',
+            msgFoundLoot: (items) => `Найдено: ${items}. Ваш ход.`,
+            msgNewRound: 'Новый раунд. Возьмите карту.',
+            msgShadowTurn: 'Ход тени...',
+            msgShadowUses: (icon, name) => `Тень применяет: ${icon} ${name}!`,
+            msgShadowCandleOut: 'Свеча тени погасла.\nГРЯДЕТ РАСПЛАТА!',
+            msgCandleOutChoice: 'Свеча погасла...\nВыберите подмогу в руку:',
+            msgPunishment: 'РАСПЛАТА',
+            cards: {
+              SQUIRREL: 'Белка', STOAT: 'Горностай', FROG: 'Жаба', WOLF: 'Волк', RAVEN: 'Ворон',
+              BEAR: 'Гризли', ADDER: 'Гадюка', GOAT: 'Черная Коза', CAT: 'Кошка', URAYULI: 'Ураюли',
+              TURTLE: 'Черепаха', PORCUPINE: 'Дикобраз'
+            },
+            items: {
+              pliers: { name: 'Плоскогубцы', desc: '+1 урон на весы' },
+              bottle: { name: 'Белка в бутылке', desc: 'Дает Белку в руку или на доску' },
+              scissors: { name: 'Ножницы', desc: 'Уничтожает карту противника' }
+            },
+            rules: [
+              '<strong>🩸 Жертвоприношение:</strong> Чтобы разыграть карту зверя, вам нужна кровь. Выберите карту в руке, кликните по существам на доске, чтобы принести их в жертву, а затем на пустой слот.',
+              '<strong>⚖️ Весы:</strong> Вы побеждаете в раунде, если нанесете на 5 урона больше.',
+              '<strong>🕯️ Свечи и Расплата:</strong> Если гаснет ваша свеча, вы сможете выбрать новую карту. Если гаснет свеча тени — она в ярости уничтожит случайные карты на доске! Победите 3 раза.',
+              '<strong>🔔 Бой:</strong> Карты атакуют автоматически слева направо.',
+              '<strong>Сигилы:</strong>'
+            ],
+            rulesSigils: [
+              '🕊️ <em>Воздушный</em>: Бьет по весам, игнорируя врага.',
+              '☠️ <em>Смертельное касание</em>: Убивает врага при любом уроне.',
+              '🩸x3 <em>Достойная жертва</em>: Дает сразу 3 крови.',
+              '♾️ <em>Много жизней</em>: Не исчезает при жертве.',
+              '🛡️ <em>Страж</em>: Блокирует урон от Воздушных карт.',
+              '🌵 <em>Острые иглы</em>: Наносит 1 урон атакующему.'
+            ]
+          },
+          en: {
+            title: 'Leshy\'s Cabin',
+            shadow: 'SHADOW:',
+            you: 'YOU:',
+            turn: 'Ring',
+            emptyHand: 'Hand empty',
+            coming: 'Coming',
+            empty: 'Empty',
+            noItems: 'No\nitems',
+            menu: 'MENU',
+            save: '💾 Save',
+            load: '📂 Load',
+            newGame: '💀 New Game',
+            cancel: 'Cancel',
+            understood: 'Got it',
+            rulesTitle: 'Game Rules',
+            victory: 'VICTORY',
+            defeat: 'YOU DIED',
+            victoryDesc: 'All shadow candles are out. You survived this trial.',
+            defeatDesc: 'The last candle went out. Darkness consumed you...',
+            restart: 'Restart',
+            squirrel: 'Squirrel',
+            deck: 'Deck',
+            yourAdvantage: 'Your advantage',
+            shadowAdvantage: 'Shadow advantage',
+            sigilAirborne: 'Airborne (Strikes directly)',
+            sigilTouchOfDeath: 'Touch of Death',
+            sigilWorthySacrifice: 'Worthy Sacrifice (Blood: {val})',
+            sigilManyLives: 'Many Lives',
+            sigilMightyLeap: 'Mighty Leap (Blocks Airborne)',
+            sigilSharpQuills: 'Sharp Quills (Damage attacker)',
+            msgDraw: 'Your turn. Draw a card.',
+            msgSaved: '💾 Game successfully saved!',
+            msgContinue: 'Continue playing...',
+            msgLoaded: '📂 Game loaded!',
+            msgNoSave: 'No saves found!',
+            msgLoadError: 'Error loading game!',
+            msgPliers: 'You placed a tooth on the scales. +1 damage.',
+            msgBottle: 'You broke the bottle. Squirrel added to your hand!',
+            msgScissorsSelect: 'Select an enemy card to cut it.',
+            msgScissorsDone: 'Enemy card cut!',
+            msgScissorsEmpty: 'There is no card here to cut.',
+            msgFoundItem: (icon, name) => `You found: ${icon} ${name}! Draw again.`,
+            msgDeckEmpty: 'Deck is empty! You take 1 starvation damage.',
+            msgDeathDarkness: 'Darkness consumed you... The candle goes out forever.',
+            msgPlayCreatures: 'Play creatures. Select a card in your hand.',
+            msgSacrificeNeeded: (cost) => `Select ${cost} creatures on the board to sacrifice.`,
+            msgSelectEmpty: 'Select an empty slot on the board.',
+            msgCardPlayed: 'Card played. Ring the bell.',
+            msgNotEnoughBlood: (need, have) => `Not enough blood! Need ${need}, have ${have}.`,
+            msgBloodReady: 'Enough blood! Click on a pulsating sacrifice.',
+            msgCombatStart: 'Combat begins...',
+            msgShadowLosesCandle: 'The shadow loses a candle.',
+            msgYouLoseCandle: 'You lose a candle.',
+            msgFoundLoot: (items) => `Found: ${items}. Your turn.`,
+            msgNewRound: 'New round. Draw a card.',
+            msgShadowTurn: 'Shadow\'s turn...',
+            msgShadowUses: (icon, name) => `Shadow uses: ${icon} ${name}!`,
+            msgShadowCandleOut: 'Shadow candle went out.\nRETRIBUTION COMES!',
+            msgCandleOutChoice: 'Your candle went out...\nChoose reinforcements:',
+            msgPunishment: 'RETRIBUTION',
+            cards: {
+              SQUIRREL: 'Squirrel', STOAT: 'Stoat', FROG: 'Bullfrog', WOLF: 'Wolf', RAVEN: 'Raven',
+              BEAR: 'Grizzly', ADDER: 'Adder', GOAT: 'Black Goat', CAT: 'Cat', URAYULI: 'Urayuli',
+              TURTLE: 'River Snapper', PORCUPINE: 'Porcupine'
+            },
+            items: {
+              pliers: { name: 'Pliers', desc: '+1 damage to scales' },
+              bottle: { name: 'Squirrel in a Bottle', desc: 'Gives a Squirrel in hand' },
+              scissors: { name: 'Scissors', desc: 'Destroys an enemy card' }
+            },
+            rules: [
+              '<strong>🩸 Sacrifice:</strong> To play a beast card, you need blood. Select a card in your hand, click on your creatures on the board to sacrifice them, and then on an empty slot.',
+              '<strong>⚖️ Scales:</strong> You win the round if you deal 5 more damage.',
+              '<strong>🕯️ Candles & Retribution:</strong> If your candle goes out, you can choose a new card. If the shadow\'s candle goes out — it furiously destroys random cards! Win 3 times.',
+              '<strong>🔔 Combat:</strong> Cards attack automatically from left to right.',
+              '<strong>Sigils:</strong>'
+            ],
+            rulesSigils: [
+              '🕊️ <em>Airborne</em>: Strikes the scales directly, ignoring blockers.',
+              '☠️ <em>Touch of Death</em>: Instantly kills the enemy upon dealing damage.',
+              '🩸x3 <em>Worthy Sacrifice</em>: Provides 3 blood instead of 1.',
+              '♾️ <em>Many Lives</em>: Does not die when sacrificed.',
+              '🛡️ <em>Mighty Leap</em>: Blocks damage from Airborne cards.',
+              '🌵 <em>Sharp Quills</em>: Deals 1 damage to the attacker.'
+            ]
+          }
+        };
+
         // --- БАЗА ДАННЫХ КАРТ ---
         const CARD_TYPES = {
-          SQUIRREL: { name: 'Белка', cost: 0, power: 0, health: 1, type: 'resource', icon: '🐿️' },
-          STOAT: { name: 'Горностай', cost: 1, power: 1, health: 2, type: 'beast', icon: '🦦' },
-          FROG: { name: 'Жаба', cost: 1, power: 1, health: 2, type: 'beast', icon: '🐸' },
-          WOLF: { name: 'Волк', cost: 2, power: 3, health: 2, type: 'beast', icon: '🐺' },
-          RAVEN: { name: 'Ворон', cost: 1, power: 2, health: 1, type: 'beast', icon: '🐦‍⬛', airborne: true },
-          BEAR: { name: 'Гризли', cost: 3, power: 4, health: 6, type: 'beast', icon: '🐻' },
-          ADDER: { name: 'Гадюка', cost: 2, power: 1, health: 1, type: 'beast', icon: '🐍', touchOfDeath: true },
-          GOAT: { name: 'Черная Коза', cost: 1, power: 0, health: 1, type: 'beast', icon: '🐐', bloodValue: 3 },
-          CAT: { name: 'Кошка', cost: 1, power: 1, health: 1, type: 'beast', icon: '🐈', manyLives: true },
-          URAYULI: { name: 'Ураюли', cost: 4, power: 7, health: 7, type: 'beast', icon: '👹' },
-          TURTLE: { name: 'Черепаха', cost: 1, power: 0, health: 4, type: 'beast', icon: '🐢', mightyLeap: true },
-          PORCUPINE: { name: 'Дикобраз', cost: 1, power: 1, health: 2, type: 'beast', icon: '🦔', sharpQuills: true }
+          SQUIRREL: { typeId: 'SQUIRREL', cost: 0, power: 0, health: 1, type: 'resource', icon: '🐿️' },
+          STOAT: { typeId: 'STOAT', cost: 1, power: 1, health: 2, type: 'beast', icon: '🦦' },
+          FROG: { typeId: 'FROG', cost: 1, power: 1, health: 2, type: 'beast', icon: '🐸' },
+          WOLF: { typeId: 'WOLF', cost: 2, power: 3, health: 2, type: 'beast', icon: '🐺' },
+          RAVEN: { typeId: 'RAVEN', cost: 1, power: 2, health: 1, type: 'beast', icon: '🐦‍⬛', airborne: true },
+          BEAR: { typeId: 'BEAR', cost: 3, power: 4, health: 6, type: 'beast', icon: '🐻' },
+          ADDER: { typeId: 'ADDER', cost: 2, power: 1, health: 1, type: 'beast', icon: '🐍', touchOfDeath: true },
+          GOAT: { typeId: 'GOAT', cost: 1, power: 0, health: 1, type: 'beast', icon: '🐐', bloodValue: 3 },
+          CAT: { typeId: 'CAT', cost: 1, power: 1, health: 1, type: 'beast', icon: '🐈', manyLives: true },
+          URAYULI: { typeId: 'URAYULI', cost: 4, power: 7, health: 7, type: 'beast', icon: '👹' },
+          TURTLE: { typeId: 'TURTLE', cost: 1, power: 0, health: 4, type: 'beast', icon: '🐢', mightyLeap: true },
+          PORCUPINE: { typeId: 'PORCUPINE', cost: 1, power: 1, health: 2, type: 'beast', icon: '🦔', sharpQuills: true }
         };
 
         const ITEMS_DB = [
-          { id: 'pliers', name: 'Плоскогубцы', icon: '🦷', desc: '+1 урон на весы' },
-          { id: 'bottle', name: 'Белка в бутылке', icon: '🍾', desc: 'Дает Белку в руку или на доску' },
-          { id: 'scissors', name: 'Ножницы', icon: '✂️', desc: 'Уничтожает карту противника' }
+          { id: 'pliers', icon: '🦷' },
+          { id: 'bottle', icon: '🍾' },
+          { id: 'scissors', icon: '✂️' }
         ];
 
         const createCard = (type) => ({ ...type, id: Math.random().toString(36).substr(2, 9) });
@@ -87,6 +265,14 @@
             newItems.push(ITEMS_DB[Math.floor(Math.random() * ITEMS_DB.length)]);
           }
           return newItems;
+        };
+
+        // Вспомогательная функция для миграции старых сохранений
+        const getTypeId = (card) => {
+           if (!card) return null;
+           if (card.typeId) return card.typeId;
+           const entry = Object.entries(CARD_TYPES).find(([k, v]) => v.icon === card.icon);
+           return entry ? entry[0] : null;
         };
 
         // --- ЗВУКОВАЯ СИСТЕМА ---
@@ -181,7 +367,7 @@
             const d = generateDeck();
             return {
               phase: 'draw',
-              message: 'Ваш ход. Возьмите карту.',
+              message: null, // Инициализируем null, чтобы подхватить перевод позже
               scale: 0,
               playerLives: 3,
               enemyLives: 3,
@@ -196,8 +382,12 @@
             };
           });
 
+          // Состояние языка
+          const [lang, setLang] = useState(() => localStorage.getItem('inscryption_lang') || 'ru');
+          const t = DICT[lang]; // Текущий словарь
+
           const [phase, setPhase] = useState(initialData.phase);
-          const [message, setMessage] = useState(initialData.message);
+          const [message, setMessage] = useState(initialData.message || DICT[lang].msgDraw);
           const [scale, setScale] = useState(initialData.scale);
           const [playerLives, setPlayerLives] = useState(initialData.playerLives);
           const [enemyLives, setEnemyLives] = useState(initialData.enemyLives);
@@ -233,6 +423,14 @@
           const eyesContainerRef = useRef(null);
           const leftPupilRef = useRef(null);
           const rightPupilRef = useRef(null);
+
+          const toggleLang = () => {
+             const newLang = lang === 'ru' ? 'en' : 'ru';
+             setLang(newLang);
+             localStorage.setItem('inscryption_lang', newLang);
+             // Сброс базового сообщения при смене языка
+             if (message === DICT[lang].msgDraw) setMessage(DICT[newLang].msgDraw);
+          };
 
           const triggerEyeReaction = () => {
             setEyeReaction(true);
@@ -292,11 +490,11 @@
               playerLives, enemyLives, enemyItems, isSoundEnabled
             };
             localStorage.setItem('inscryption_save', JSON.stringify(stateToSave));
-            setMessage('💾 Игра успешно сохранена!');
+            setMessage(t.msgSaved);
             setShowMenu(false);
             triggerEyeReaction();
             setTimeout(() => {
-              setMessage(prev => prev === '💾 Игра успешно сохранена!' ? 'Продолжайте игру...' : prev);
+              setMessage(prev => prev === t.msgSaved ? t.msgContinue : prev);
             }, 2000);
           };
 
@@ -306,7 +504,7 @@
               if (saved) {
                 const parsed = JSON.parse(saved);
                 setPhase(parsed.phase || 'draw');
-                setMessage('📂 Игра загружена!');
+                setMessage(t.msgLoaded);
                 setScale(parsed.scale || 0);
                 setPlayerLives(parsed.playerLives !== undefined ? parsed.playerLives : 3);
                 setEnemyLives(parsed.enemyLives !== undefined ? parsed.enemyLives : 3);
@@ -324,12 +522,12 @@
                 setShowMenu(false);
                 triggerEyeReaction();
               } else {
-                setMessage('Нет сохранений!');
+                setMessage(t.msgNoSave);
                 setShowMenu(false);
               }
             } catch (e) {
               console.error('Ошибка загрузки:', e);
-              setMessage('Ошибка загрузки!');
+              setMessage(t.msgLoadError);
               setShowMenu(false);
             }
           };
@@ -342,16 +540,16 @@
             
             if (item.id === 'pliers') {
               setScale(s => s + 1);
-              setMessage('Вы положили зуб на весы. +1 урон.');
+              setMessage(t.msgPliers);
               playSound('hit', isSoundEnabled);
               setItems(items.filter((_, i) => i !== index));
             } else if (item.id === 'bottle') {
               setPlayerHand([...playerHand, createCard(CARD_TYPES.SQUIRREL)]);
-              setMessage('Вы разбили бутылку. Белка добавлена в руку!');
+              setMessage(t.msgBottle);
               setItems(items.filter((_, i) => i !== index));
             } else if (item.id === 'scissors') {
               setActiveItem({ itemIndex: index, type: 'scissors' });
-              setMessage('Выберите карту противника, чтобы разрезать её.');
+              setMessage(t.msgScissorsSelect);
               setSelectedHandCard(null);
               setSacrifices([]);
             }
@@ -365,11 +563,11 @@
                 const newBoard = [...opponentBoard];
                 newBoard[index] = null;
                 setOpponentBoard(newBoard);
-                setMessage('Карта противника разрезана!');
+                setMessage(t.msgScissorsDone);
                 setItems(items.filter((_, i) => i !== activeItem.itemIndex));
                 setActiveItem(null);
               } else {
-                setMessage('Здесь нет карты для разрезания.');
+                setMessage(t.msgScissorsEmpty);
               }
             }
           };
@@ -383,19 +581,19 @@
               if (Math.random() < 0.10 && items.length < 3) {
                 const newItem = ITEMS_DB[Math.floor(Math.random() * ITEMS_DB.length)];
                 setItems([...items, newItem]);
-                setMessage(`Вы нашли: ${newItem.icon} ${newItem.name}! Можете тянуть еще раз.`);
+                setMessage(t.msgFoundItem(newItem.icon, t.items[newItem.id].name));
                 return; 
               }
               setPlayerHand([...playerHand, createCard(CARD_TYPES.SQUIRREL)]);
             } else {
               if (deck.length === 0) {
-                setMessage('Колода пуста! От голода вы получаете 1 урон.');
+                setMessage(t.msgDeckEmpty);
                 playSound('hit', isSoundEnabled);
                 setScale(prev => prev - 1);
                 if (scale - 1 <= -5) {
                   setPhase('gameover');
                   playSound('die', isSoundEnabled);
-                  setMessage('Тьма поглотила вас... Свеча гаснет навсегда.');
+                  setMessage(t.msgDeathDarkness);
                   setPlayerLives(0);
                   return;
                 }
@@ -407,7 +605,7 @@
               }
             }
             setPhase('play');
-            setMessage('Сыграйте существ. Выберите карту в руке.');
+            setMessage(t.msgPlayCreatures);
           };
 
           const handleHandClick = (card) => {
@@ -422,9 +620,9 @@
               setSelectedHandCard(card);
               setSacrifices([]);
               if (card.cost > 0) {
-                setMessage(`Выберите ${card.cost} существ на доске для жертвы.`);
+                setMessage(t.msgSacrificeNeeded(card.cost));
               } else {
-                setMessage('Выберите пустой слот на доске.');
+                setMessage(t.msgSelectEmpty);
               }
             }
           };
@@ -453,7 +651,7 @@
                 setPlayerBoard(newBoard);
                 setSelectedHandCard(null);
                 setSacrifices([]);
-                setMessage('Карта разыграна. Звоните в колокольчик.');
+                setMessage(t.msgCardPlayed);
                 return;
               }
 
@@ -467,22 +665,21 @@
                     if (currentBlood < selectedHandCard.cost) {
                       setSacrifices([...sacrifices, index]);
                     } else {
-                      setMessage('Крови достаточно! Кликните на пульсирующую жертву.');
+                      setMessage(t.msgBloodReady);
                     }
                   }
                 }
               } else {
-                setMessage(`Не хватает крови! Нужно ${selectedHandCard.cost}, есть ${currentBlood}.`);
+                setMessage(t.msgNotEnoughBlood(selectedHandCard.cost, currentBlood));
               }
             }
           };
 
-          // Функция выбора карты после потери свечи игроком
           const handleCardChoice = (selectedCard) => {
             playSound('card', isSoundEnabled);
-            setPlayerHand(prev => [...prev, selectedCard]); // Карта мгновенно добавляется в руку
+            setPlayerHand(prev => [...prev, selectedCard]); 
             setCardChoices(null);
-            setMessage('Новый раунд. Возьмите карту.');
+            setMessage(t.msgNewRound);
             setPhase('draw');
           };
 
@@ -497,7 +694,7 @@
             setTimeout(() => setIsBellRinging(false), 500);
             setSelectedHandCard(null);
             setSacrifices([]);
-            setMessage('Начинается бой...');
+            setMessage(t.msgCombatStart);
 
             let currentScale = scale;
             let currentOppBoard = [...opponentBoard];
@@ -510,10 +707,10 @@
               const newPlayerLives = winner === 'opponent' ? playerLives - 1 : playerLives;
               
               if (winner === 'player') {
-                  setMessage('Тень теряет свечу.');
+                  setMessage(t.msgShadowLosesCandle);
                   setEnemyLives(newEnemyLives);
               } else {
-                  setMessage('Вы теряете свечу.');
+                  setMessage(t.msgYouLoseCandle);
                   setPlayerLives(newPlayerLives);
               }
               
@@ -539,7 +736,7 @@
                   if (pItems.length < 3) {
                       const newItem = ITEMS_DB[Math.floor(Math.random() * ITEMS_DB.length)];
                       pItems.push(newItem);
-                      droppedItemsText.push(newItem.name);
+                      droppedItemsText.push(t.items[newItem.id].name);
                   }
               }
               for(let i=0; i < numEnemyDrops; i++) {
@@ -551,32 +748,28 @@
               setItems(pItems);
               setEnemyItems(eItems);
               
-              // === НОВЫЕ СОБЫТИЯ ПРИ ПОТЕРЕ СВЕЧИ ===
               if (winner === 'opponent') {
-                  // Игрок потерял свечу: выбор новой карты
                   const draftTypes = Object.values(CARD_TYPES).filter(c => c.type !== 'resource');
                   const choice1 = createCard(draftTypes[Math.floor(Math.random() * draftTypes.length)]);
                   let choice2 = createCard(draftTypes[Math.floor(Math.random() * draftTypes.length)]);
-                  while(choice1.name === choice2.name) {
+                  while(choice1.typeId === choice2.typeId) {
                        choice2 = createCard(draftTypes[Math.floor(Math.random() * draftTypes.length)]);
                   }
                   setCardChoices([choice1, choice2]);
                   setPhase('event');
-                  return; // Ждем выбора игрока
+                  return; 
               } else if (winner === 'player') {
-                  // Тень потеряла свечу: расплата с крутой анимацией
-                  setPunishment("Свеча тени погасла.\nГРЯДЕТ РАСПЛАТА!");
+                  setPunishment(t.msgShadowCandleOut);
                   playSound('bell', isSoundEnabled);
-                  await sleep(1200); // Табличка висит гораздо меньше времени
-                  setPunishment(null); // Убираем табличку, чтобы игрок ВИДЕЛ поле!
-                  await sleep(300); // Короткая пугающая пауза...
+                  await sleep(1200); 
+                  setPunishment(null); 
+                  await sleep(300); 
 
                   const punishType = Math.random() > 0.5 ? 'column' : 'random';
                   let didPunish = false;
                   
                   if (punishType === 'column') {
                       const col = Math.floor(Math.random() * 4);
-                      // Помечаем карты специальным статусом isPunished для запуска анимации
                       if (currentPlayerBoard[col]) { currentPlayerBoard[col] = { ...currentPlayerBoard[col], isPunished: true }; didPunish = true; }
                       if (currentOppBoard[col]) { currentOppBoard[col] = { ...currentOppBoard[col], isPunished: true }; didPunish = true; }
                       
@@ -586,7 +779,7 @@
                       if (didPunish) {
                           playSound('hit', isSoundEnabled);
                           setTimeout(() => playSound('die', isSoundEnabled), 300);
-                          await sleep(800); // Ждем завершения анимации порчи/уничтожения
+                          await sleep(800); 
                       }
                       
                       currentPlayerBoard[col] = null;
@@ -617,9 +810,9 @@
                   setOpponentBoard([...currentOppBoard]);
                   
                   if (droppedItemsText.length > 0) {
-                      setMessage(`Найдено: ${droppedItemsText.join(', ')}. Ваш ход.`);
+                      setMessage(t.msgFoundLoot(droppedItemsText.join(', ')));
                   } else {
-                      setMessage('Новый раунд. Возьмите карту.');
+                      setMessage(t.msgNewRound);
                   }
                   setPhase('draw');
               }
@@ -679,7 +872,7 @@
               }
             }
 
-            setMessage('Ход тени...');
+            setMessage(t.msgShadowTurn);
             triggerEyeReaction();
             await sleep(600);
 
@@ -694,7 +887,7 @@
                 if (item.id === 'bottle' && currentOppBoard.includes(null)) wantToUse = true;
 
                 if (wantToUse && itemsUsedThisTurn < 2) { 
-                    setMessage(`Тень применяет: ${item.icon} ${item.name}!`);
+                    setMessage(t.msgShadowUses(item.icon, t.items[item.id].name));
                     playSound('card', isSoundEnabled);
                     triggerEyeReaction();
                     itemsUsedThisTurn++;
@@ -816,7 +1009,7 @@
             setOpponentQueue(newQueue);
 
             setPhase('draw');
-            setMessage('Ваш ход. Возьмите карту.');
+            setMessage(t.msgDraw);
           };
 
           const restartGame = () => {
@@ -836,7 +1029,7 @@
             setScale(0);
             setPhase('draw');
             setShowMenu(false);
-            setMessage('Новая игра. Возьмите карту.');
+            setMessage(t.msgDraw);
           };
 
           const getHandMarginLeft = (index, count) => {
@@ -854,7 +1047,7 @@
             </div>
           );
 
-          // КОМПАКТНАЯ АДАПТИВНАЯ КАРТА
+          // КОМПАКТНАЯ АДАПТИВНАЯ КАРТА С ПЕРЕВОДОМ
           const Card = ({ card, onClick, isSelected, isSacrifice, isAttacking, isHidden }) => {
             const cardBaseClass = "w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded-[0.5vh] border-[1.5px] border-[#111] shrink-0";
             
@@ -865,6 +1058,8 @@
                 <span className="text-[min(7vw,3.5vh)]">🌲</span>
               </div>
             );
+
+            const cardName = t.cards[getTypeId(card)] || card.name;
 
             return (
               <div 
@@ -884,12 +1079,12 @@
                 }}
               >
                 <div className="absolute top-[min(0.4vw,0.3vh)] left-[min(0.4vw,0.3vh)] flex flex-col gap-[min(0.3vw,0.2vh)] z-10">
-                    {card.airborne && <Sigil icon="🕊️" title="Воздушный (Бьет напрямую)" />}
-                    {card.touchOfDeath && <Sigil icon="☠️" title="Смертельное касание" />}
-                    {card.bloodValue > 1 && <Sigil icon="🩸" title={`Достойная жертва (Кровь: ${card.bloodValue})`} />}
-                    {card.manyLives && <Sigil icon="♾️" title="Много жизней" />}
-                    {card.mightyLeap && <Sigil icon="🛡️" title="Страж (Блокирует Воздушный)" />}
-                    {card.sharpQuills && <Sigil icon="🌵" title="Острые иглы (Урон атакующему)" />}
+                    {card.airborne && <Sigil icon="🕊️" title={t.sigilAirborne} />}
+                    {card.touchOfDeath && <Sigil icon="☠️" title={t.sigilTouchOfDeath} />}
+                    {card.bloodValue > 1 && <Sigil icon="🩸" title={t.sigilWorthySacrifice.replace('{val}', card.bloodValue)} />}
+                    {card.manyLives && <Sigil icon="♾️" title={t.sigilManyLives} />}
+                    {card.mightyLeap && <Sigil icon="🛡️" title={t.sigilMightyLeap} />}
+                    {card.sharpQuills && <Sigil icon="🌵" title={t.sigilSharpQuills} />}
                 </div>
 
                 <div className="flex justify-end h-[min(2vw,1.2vh)] gap-[min(0.4vw,0.2vh)] relative z-10">
@@ -900,7 +1095,7 @@
                 
                 <div className="flex flex-col items-center flex-1 justify-center -mt-[min(0.8vw,0.5vh)] relative">
                   <span className="text-[min(4.5vw,3vh)] drop-shadow-md leading-none">{card.icon}</span>
-                  <span className="text-[min(2.2vw,1.3vh)] font-bold mt-[min(0.4vw,0.2vh)] text-center leading-tight uppercase tracking-tighter border-b border-black/30 pb-[min(0.2vw,0.1vh)] w-full truncate">{card.name}</span>
+                  <span className="text-[min(2.2vw,1.3vh)] font-bold mt-[min(0.4vw,0.2vh)] text-center leading-tight uppercase tracking-tighter border-b border-black/30 pb-[min(0.2vw,0.1vh)] w-full truncate">{cardName}</span>
                 </div>
 
                 <div className="flex justify-between items-end h-[min(2.5vw,1.5vh)] font-bold text-[min(1.8vw,1.2vh)] leading-none relative z-10">
@@ -957,15 +1152,15 @@
                 {/* ЛЕВАЯ ЧАСТЬ: Название, Жизни, Меню */}
                 <div className="flex flex-col gap-[min(1vw,0.5vh)] w-[30%] sm:w-1/3">
                   <div className="flex items-center gap-[min(2vw,1.5vh)]">
-                    <a href="index.html" className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer text-white no-underline" title="В меню">🏠</a>
-                    <button onClick={() => setShowRules(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Правила">📖</button>
-                    <button onClick={() => setShowMenu(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Меню">💾</button>
+                    <a href="index.html" className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer text-white no-underline" title="Home">🏠</a>
+                    <button onClick={() => setShowRules(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Rules">📖</button>
+                    <button onClick={() => setShowMenu(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Menu">💾</button>
                   </div>
                   <div className="text-[min(2.5vw,1.5vh)] font-bold tracking-widest text-[#8c7a61] border-b border-[#8c7a61] pb-[min(0.5vw,0.2vh)] uppercase w-fit mt-[min(0.5vw,0.2vh)]">
-                    Лесная Хижина
+                    {t.title}
                   </div>
-                  <div className="flex items-center gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(1.5vw,1vh)] py-[min(0.5vw,0.2vh)] rounded border border-[#3a3022] w-fit mt-[min(0.5vw,0.2vh)]" title="Жизни тени">
-                    <span className="text-[min(2vw,1.2vh)]">ТЕНЬ:</span> {Array.from({length: 3}).map((_, i) => <span key={`e-life-${i}`} className={`text-[min(3vw,1.5vh)] ${i < enemyLives ? 'opacity-100 text-red-500' : 'opacity-20 grayscale'}`}>🕯️</span>)}
+                  <div className="flex items-center gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(1.5vw,1vh)] py-[min(0.5vw,0.2vh)] rounded border border-[#3a3022] w-fit mt-[min(0.5vw,0.2vh)]" title={t.shadow}>
+                    <span className="text-[min(2vw,1.2vh)]">{t.shadow}</span> {Array.from({length: 3}).map((_, i) => <span key={`e-life-${i}`} className={`text-[min(3vw,1.5vh)] ${i < enemyLives ? 'opacity-100 text-red-500' : 'opacity-20 grayscale'}`}>🕯️</span>)}
                   </div>
                 </div>
 
@@ -987,20 +1182,25 @@
                   </div>
                 </div>
 
-                {/* ПРАВАЯ ЧАСТЬ: Звук, Предметы противника */}
+                {/* ПРАВАЯ ЧАСТЬ: Звук, Язык, Предметы противника */}
                 <div className="flex flex-col gap-[min(1vw,0.5vh)] items-end w-[30%] sm:w-1/3">
-                  <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 transition-all hover:scale-110 drop-shadow-md" title="Звук">
-                    {isSoundEnabled ? '🔊' : '🔇'}
-                  </button>
+                  <div className="flex items-center gap-[min(2vw,1.5vh)]">
+                    <button onClick={toggleLang} className="text-[min(4.5vw,2.2vh)] font-bold opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Language">
+                      {lang === 'ru' ? '🌐RU' : '🌐EN'}
+                    </button>
+                    <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 transition-all hover:scale-110 drop-shadow-md" title="Sound">
+                      {isSoundEnabled ? '🔊' : '🔇'}
+                    </button>
+                  </div>
 
-                  <div className="flex gap-[min(0.8vw,0.4vh)] bg-[#1e1813] p-[min(0.8vw,0.4vh)] border border-[#3a3022] rounded shadow-inner mt-[min(0.5vw,0.2vh)] h-[min(6vw,3.5vh)]" title="Предметы противника">
+                  <div className="flex gap-[min(0.8vw,0.4vh)] bg-[#1e1813] p-[min(0.8vw,0.4vh)] border border-[#3a3022] rounded shadow-inner mt-[min(0.5vw,0.2vh)] h-[min(6vw,3.5vh)]" title={t.shadow}>
                     {enemyItems.map((item, i) => (
                       <div key={`e-item-${i}`} className="h-full aspect-square rounded border border-[#4a3f31] bg-[#1a1612] flex items-center justify-center text-[min(3.5vw,1.8vh)] opacity-90 shadow-sm">
                         {item.icon}
                       </div>
                     ))}
                     {Array.from({ length: 3 - enemyItems.length }).map((_, i) => (
-                      <div key={`e-empty-${i}`} className="h-full aspect-square rounded border border-[#3a3022] bg-[#1a1612] opacity-30 flex items-center justify-center text-[min(1.5vw,0.8vh)] text-[#6e5d4a]"></div>
+                      <div key={`e-empty-${i}`} className="h-full aspect-square rounded border border-[#3a3022] bg-[#1a1612] opacity-30 flex items-center justify-center text-[min(1.5vw,0.8vh)] text-[#6e5d4a]">{t.empty}</div>
                     ))}
                   </div>
                 </div>
@@ -1011,7 +1211,7 @@
                 
                 {/* ВЕРТИКАЛЬНЫЕ ВЕСЫ */}
                 <div className="absolute right-[min(2vw,1vh)] top-1/2 -translate-y-1/2 h-[min(45vw,35vh)] w-[min(8vw,4.5vh)] flex flex-col items-center justify-between bg-[#1a1612] border-2 border-[#3a3022] rounded-full p-[min(1vw,0.5vh)] shadow-[0_0_20px_rgba(0,0,0,0.8)] z-20 pointer-events-none">
-                  <div className="text-[min(3.5vw,2vh)] mb-[min(1vw,0.5vh)] opacity-80" title="Ваш перевес">⚖️</div>
+                  <div className="text-[min(3.5vw,2vh)] mb-[min(1vw,0.5vh)] opacity-80" title={t.yourAdvantage}>⚖️</div>
                   <div className={`relative flex-1 w-full bg-[#050403] rounded-full overflow-hidden shadow-inner ${shakeScale ? 'anim-shake-vertical' : ''}`}>
                      <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-[#8c7a61] z-10 -mt-[1px]"></div>
                      <div className="absolute bottom-1/2 w-full bg-gradient-to-t from-green-900 to-green-500 transition-all duration-500 ease-out"
@@ -1022,14 +1222,14 @@
                         {Array.from({length: 11}).map((_, i) => <div key={i} className={`w-[40%] h-[1px] ${i === 5 ? 'bg-transparent' : 'bg-[#d4c3a3]'}`}></div>)}
                      </div>
                   </div>
-                  <div className="text-[min(3.5vw,2vh)] mt-[min(1vw,0.5vh)] opacity-50 grayscale" title="Перевес тени">💀</div>
+                  <div className="text-[min(3.5vw,2vh)] mt-[min(1vw,0.5vh)] opacity-50 grayscale" title={t.shadowAdvantage}>💀</div>
                 </div>
 
                 <div className="flex gap-[min(1.5vw,1vh)] opacity-70 shrink-0">
                   {opponentQueue.map((card, i) => (
                     <div key={`queue-${i}`} className="w-[min(15vw,9.5vh)] h-[min(7.5vw,4.75vh)] border border-dashed border-[#4a3f31] bg-[#1a1612] flex items-center justify-center rounded overflow-hidden relative shrink-0">
                       {card && <span className="text-[min(4vw,2.5vh)] mt-[min(1.5vw,1vh)] opacity-50">{card.icon}</span>}
-                      {card && <div className="absolute top-0 text-[min(1.5vw,0.9vh)] w-full text-center bg-black/50 text-[#8c7a61]">Грядет</div>}
+                      {card && <div className="absolute top-0 text-[min(1.5vw,0.9vh)] w-full text-center bg-black/50 text-[#8c7a61]">{t.coming}</div>}
                     </div>
                   ))}
                 </div>
@@ -1054,7 +1254,7 @@
 
               </div>
 
-              {/* ПАНЕЛЬ ИГРОКА (Уменьшена по высоте) */}
+              {/* ПАНЕЛЬ ИГРОКА */}
               <div className="w-full max-w-4xl bg-[#110e0c] border-t border-[#2a241c] p-[min(1.5vw,1vh)] pb-[calc(env(safe-area-inset-bottom)+min(1vw,0.5vh))] rounded-t-xl flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 shrink-0">
                 
                 {/* СТРОКА СООБЩЕНИЯ В ПАНЕЛИ ИГРОКА */}
@@ -1070,28 +1270,28 @@
                     {/* Колоды */}
                     <div className="flex gap-[min(1.5vw,1.5vh)] shrink-0">
                       <button onClick={() => drawCard(true)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
-                        <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">Белка</div>
+                        <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">{t.squirrel}</div>
                         <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-80 text-[min(7vw,4vh)]">🐿️</div>
                       </button>
                       <button onClick={() => drawCard(false)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
-                         <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Колода ({deck.length})</div>
+                         <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{t.deck} ({deck.length})</div>
                         <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-80 text-[min(7vw,4vh)]">🌲</div>
                       </button>
                     </div>
 
-                    {/* Вертикальная колонка предметов (макс. 3) - Исправлено переполнение */}
+                    {/* Вертикальная колонка предметов (макс. 3) */}
                     <div className="flex flex-col gap-[min(1vw,0.5vh)] shrink-0 h-[min(22.5vw,14.25vh)] w-[min(8vw,5vh)]">
                       {items.map((item, i) => (
-                        <button key={i} onClick={() => handleItemClick(i)} disabled={phase !== 'play'} title={item.desc} 
+                        <button key={i} onClick={() => handleItemClick(i)} disabled={phase !== 'play'} title={t.items[item.id].desc} 
                                 className={`flex-1 min-h-0 overflow-hidden w-full rounded border ${activeItem?.itemIndex === i ? 'border-blue-500 bg-blue-900/30' : 'border-[#4a3f31] bg-[#2a241c]'} hover:bg-[#3d3121] flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation shadow-sm text-[min(4.5vw,2.5vh)] leading-none`}>
                           {item.icon}
                         </button>
                       ))}
                       {Array.from({ length: 3 - items.length }).map((_, i) => (
-                        <div key={`empty-${i}`} className="flex-1 min-h-0 overflow-hidden w-full rounded border border-[#3a3022] bg-[#1e1813] opacity-50 flex items-center justify-center text-[min(1.8vw,1vh)] text-[#6e5d4a] leading-none">
-                          Пусто
+                        <div key={`empty-${i}`} className="flex-1 min-h-0 overflow-hidden w-full rounded border border-[#3a3022] bg-[#1e1813] opacity-50 flex items-center justify-center text-[min(1.8vw,1vh)] text-[#6e5d4a] leading-none whitespace-pre-wrap text-center">
+                          {t.noItems}
                         </div>
                       ))}
                     </div>
@@ -1100,22 +1300,22 @@
 
                   {/* ПРАВАЯ ЧАСТЬ: ЖИЗНИ + ОГРОМНАЯ КНОПКА ХОДА */}
                   <div className="flex flex-col gap-[min(1vw,0.6vh)] shrink-0 h-[min(22.5vw,14.25vh)] w-[min(18vw,12vh)]">
-                    <div className="flex items-center justify-between gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(2vw,1vh)] py-[min(0.8vw,0.4vh)] rounded border border-[#3a3022] font-bold shrink-0" title="Ваши жизни">
-                       <span className="text-[min(1.8vw,1vh)] leading-none text-[#8c7a61]">ВЫ:</span>
+                    <div className="flex items-center justify-between gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(2vw,1vh)] py-[min(0.8vw,0.4vh)] rounded border border-[#3a3022] font-bold shrink-0" title={t.you}>
+                       <span className="text-[min(1.8vw,1vh)] leading-none text-[#8c7a61]">{t.you}</span>
                        <div className="flex gap-[min(0.5vw,0.2vh)]">
                            {Array.from({length: 3}).map((_, i) => <span key={`p-life-${i}`} className={`text-[min(2.5vw,1.4vh)] leading-none ${i < playerLives ? 'opacity-100' : 'opacity-20 grayscale'}`}>🕯️</span>)}
                        </div>
                     </div>
                     <button onClick={endTurn} disabled={phase !== 'play'} className="flex-1 w-full rounded border border-[#5c4a35] bg-[#2a2116] hover:bg-[#3d3121] text-[#d4c3a3] font-bold tracking-widest uppercase transition-all disabled:opacity-30 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-[min(1vw,0.5vh)] shadow-[0_0_10px_rgba(0,0,0,0.5)] group touch-manipulation text-[min(2vw,1.2vh)] px-[min(2vw,1vh)]">
                       <span className={`text-[min(5vw,3vh)] inline-block leading-none ${isBellRinging ? 'anim-bell' : 'group-hover:anim-bell'}`}>🔔</span> 
-                      <span className="leading-none mt-[min(0.5vw,0.2vh)]">Ход</span>
+                      <span className="leading-none mt-[min(0.5vw,0.2vh)]">{t.turn}</span>
                     </button>
                   </div>
 
                 </div>
 
                 <div className="flex flex-row justify-center items-end w-full p-[min(1vw,0.5vh)] border border-dashed border-[#2a241c] rounded bg-[#0a0806]/50 touch-manipulation shrink-0 min-h-[min(25vw,16vh)] pt-[min(1.5vw,1vh)]" style={{ WebkitOverflowScrolling: 'touch' }}>
-                  {playerHand.length === 0 && <span className="m-auto opacity-30 italic text-[min(3vw,1.5vh)]">Рука пуста</span>}
+                  {playerHand.length === 0 && <span className="m-auto opacity-30 italic text-[min(3vw,1.5vh)]">{t.emptyHand}</span>}
                   {playerHand.map((card, i) => {
                     const isSelected = selectedHandCard?.id === card.id;
                     return (
@@ -1135,7 +1335,7 @@
               {/* --- МОДАЛКИ СЮЖЕТА --- */}
               {cardChoices && (
                 <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-4">
-                  <h2 className="text-[min(4vw,3vh)] font-black text-[#e6d8ba] mb-[min(4vw,3vh)] text-center">Свеча погасла...<br/>Выберите подмогу в руку:</h2>
+                  <h2 className="text-[min(4vw,3vh)] font-black text-[#e6d8ba] mb-[min(4vw,3vh)] text-center whitespace-pre-wrap">{t.msgCandleOutChoice}</h2>
                   <div className="flex gap-[min(4vw,3vh)]">
                     {cardChoices.map((c, i) => (
                       <div key={i} className="hover:-translate-y-[min(2vw,1vh)] hover:scale-110 transition-all cursor-pointer" onClick={() => handleCardChoice(c)}>
@@ -1150,7 +1350,7 @@
               {punishment && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 p-4 pointer-events-none">
                   <div className="bg-[#1a1612] border-2 border-red-900 p-[3vh] rounded-xl flex flex-col items-center text-center shadow-[0_0_80px_rgba(220,38,38,0.8)] animate-pulse">
-                    <h2 className="text-[min(6vw,4.5vh)] font-black text-red-600 mb-[1vh]">РАСПЛАТА</h2>
+                    <h2 className="text-[min(6vw,4.5vh)] font-black text-red-600 mb-[1vh]">{t.msgPunishment}</h2>
                     <p className="text-[#d4c3a3] text-[min(3vw,2vh)] whitespace-pre-line">{punishment}</p>
                   </div>
                 </div>
@@ -1160,37 +1360,33 @@
               {showMenu && (
                 <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowMenu(false)}>
                   <div className="bg-[#1a1612] text-[#e6d8ba] border-4 border-[#3a3022] p-[3vh] rounded-xl shadow-[0_0_50px_rgba(0,0,0,1)] w-full max-w-xs flex flex-col gap-[2vh]" onClick={e => e.stopPropagation()}>
-                    <h2 className="text-[3vh] font-black text-center mb-[1vh] border-b-2 border-[#3a3022] pb-2 text-[#8c7a61] tracking-widest">МЕНЮ</h2>
-                    <button onClick={handleManualSave} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#2a241c] hover:bg-[#3d3121] border border-[#5c4a35] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold shadow-md">💾 Сохранить</button>
-                    <button onClick={handleLoad} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#2a241c] hover:bg-[#3d3121] border border-[#5c4a35] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold shadow-md">📂 Загрузить</button>
-                    <button onClick={restartGame} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#4a1c1c] hover:bg-[#6b2525] border border-[#7a2e2e] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold mt-[1vh] shadow-md">💀 Новая игра</button>
-                    <button onClick={() => setShowMenu(false)} className="px-[2vh] py-[1vh] text-[1.6vh] bg-transparent hover:bg-[#111] text-gray-500 rounded uppercase tracking-widest transition-all font-bold mt-[1vh]">Отмена</button>
+                    <h2 className="text-[3vh] font-black text-center mb-[1vh] border-b-2 border-[#3a3022] pb-2 text-[#8c7a61] tracking-widest">{t.menu}</h2>
+                    <button onClick={handleManualSave} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#2a241c] hover:bg-[#3d3121] border border-[#5c4a35] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold shadow-md">{t.save}</button>
+                    <button onClick={handleLoad} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#2a241c] hover:bg-[#3d3121] border border-[#5c4a35] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold shadow-md">{t.load}</button>
+                    <button onClick={restartGame} className="px-[2vh] py-[1.5vh] text-[2vh] bg-[#4a1c1c] hover:bg-[#6b2525] border border-[#7a2e2e] text-[#d4c3a3] rounded uppercase tracking-widest transition-all font-bold mt-[1vh] shadow-md">{t.newGame}</button>
+                    <button onClick={() => setShowMenu(false)} className="px-[2vh] py-[1vh] text-[1.6vh] bg-transparent hover:bg-[#111] text-gray-500 rounded uppercase tracking-widest transition-all font-bold mt-[1vh]">{t.cancel}</button>
                   </div>
                 </div>
               )}
 
-              {/* --- МОДАЛКИ --- */}
+              {/* --- МОДАЛКИ ПРАВИЛ --- */}
               {showRules && (
                 <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowRules(false)}>
                   <div className="bg-[#e6d8ba] text-[#2c241b] border-4 border-[#332c22] p-[3vh] rounded shadow-[0_0_50px_rgba(0,0,0,1)] w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/old-paper.png")` }} onClick={e => e.stopPropagation()}>
-                    <h2 className="text-[3vh] font-black mb-[1.5vh] border-b-2 border-[#332c22] pb-2">Правила Игры</h2>
+                    <h2 className="text-[3vh] font-black mb-[1.5vh] border-b-2 border-[#332c22] pb-2">{t.rulesTitle}</h2>
                     <ul className="space-y-[1vh] text-[1.6vh] text-left">
-                      <li><strong>🩸 Жертвоприношение:</strong> Чтобы разыграть карту зверя, вам нужна кровь. Выберите карту в руке, кликните по существам на доске, чтобы принести их в жертву, а затем на пустой слот.</li>
-                      <li><strong>⚖️ Весы:</strong> Вы побеждаете в раунде, если нанесете на 5 урона больше.</li>
-                      <li><strong>🕯️ Свечи и Расплата:</strong> Если гаснет ваша свеча, вы сможете выбрать новую карту. Если гаснет свеча тени — она в ярости уничтожит случайные карты на доске! Победите 3 раза.</li>
-                      <li><strong>🔔 Бой:</strong> Карты атакуют автоматически слева направо.</li>
-                      <li><strong>Сигилы:</strong>
+                      <li dangerouslySetInnerHTML={{__html: t.rules[0]}} />
+                      <li dangerouslySetInnerHTML={{__html: t.rules[1]}} />
+                      <li dangerouslySetInnerHTML={{__html: t.rules[2]}} />
+                      <li dangerouslySetInnerHTML={{__html: t.rules[3]}} />
+                      <li>
+                        <strong dangerouslySetInnerHTML={{__html: t.rules[4]}} />
                         <ul className="pl-4 mt-1 list-disc opacity-80">
-                          <li>🕊️ <em>Воздушный</em>: Бьет по весам, игнорируя врага.</li>
-                          <li>☠️ <em>Смертельное касание</em>: Убивает врага при любом уроне.</li>
-                          <li>🩸x3 <em>Достойная жертва</em>: Дает сразу 3 крови.</li>
-                          <li>♾️ <em>Много жизней</em>: Не исчезает при жертве.</li>
-                          <li>🛡️ <em>Страж</em>: Блокирует урон от Воздушных карт.</li>
-                          <li>🌵 <em>Острые иглы</em>: Наносит 1 урон атакующему.</li>
+                          {t.rulesSigils.map((s, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: s}} />)}
                         </ul>
                       </li>
                     </ul>
-                    <button onClick={() => setShowRules(false)} className="mt-[2vh] px-[2vh] py-[1vh] text-[1.6vh] bg-[#332c22] hover:bg-[#111] text-[#e6d8ba] rounded uppercase tracking-widest transition-colors font-bold w-full">Понятно</button>
+                    <button onClick={() => setShowRules(false)} className="mt-[2vh] px-[2vh] py-[1vh] text-[1.6vh] bg-[#332c22] hover:bg-[#111] text-[#e6d8ba] rounded uppercase tracking-widest transition-colors font-bold w-full">{t.understood}</button>
                   </div>
                 </div>
               )}
@@ -1199,12 +1395,12 @@
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                   <div className="bg-[#1a1612] border-2 border-[#4a3f31] p-[3vh] rounded-xl flex flex-col items-center text-center shadow-[0_0_50px_rgba(0,0,0,1)] w-full max-w-md">
                     <h2 className={`text-[4vh] font-black mb-[1.5vh] ${scale >= 5 ? 'text-green-700' : 'text-red-800'}`}>
-                      {scale >= 5 ? 'ПОБЕДА' : 'ВЫ ПОГИБЛИ'}
+                      {scale >= 5 ? t.victory : t.defeat}
                     </h2>
                     <p className="text-[#8c7a61] mb-[3vh] text-[1.6vh]">
-                      {scale >= 5 ? 'Все свечи тени погасли. Вы прошли это испытание.' : 'Последняя свеча потухла. Тьма поглотила вас...'}
+                      {scale >= 5 ? t.victoryDesc : t.defeatDesc}
                     </p>
-                    <button onClick={restartGame} className="px-[2vh] py-[1vh] text-[1.6vh] bg-[#2a241c] hover:bg-[#4a3f31] border border-[#8c7a61] text-[#d4c3a3] rounded uppercase tracking-widest transition-colors font-bold touch-manipulation">Начать заново</button>
+                    <button onClick={restartGame} className="px-[2vh] py-[1vh] text-[1.6vh] bg-[#2a241c] hover:bg-[#4a3f31] border border-[#8c7a61] text-[#d4c3a3] rounded uppercase tracking-widest transition-colors font-bold touch-manipulation">{t.restart}</button>
                   </div>
                 </div>
               )}
