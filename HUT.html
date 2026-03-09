@@ -12,7 +12,7 @@
     <!-- Подключаем Babel для компиляции JSX прямо в браузере -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-[#14120f] m-0 p-0 overflow-hidden touch-manipulation overscroll-none">
+<body class="bg-[#14120f] m-0 p-0 overflow-y-auto overflow-x-hidden touch-manipulation overscroll-none hide-scrollbar">
     
     <div id="root"></div>
 
@@ -30,7 +30,9 @@
           ADDER: { name: 'Гадюка', cost: 2, power: 1, health: 1, type: 'beast', icon: '🐍', touchOfDeath: true },
           GOAT: { name: 'Черная Коза', cost: 1, power: 0, health: 1, type: 'beast', icon: '🐐', bloodValue: 3 },
           CAT: { name: 'Кошка', cost: 1, power: 1, health: 1, type: 'beast', icon: '🐈', manyLives: true },
-          URAYULI: { name: 'Ураюли', cost: 4, power: 7, health: 7, type: 'beast', icon: '👹' }
+          URAYULI: { name: 'Ураюли', cost: 4, power: 7, health: 7, type: 'beast', icon: '👹' },
+          TURTLE: { name: 'Черепаха', cost: 1, power: 0, health: 4, type: 'beast', icon: '🐢', mightyLeap: true },
+          PORCUPINE: { name: 'Дикобраз', cost: 1, power: 1, health: 2, type: 'beast', icon: '🦔', sharpQuills: true }
         };
 
         const ITEMS_DB = [
@@ -53,11 +55,12 @@
         const generateDeck = () => {
           const deck = [
             createCard(CARD_TYPES.STOAT), createCard(CARD_TYPES.STOAT),
-            createCard(CARD_TYPES.FROG), createCard(CARD_TYPES.FROG),
+            createCard(CARD_TYPES.FROG), createCard(CARD_TYPES.TURTLE),
             createCard(CARD_TYPES.RAVEN), createCard(CARD_TYPES.WOLF),
             createCard(CARD_TYPES.WOLF), createCard(CARD_TYPES.ADDER),
             createCard(CARD_TYPES.BEAR), createCard(CARD_TYPES.GOAT),
-            createCard(CARD_TYPES.CAT), createCard(CARD_TYPES.URAYULI)
+            createCard(CARD_TYPES.CAT), createCard(CARD_TYPES.URAYULI),
+            createCard(CARD_TYPES.PORCUPINE)
           ];
           return shuffleArray(deck);
         };
@@ -65,7 +68,7 @@
         const generateRandomQueue = () => {
           const q = [null, null, null, null];
           let hasEnemy = false;
-          const enemyTypes = [CARD_TYPES.STOAT, CARD_TYPES.FROG, CARD_TYPES.RAVEN, CARD_TYPES.WOLF, CARD_TYPES.ADDER];
+          const enemyTypes = [CARD_TYPES.STOAT, CARD_TYPES.FROG, CARD_TYPES.RAVEN, CARD_TYPES.WOLF, CARD_TYPES.ADDER, CARD_TYPES.TURTLE, CARD_TYPES.PORCUPINE];
           for(let i=0; i<4; i++) {
             if(Math.random() > 0.6) {
               q[i] = createCard(enemyTypes[Math.floor(Math.random() * enemyTypes.length)]);
@@ -254,8 +257,8 @@
               const distance = Math.min(Math.hypot(dx, dy) / 300, 1); 
 
               const isMobile = window.innerWidth < 640;
-              const maxX = isMobile ? 8 : 12;
-              const maxY = isMobile ? 3 : 5;
+              const maxX = isMobile ? 10 : 15;
+              const maxY = isMobile ? 4 : 7;
 
               const px = Math.cos(angle) * distance * maxX;
               const py = Math.sin(angle) * distance * maxY;
@@ -514,16 +517,32 @@
                 playSound('hit', isSoundEnabled);
 
                 const oCard = currentOppBoard[i];
-                if (oCard && !pCard.airborne) {
+                if (oCard && (!pCard.airborne || oCard.mightyLeap)) {
                   oCard.health -= pCard.power;
                   if (pCard.touchOfDeath) oCard.health = 0; 
                   
+                  let pDied = false;
+                  if (oCard.sharpQuills) {
+                    pCard.health -= 1;
+                    if (pCard.health <= 0) pDied = true;
+                  }
+                  
                   if (oCard.health <= 0) {
-                    playSound('die', isSoundEnabled);
                     currentOppBoard[i] = { ...oCard, isDying: true };
-                    setOpponentBoard([...currentOppBoard]);
+                  }
+                  if (pDied) {
+                    currentPlayerBoard[i] = { ...pCard, isDying: true };
+                  }
+
+                  if (oCard.health <= 0 || pDied) playSound('die', isSoundEnabled);
+                  
+                  setOpponentBoard([...currentOppBoard]);
+                  setPlayerBoard([...currentPlayerBoard]);
+
+                  if (oCard.health <= 0 || pDied) {
                     await sleep(400); 
-                    currentOppBoard[i] = null; 
+                    if (oCard.health <= 0) currentOppBoard[i] = null; 
+                    if (pDied) currentPlayerBoard[i] = null; 
                   }
                 } else {
                   currentScale += pCard.power; 
@@ -532,6 +551,7 @@
                 }
                 
                 setOpponentBoard([...currentOppBoard]);
+                setPlayerBoard([...currentPlayerBoard]);
                 setScale(currentScale);
                 setAttackingSlot(null);
                 await sleep(200);
@@ -624,16 +644,32 @@
                 playSound('hit', isSoundEnabled);
 
                 const pCard = currentPlayerBoard[i];
-                if (pCard && !oCard.airborne) {
+                if (pCard && (!oCard.airborne || pCard.mightyLeap)) {
                   pCard.health -= oCard.power;
                   if (oCard.touchOfDeath) pCard.health = 0; 
                   
+                  let oDied = false;
+                  if (pCard.sharpQuills) {
+                    oCard.health -= 1;
+                    if (oCard.health <= 0) oDied = true;
+                  }
+                  
                   if (pCard.health <= 0) {
-                    playSound('die', isSoundEnabled);
                     currentPlayerBoard[i] = { ...pCard, isDying: true };
-                    setPlayerBoard([...currentPlayerBoard]);
+                  }
+                  if (oDied) {
+                    currentOppBoard[i] = { ...oCard, isDying: true };
+                  }
+
+                  if (pCard.health <= 0 || oDied) playSound('die', isSoundEnabled);
+
+                  setPlayerBoard([...currentPlayerBoard]);
+                  setOpponentBoard([...currentOppBoard]);
+
+                  if (pCard.health <= 0 || oDied) {
                     await sleep(400); 
-                    currentPlayerBoard[i] = null; 
+                    if (pCard.health <= 0) currentPlayerBoard[i] = null; 
+                    if (oDied) currentOppBoard[i] = null; 
                   }
                 } else {
                   currentScale -= oCard.power; 
@@ -642,6 +678,7 @@
                 }
                 
                 setPlayerBoard([...currentPlayerBoard]);
+                setOpponentBoard([...currentOppBoard]);
                 setScale(currentScale);
                 setAttackingSlot(null);
                 await sleep(200);
@@ -655,7 +692,7 @@
 
             for (let i = 0; i < 4; i++) {
               if (!newQueue[i] && Math.random() > 0.6) {
-                const enemyTypes = [CARD_TYPES.STOAT, CARD_TYPES.FROG, CARD_TYPES.RAVEN, CARD_TYPES.WOLF, CARD_TYPES.ADDER];
+                const enemyTypes = [CARD_TYPES.STOAT, CARD_TYPES.FROG, CARD_TYPES.RAVEN, CARD_TYPES.WOLF, CARD_TYPES.ADDER, CARD_TYPES.TURTLE, CARD_TYPES.PORCUPINE];
                 const randomEnemy = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
                 newQueue[i] = createCard(randomEnemy);
               }
@@ -685,22 +722,37 @@
             setMessage('Новая игра. Возьмите карту.');
           };
 
-          // АБСОЛЮТНО АДАПТИВНАЯ КАРТА (Использует min(vw, vh), чтобы никогда не вылезать за экран)
+          const getHandMarginLeft = (index, count) => {
+              if (index === 0) return '0px';
+              if (count <= 4) return 'min(1vw, 0.8vh)';
+              if (count <= 6) return 'min(-3vw, -1.8vh)';
+              if (count <= 8) return 'min(-6vw, -3.5vh)';
+              if (count <= 12) return 'min(-10vw, -6vh)';
+              return 'min(-13vw, -8vh)';
+          };
+
+          const Sigil = ({ icon, title }) => (
+            <div className="bg-[#1a1612]/90 border border-[#3a3022] rounded-full w-[min(3.5vw,2vh)] h-[min(3.5vw,2vh)] flex items-center justify-center shadow-md backdrop-blur-sm" title={title}>
+                <span className="text-[min(2vw,1.2vh)] drop-shadow-md">{icon}</span>
+            </div>
+          );
+
+          // КОМПАКТНАЯ АДАПТИВНАЯ КАРТА
           const Card = ({ card, onClick, isSelected, isSacrifice, isAttacking, isHidden }) => {
-            const cardBaseClass = "w-[min(17vw,11vh)] h-[min(25.5vw,16.5vh)] rounded-[0.5vh] border-[1.5px] border-[#111] shrink-0";
+            const cardBaseClass = "w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded-[0.5vh] border-[1.5px] border-[#111] shrink-0";
             
             if (!card && !isHidden) return <div className={`${cardBaseClass} border-dashed border-[#443c30] bg-[#2a241b] opacity-50`} />;
             if (isHidden) return (
               <div className={`${cardBaseClass} bg-[#2a241b] flex items-center justify-center shadow-lg relative overflow-hidden`}>
                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
-                <span className="text-[min(8vw,4vh)]">🌲</span>
+                <span className="text-[min(7vw,3.5vh)]">🌲</span>
               </div>
             );
 
             return (
               <div 
                 onClick={onClick}
-                className={`${cardBaseClass} flex flex-col justify-between p-[min(0.5vw,0.4vh)] shadow-md transition-all duration-300 select-none cursor-pointer relative overflow-hidden
+                className={`${cardBaseClass} flex flex-col justify-between p-[min(0.4vw,0.3vh)] shadow-md transition-all duration-300 select-none cursor-pointer relative overflow-hidden
                   ${isSelected ? 'border-yellow-500 scale-105 shadow-yellow-900/50 -translate-y-2 animate-pulse' : 'border-[#111]'}
                   ${isSacrifice ? 'border-red-600 animate-pulse' : ''}
                   ${isAttacking ? 'scale-110 z-10 border-red-500 shadow-red-500/50' : ''}
@@ -710,40 +762,42 @@
                 `}
                 style={{
                    backgroundImage: `url("https://www.transparenttextures.com/patterns/old-paper.png")`,
-                   transform: isAttacking ? 'translateY(calc(-1 * var(--attack-dir, 0) * 15px)) scale(1.1)' : '',
+                   transform: isAttacking ? 'translateY(calc(-1 * var(--attack-dir, 0) * 10px)) scale(1.1)' : '',
                    touchAction: 'manipulation'
                 }}
               >
-                <div className="flex justify-end h-[min(2.5vw,1.5vh)] gap-[min(0.5vw,0.2vh)]">
+                <div className="absolute top-[min(0.4vw,0.3vh)] left-[min(0.4vw,0.3vh)] flex flex-col gap-[min(0.3vw,0.2vh)] z-10">
+                    {card.airborne && <Sigil icon="🕊️" title="Воздушный (Бьет напрямую)" />}
+                    {card.touchOfDeath && <Sigil icon="☠️" title="Смертельное касание" />}
+                    {card.bloodValue > 1 && <Sigil icon="🩸" title={`Достойная жертва (Кровь: ${card.bloodValue})`} />}
+                    {card.manyLives && <Sigil icon="♾️" title="Много жизней" />}
+                    {card.mightyLeap && <Sigil icon="🛡️" title="Страж (Блокирует Воздушный)" />}
+                    {card.sharpQuills && <Sigil icon="🌵" title="Острые иглы (Урон атакующему)" />}
+                </div>
+
+                <div className="flex justify-end h-[min(2vw,1.2vh)] gap-[min(0.4vw,0.2vh)] relative z-10">
                   {Array.from({ length: card.cost }).map((_, i) => (
-                    <span key={i} className="text-red-700 text-[min(2vw,1.2vh)] drop-shadow-sm leading-none">🩸</span>
+                    <span key={i} className="text-red-700 text-[min(1.5vw,1vh)] drop-shadow-sm leading-none">🩸</span>
                   ))}
                 </div>
                 
-                <div className="flex flex-col items-center flex-1 justify-center -mt-[min(1vw,0.5vh)] relative">
-                  <span className="text-[min(5.5vw,3.5vh)] drop-shadow-md leading-none">{card.icon}</span>
-                  <span className="text-[min(1.8vw,1.1vh)] font-bold mt-[min(0.5vw,0.3vh)] text-center leading-tight uppercase tracking-tighter border-b border-black/30 pb-[min(0.2vw,0.2vh)] w-full truncate">{card.name}</span>
-                  
-                  <div className="absolute top-[min(5.5vw,3.5vh)] flex gap-[min(0.5vw,0.5vh)] bg-[#2a241b]/90 rounded px-[min(0.5vw,0.2vh)] shadow-sm">
-                    {card.airborne && <span className="text-[min(1.8vw,1.1vh)]" title="Воздушный">🕊️</span>}
-                    {card.touchOfDeath && <span className="text-[min(1.8vw,1.1vh)]" title="Смертельное касание">☠️</span>}
-                    {card.bloodValue > 1 && <span className="text-[min(1.8vw,1.1vh)]" title="Достойная жертва">🩸x{card.bloodValue}</span>}
-                    {card.manyLives && <span className="text-[min(1.8vw,1.1vh)]" title="Много жизней">♾️</span>}
-                  </div>
+                <div className="flex flex-col items-center flex-1 justify-center -mt-[min(0.8vw,0.5vh)] relative">
+                  <span className="text-[min(4.5vw,3vh)] drop-shadow-md leading-none">{card.icon}</span>
+                  <span className="text-[min(2.2vw,1.3vh)] font-bold mt-[min(0.4vw,0.2vh)] text-center leading-tight uppercase tracking-tighter border-b border-black/30 pb-[min(0.2vw,0.1vh)] w-full truncate">{card.name}</span>
                 </div>
 
-                <div className="flex justify-between items-end h-[min(3vw,2vh)] font-bold text-[min(2.2vw,1.4vh)] leading-none">
-                  <div className="flex items-center gap-[min(0.5vw,0.2vh)]">
-                    <span className="text-[min(1.8vw,1.2vh)]">⚔️</span>{card.power}
+                <div className="flex justify-between items-end h-[min(2.5vw,1.5vh)] font-bold text-[min(1.8vw,1.2vh)] leading-none relative z-10">
+                  <div className="flex items-center gap-[min(0.4vw,0.2vh)]">
+                    <span className="text-[min(1.5vw,1vh)]">⚔️</span>{card.power}
                   </div>
-                  <div className="flex items-center gap-[min(0.5vw,0.2vh)]">
-                    {card.health}<span className="text-[min(1.8vw,1.2vh)]">❤️</span>
+                  <div className="flex items-center gap-[min(0.4vw,0.2vh)]">
+                    {card.health}<span className="text-[min(1.5vw,1vh)]">❤️</span>
                   </div>
                 </div>
 
                 {isSacrifice && (
-                  <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center">
-                    <span className="text-red-600 text-[min(8vw,5vh)] font-black drop-shadow-lg animate-bounce">X</span>
+                  <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center z-20">
+                    <span className="text-red-600 text-[min(7vw,4vh)] font-black drop-shadow-lg animate-bounce">X</span>
                   </div>
                 )}
               </div>
@@ -751,16 +805,18 @@
           };
 
           return (
-            <div className="h-[100dvh] w-full bg-[#14120f] text-[#d4c3a3] font-mono flex flex-col items-center justify-between selection:bg-red-900 overflow-hidden relative touch-manipulation overscroll-none"
+            <div className="min-h-[100dvh] w-full bg-[#14120f] text-[#d4c3a3] font-mono flex flex-col items-center justify-between selection:bg-red-900 relative touch-manipulation overscroll-none"
                  style={{ backgroundImage: `radial-gradient(circle at center, #26211a 0%, #0a0907 100%)`, WebkitTapHighlightColor: 'transparent' }}>
               
               <style>{`
                 @keyframes shakeScale { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px) rotate(-1deg); } 75% { transform: translateX(4px) rotate(1deg); } }
+                @keyframes shakeScaleVertical { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-4px) rotate(-1deg); } 75% { transform: translateY(4px) rotate(1deg); } }
                 @keyframes die { 0% { filter: brightness(1) sepia(0); transform: scale(1); opacity: 1; } 50% { filter: brightness(0.5) sepia(1) hue-rotate(-50deg); transform: scale(1.05) rotate(3deg); opacity: 0.8; } 100% { filter: brightness(0) sepia(1); transform: scale(0.9) translateY(20px) rotate(-5deg); opacity: 0; } }
                 @keyframes bellRing { 0%, 100% { transform: rotate(0); } 20%, 60% { transform: rotate(15deg); } 40%, 80% { transform: rotate(-15deg); } }
                 @keyframes blink { 0%, 96%, 98%, 100% { transform: scaleY(1); } 97%, 99% { transform: scaleY(0.1); } }
                 
                 .anim-shake { animation: shakeScale 0.2s ease-in-out 2; }
+                .anim-shake-vertical { animation: shakeScaleVertical 0.2s ease-in-out 2; }
                 .anim-die { animation: die 0.5s ease-in forwards; }
                 .anim-bell { animation: bellRing 0.5s ease-in-out; }
                 .anim-eyes { animation: blink 8s infinite; }
@@ -769,80 +825,90 @@
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
               `}</style>
 
-              {/* ВЕРХНЯЯ ПАНЕЛЬ */}
-              <div className="w-full max-w-4xl flex justify-between items-start px-[min(3vw,2vh)] mt-[min(2vw,1.5vh)] z-10 shrink-0">
+              {/* ВЕРХНЯЯ ПАНЕЛЬ И ГЛАЗА */}
+              <div className="w-full max-w-4xl flex justify-between items-start px-[min(3vw,2vh)] mt-[min(2vw,1vh)] z-20 relative shrink-0">
                 
-                <div className="flex flex-col gap-[min(1vw,0.5vh)] w-1/3">
+                {/* ЛЕВАЯ ЧАСТЬ: Название, Жизни, Меню */}
+                <div className="flex flex-col gap-[min(1vw,0.5vh)] w-[30%] sm:w-1/3">
                   <div className="flex items-center gap-[min(2vw,1.5vh)]">
                     <a href="index.html" className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer text-white no-underline" title="В меню">🏠</a>
                     <button onClick={() => setShowRules(true)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Правила">📖</button>
                     <button onClick={handleManualSave} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 hover:scale-110 transition-all drop-shadow-md cursor-pointer" title="Сохранить игру">💾</button>
                   </div>
-                  <div className="text-[min(2.5vw,1.5vh)] font-bold tracking-widest text-[#8c7a61] border-b border-[#8c7a61] pb-[min(0.5vw,0.2vh)] uppercase w-fit mt-[min(1vw,0.5vh)]">
+                  <div className="text-[min(2.5vw,1.5vh)] font-bold tracking-widest text-[#8c7a61] border-b border-[#8c7a61] pb-[min(0.5vw,0.2vh)] uppercase w-fit mt-[min(0.5vw,0.2vh)]">
                     Лесная Хижина
                   </div>
-                  <div className="flex items-center gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(1.5vw,1vh)] py-[min(0.5vw,0.2vh)] rounded border border-[#3a3022] w-fit mt-[min(1vw,0.5vh)]" title="Жизни тени">
+                  <div className="flex items-center gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(1.5vw,1vh)] py-[min(0.5vw,0.2vh)] rounded border border-[#3a3022] w-fit mt-[min(0.5vw,0.2vh)]" title="Жизни тени">
                     <span className="text-[min(2vw,1.2vh)]">ТЕНЬ:</span> {Array.from({length: 3}).map((_, i) => <span key={`e-life-${i}`} className={`text-[min(3vw,1.5vh)] ${i < enemyLives ? 'opacity-100 text-red-500' : 'opacity-20 grayscale'}`}>🕯️</span>)}
                   </div>
                 </div>
 
-                <div ref={eyesContainerRef} className="absolute left-1/2 -translate-x-1/2 top-[min(1vw,0.5vh)] flex gap-[min(3vw,2vh)] justify-center items-center opacity-85 mix-blend-screen z-0 pointer-events-none">
-                  <div className="anim-eyes flex gap-[min(3vw,2vh)]">
-                    <div className="w-[min(8vw,6vh)] h-[min(4vw,3vh)] bg-[#050403] rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-t border-[#222]">
+                {/* ГЛАЗА (Увеличены) */}
+                <div ref={eyesContainerRef} className="absolute left-1/2 -translate-x-1/2 top-[min(0.5vh,1vw)] flex gap-[min(4vw,3vh)] justify-center items-center opacity-85 mix-blend-screen pointer-events-none">
+                  <div className="anim-eyes flex gap-[min(4vw,3vh)]">
+                    <div className="w-[min(12vw,9vh)] h-[min(6vw,4.5vh)] bg-[#050403] rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-t border-[#222]">
                        <div ref={leftPupilRef} 
-                            className={`w-[min(2vw,1.5vh)] h-[min(2vw,1.5vh)] rounded-full ${eyeReaction ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-[#e6d8ba] shadow-[0_0_5px_white]'}`}
+                            className={`w-[min(3vw,2.2vh)] h-[min(3vw,2.2vh)] rounded-full ${eyeReaction ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-[#e6d8ba] shadow-[0_0_5px_white]'}`}
                             style={{ transform: `translate(var(--px, 0px), var(--py, 0px)) ${eyeReaction ? 'scale(2)' : 'scale(1)'}`, transition: 'transform 0.05s ease-out, background-color 0.3s, box-shadow 0.3s' }}>
                        </div>
                     </div>
-                    <div className="w-[min(8vw,6vh)] h-[min(4vw,3vh)] bg-[#050403] rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-t border-[#222]">
+                    <div className="w-[min(12vw,9vh)] h-[min(6vw,4.5vh)] bg-[#050403] rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-t border-[#222]">
                        <div ref={rightPupilRef} 
-                            className={`w-[min(2vw,1.5vh)] h-[min(2vw,1.5vh)] rounded-full ${eyeReaction ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-[#e6d8ba] shadow-[0_0_5px_white]'}`}
+                            className={`w-[min(3vw,2.2vh)] h-[min(3vw,2.2vh)] rounded-full ${eyeReaction ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-[#e6d8ba] shadow-[0_0_5px_white]'}`}
                             style={{ transform: `translate(var(--px, 0px), var(--py, 0px)) ${eyeReaction ? 'scale(2)' : 'scale(1)'}`, transition: 'transform 0.05s ease-out, background-color 0.3s, box-shadow 0.3s' }}>
                        </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-[min(1vw,0.5vh)] items-end w-1/3">
+                {/* ПРАВАЯ ЧАСТЬ: Звук, Предметы противника */}
+                <div className="flex flex-col gap-[min(1vw,0.5vh)] items-end w-[30%] sm:w-1/3">
                   <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="text-[min(6vw,3vh)] opacity-80 hover:opacity-100 transition-all hover:scale-110 drop-shadow-md" title="Звук">
                     {isSoundEnabled ? '🔊' : '🔇'}
                   </button>
-                  
-                  <div className={`flex items-center bg-[#0a0a0a] border border-[#332c22] rounded-full p-[min(0.5vw,0.3vh)] w-[min(25vw,14vh)] relative h-[min(2vw,1.2vh)] shadow-inner mt-[min(1vw,0.5vh)] ${shakeScale ? 'anim-shake' : ''}`}>
-                     <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-[#443c30] z-10 -ml-[0.5px]"></div>
-                     <div 
-                        className={`h-full rounded-full transition-all duration-500 ease-in-out ${scale > 0 ? 'bg-green-800/80' : 'bg-red-800/80'}`}
-                        style={{ width: `${Math.abs(scale) * 10}%`, marginLeft: scale < 0 ? `${50 - Math.abs(scale) * 10}%` : '50%' }}
-                     />
-                     <div className="absolute inset-0 flex justify-between px-1 items-center z-20 w-full pointer-events-none opacity-30">
-                        {Array.from({length: 11}).map((_, i) => <div key={i} className="w-[min(0.5vw,0.3vh)] h-[min(0.5vw,0.3vh)] rounded-full bg-white"></div>)}
-                     </div>
-                  </div>
 
-                  <div className="flex gap-[min(1vw,0.5vh)] bg-[#1e1813] p-[min(1vw,0.5vh)] border border-[#3a3022] rounded shadow-inner mt-[min(1vw,0.5vh)]" title="Предметы противника">
+                  <div className="flex gap-[min(0.8vw,0.4vh)] bg-[#1e1813] p-[min(0.8vw,0.4vh)] border border-[#3a3022] rounded shadow-inner mt-[min(0.5vw,0.2vh)] h-[min(6vw,3.5vh)]" title="Предметы противника">
                     {enemyItems.map((item, i) => (
-                      <div key={`e-item-${i}`} className="w-[min(5vw,3vh)] h-[min(5vw,3vh)] rounded border border-[#4a3f31] bg-[#1a1612] flex items-center justify-center text-[min(3vw,1.5vh)] opacity-90 shadow-sm">
+                      <div key={`e-item-${i}`} className="h-full aspect-square rounded border border-[#4a3f31] bg-[#1a1612] flex items-center justify-center text-[min(3.5vw,1.8vh)] opacity-90 shadow-sm">
                         {item.icon}
                       </div>
                     ))}
-                    {enemyItems.length === 0 && <div className="text-[min(2vw,1vh)] text-[#6e5d4a] px-1 whitespace-nowrap leading-none pt-1">Пусто</div>}
+                    {Array.from({ length: 3 - enemyItems.length }).map((_, i) => (
+                      <div key={`e-empty-${i}`} className="h-full aspect-square rounded border border-[#3a3022] bg-[#1a1612] opacity-30 flex items-center justify-center text-[min(1.5vw,0.8vh)] text-[#6e5d4a]"></div>
+                    ))}
                   </div>
                 </div>
               </div>
 
               {/* ЦЕНТРАЛЬНОЕ ПОЛЕ БОЯ */}
-              <div className="flex-1 flex flex-col justify-evenly items-center w-full max-w-4xl perspective-1000 z-10 px-1 min-h-0 py-[min(1vw,1vh)]">
+              <div className="flex-1 flex flex-col justify-center items-center gap-[min(2vw,1.5vh)] w-full max-w-4xl perspective-1000 z-10 px-1 py-[min(1vw,1vh)] relative shrink-0">
                 
+                {/* ВЕРТИКАЛЬНЫЕ ВЕСЫ */}
+                <div className="absolute right-[min(2vw,1vh)] top-1/2 -translate-y-1/2 h-[min(45vw,35vh)] w-[min(8vw,4.5vh)] flex flex-col items-center justify-between bg-[#1a1612] border-2 border-[#3a3022] rounded-full p-[min(1vw,0.5vh)] shadow-[0_0_20px_rgba(0,0,0,0.8)] z-20 pointer-events-none">
+                  <div className="text-[min(3.5vw,2vh)] mb-[min(1vw,0.5vh)] opacity-80" title="Ваш перевес">⚖️</div>
+                  <div className={`relative flex-1 w-full bg-[#050403] rounded-full overflow-hidden shadow-inner ${shakeScale ? 'anim-shake-vertical' : ''}`}>
+                     <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-[#8c7a61] z-10 -mt-[1px]"></div>
+                     <div className="absolute bottom-1/2 w-full bg-gradient-to-t from-green-900 to-green-500 transition-all duration-500 ease-out"
+                          style={{ height: `${scale > 0 ? (scale * 10) : 0}%`, boxShadow: scale > 0 ? '0 0 10px #22c55e' : 'none' }}></div>
+                     <div className="absolute top-1/2 w-full bg-gradient-to-b from-red-900 to-red-600 transition-all duration-500 ease-out"
+                          style={{ height: `${scale < 0 ? (Math.abs(scale) * 10) : 0}%`, boxShadow: scale < 0 ? '0 0 10px #dc2626' : 'none' }}></div>
+                     <div className="absolute inset-0 flex flex-col justify-between py-[min(1vw,0.5vh)] items-center z-20 pointer-events-none opacity-30">
+                        {Array.from({length: 11}).map((_, i) => <div key={i} className={`w-[40%] h-[1px] ${i === 5 ? 'bg-transparent' : 'bg-[#d4c3a3]'}`}></div>)}
+                     </div>
+                  </div>
+                  <div className="text-[min(3.5vw,2vh)] mt-[min(1vw,0.5vh)] opacity-50 grayscale" title="Перевес тени">💀</div>
+                </div>
+
                 <div className="flex gap-[min(1.5vw,1vh)] opacity-70 shrink-0">
                   {opponentQueue.map((card, i) => (
-                    <div key={`queue-${i}`} className="w-[min(17vw,11vh)] h-[min(8.5vw,5.5vh)] border border-dashed border-[#4a3f31] bg-[#1a1612] flex items-center justify-center rounded overflow-hidden relative shrink-0">
+                    <div key={`queue-${i}`} className="w-[min(15vw,9.5vh)] h-[min(7.5vw,4.75vh)] border border-dashed border-[#4a3f31] bg-[#1a1612] flex items-center justify-center rounded overflow-hidden relative shrink-0">
                       {card && <span className="text-[min(4vw,2.5vh)] mt-[min(1.5vw,1vh)] opacity-50">{card.icon}</span>}
                       {card && <div className="absolute top-0 text-[min(1.5vw,0.9vh)] w-full text-center bg-black/50 text-[#8c7a61]">Грядет</div>}
                     </div>
                   ))}
                 </div>
 
-                <div className="flex gap-[min(1.5vw,1vh)] p-[min(1.5vw,1vh)] rounded bg-[#1e1a15] border border-[#2a241c] shadow-xl relative shrink-0" style={{ '--attack-dir': -1 }}>
+                <div className="flex gap-[min(1.5vw,1vh)] p-[min(1.5vw,1vh)] rounded bg-[#1e1a15] border border-[#2a241c] shadow-xl relative shrink-0 z-20" style={{ '--attack-dir': -1 }}>
                   {opponentBoard.map((card, i) => (
                     <div key={`opp-${i}`} onClick={() => handleOpponentBoardClick(i)}>
                       <Card card={card} isAttacking={attackingSlot?.side === 'opponent' && attackingSlot?.index === i} />
@@ -850,9 +916,9 @@
                   ))}
                 </div>
 
-                <div className="w-[90%] h-px bg-gradient-to-r from-transparent via-[#4a3f31] to-transparent shadow-[0_0_5px_rgba(74,63,49,0.5)] shrink-0"></div>
+                <div className="w-[90%] h-px bg-gradient-to-r from-transparent via-[#4a3f31] to-transparent shadow-[0_0_5px_rgba(74,63,49,0.5)] shrink-0 z-20"></div>
 
-                <div className="flex gap-[min(1.5vw,1vh)] p-[min(1.5vw,1vh)] rounded bg-[#1e1a15] border border-[#2a241c] shadow-xl relative shrink-0" style={{ '--attack-dir': 1 }}>
+                <div className="flex gap-[min(1.5vw,1vh)] p-[min(1.5vw,1vh)] rounded bg-[#1e1a15] border border-[#2a241c] shadow-xl relative shrink-0 z-20" style={{ '--attack-dir': 1 }}>
                   {playerBoard.map((card, i) => (
                     <div key={`pl-slot-${i}`} onClick={() => handleBoardClick(i)}>
                       <Card card={card} isSacrifice={sacrifices.includes(i)} isAttacking={attackingSlot?.side === 'player' && attackingSlot?.index === i} />
@@ -862,51 +928,77 @@
 
               </div>
 
-              {/* ПАНЕЛЬ ИГРОКА */}
-              <div className="w-full max-w-4xl bg-[#110e0c] border-t border-[#2a241c] p-[min(2vw,1.5vh)] pb-[calc(env(safe-area-inset-bottom)+min(1.5vw,1vh))] rounded-t-xl flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-10 shrink-0 mt-auto">
+              {/* ПАНЕЛЬ ИГРОКА (Уменьшена по высоте) */}
+              <div className="w-full max-w-4xl bg-[#110e0c] border-t border-[#2a241c] p-[min(1.5vw,1vh)] pb-[calc(env(safe-area-inset-bottom)+min(1vw,0.5vh))] rounded-t-xl flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 shrink-0">
                 
                 {/* СТРОКА СООБЩЕНИЯ В ПАНЕЛИ ИГРОКА */}
-                <div className="text-center w-full mb-[min(2vw,1.5vh)] text-[min(3.5vw,1.6vh)] font-bold text-[#d4c3a3] animate-pulse z-10 px-2 shrink-0 border-b border-[#2a241c] pb-[min(1.5vw,1vh)]">
+                <div className="text-center w-full mb-[min(1.5vw,1vh)] text-[min(3vw,1.4vh)] font-bold text-[#d4c3a3] animate-pulse z-10 px-2 shrink-0 border-b border-[#2a241c] pb-[min(1vw,0.5vh)]">
                   {message}
                 </div>
 
-                <div className="flex justify-between w-full mb-[min(2vw,1.5vh)] px-[min(1.5vw,1vh)] items-center gap-[min(2vw,1vh)]">
-                  <div className="flex gap-[min(1.5vw,1.5vh)] shrink-0">
-                    <button onClick={() => drawCard(true)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(17vw,11vh)] h-[min(25.5vw,16.5vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
-                      <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">Белка</div>
-                      <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-80 text-[min(8vw,5vh)]">🐿️</div>
-                    </button>
-                    <button onClick={() => drawCard(false)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(17vw,11vh)] h-[min(25.5vw,16.5vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
-                       <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Колода ({deck.length})</div>
-                      <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-80 text-[min(8vw,5vh)]">🌲</div>
-                    </button>
-                  </div>
-
-                  <div className="flex gap-[min(1vw,0.5vh)] bg-[#1e1813] p-[min(1vw,0.5vh)] border border-[#3a3022] rounded shadow-inner shrink-0">
-                    {items.map((item, i) => (
-                      <button key={i} onClick={() => handleItemClick(i)} disabled={phase !== 'play'} title={item.desc} className={`w-[min(10vw,5.5vh)] h-[min(10vw,5.5vh)] rounded border ${activeItem?.itemIndex === i ? 'border-blue-500 bg-blue-900/30' : 'border-[#4a3f31] bg-[#2a241c]'} hover:bg-[#3d3121] flex items-center justify-center text-[min(5vw,2.8vh)] transition-all disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation shadow-sm`}>
-                        {item.icon}
+                <div className="flex justify-between w-full mb-[min(1vw,0.5vh)] px-[min(1.5vw,1vh)] items-center gap-[min(2vw,1vh)]">
+                  
+                  {/* ЛЕВАЯ ЧАСТЬ: КОЛОДЫ + КОЛОНКА ПРЕДМЕТОВ */}
+                  <div className="flex gap-[min(2vw,1.5vh)] items-center shrink-0">
+                    
+                    {/* Колоды */}
+                    <div className="flex gap-[min(1.5vw,1.5vh)] shrink-0">
+                      <button onClick={() => drawCard(true)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
+                        <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">Белка</div>
+                        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-80 text-[min(7vw,4vh)]">🐿️</div>
                       </button>
-                    ))}
-                    {items.length === 0 && <div className="w-[min(10vw,5.5vh)] h-[min(10vw,5.5vh)] flex items-center justify-center opacity-20 text-[min(2vw,1vh)] text-center leading-tight">Нет<br/>вещей</div>}
+                      <button onClick={() => drawCard(false)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
+                         <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Колода ({deck.length})</div>
+                        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-overlay"></div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-80 text-[min(7vw,4vh)]">🌲</div>
+                      </button>
+                    </div>
+
+                    {/* Вертикальная колонка предметов (макс. 3) */}
+                    <div className="flex flex-col gap-[min(1vw,0.5vh)] shrink-0 h-[min(22.5vw,14.25vh)] w-[min(8vw,5vh)]">
+                      {items.map((item, i) => (
+                        <button key={i} onClick={() => handleItemClick(i)} disabled={phase !== 'play'} title={item.desc} 
+                                className={`flex-1 w-full rounded border ${activeItem?.itemIndex === i ? 'border-blue-500 bg-blue-900/30' : 'border-[#4a3f31] bg-[#2a241c]'} hover:bg-[#3d3121] flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed touch-manipulation shadow-sm text-[min(5vw,3vh)]`}>
+                          {item.icon}
+                        </button>
+                      ))}
+                      {Array.from({ length: 3 - items.length }).map((_, i) => (
+                        <div key={`empty-${i}`} className="flex-1 w-full rounded border border-[#3a3022] bg-[#1e1813] opacity-50 flex items-center justify-center text-[min(1.8vw,1vh)] text-[#6e5d4a]">
+                          Пусто
+                        </div>
+                      ))}
+                    </div>
+
                   </div>
 
-                  <div className="flex flex-col items-end gap-[min(1.5vw,1vh)] shrink-0">
-                    <div className="flex items-center gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(2vw,1vh)] py-[min(1vw,0.5vh)] rounded border border-[#3a3022] font-bold" title="Ваши жизни">
-                       <span className="text-[min(2.2vw,1.2vh)]">ВЫ:</span> {Array.from({length: 3}).map((_, i) => <span key={`p-life-${i}`} className={`text-[min(3vw,1.6vh)] ${i < playerLives ? 'opacity-100' : 'opacity-20 grayscale'}`}>🕯️</span>)}
+                  {/* ПРАВАЯ ЧАСТЬ: ЖИЗНИ + ОГРОМНАЯ КНОПКА ХОДА */}
+                  <div className="flex flex-col gap-[min(1vw,0.6vh)] shrink-0 h-[min(22.5vw,14.25vh)] w-[min(18vw,12vh)]">
+                    <div className="flex items-center justify-between gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(2vw,1vh)] py-[min(0.8vw,0.4vh)] rounded border border-[#3a3022] font-bold shrink-0" title="Ваши жизни">
+                       <span className="text-[min(1.8vw,1vh)] leading-none text-[#8c7a61]">ВЫ:</span>
+                       <div className="flex gap-[min(0.5vw,0.2vh)]">
+                           {Array.from({length: 3}).map((_, i) => <span key={`p-life-${i}`} className={`text-[min(2.5vw,1.4vh)] leading-none ${i < playerLives ? 'opacity-100' : 'opacity-20 grayscale'}`}>🕯️</span>)}
+                       </div>
                     </div>
-                    <button onClick={endTurn} disabled={phase !== 'play'} className="h-[min(10vw,5.5vh)] px-[min(3vw,2vh)] rounded border border-[#5c4a35] bg-[#2a2116] hover:bg-[#3d3121] text-[#d4c3a3] font-bold tracking-widest uppercase transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-[min(1vw,0.5vh)] shadow-[0_0_10px_rgba(0,0,0,0.5)] group touch-manipulation text-[min(2.5vw,1.4vh)]">
-                      <span className={`text-[min(4vw,2vh)] inline-block ${isBellRinging ? 'anim-bell' : 'group-hover:anim-bell'}`}>🔔</span> Ход
+                    <button onClick={endTurn} disabled={phase !== 'play'} className="flex-1 w-full rounded border border-[#5c4a35] bg-[#2a2116] hover:bg-[#3d3121] text-[#d4c3a3] font-bold tracking-widest uppercase transition-all disabled:opacity-30 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-[min(1vw,0.5vh)] shadow-[0_0_10px_rgba(0,0,0,0.5)] group touch-manipulation text-[min(2vw,1.2vh)] px-[min(2vw,1vh)]">
+                      <span className={`text-[min(5vw,3vh)] inline-block leading-none ${isBellRinging ? 'anim-bell' : 'group-hover:anim-bell'}`}>🔔</span> 
+                      <span className="leading-none mt-[min(0.5vw,0.2vh)]">Ход</span>
                     </button>
                   </div>
+
                 </div>
 
-                <div className="flex flex-row justify-start sm:justify-center overflow-x-auto w-full p-[min(1.5vw,1vh)] border border-dashed border-[#2a241c] rounded bg-[#0a0806]/50 touch-manipulation hide-scrollbar shrink-0 min-h-[min(29vw,18.5vh)] gap-[min(1vw,0.8vh)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="flex flex-row justify-center items-end w-full p-[min(1vw,0.5vh)] border border-dashed border-[#2a241c] rounded bg-[#0a0806]/50 touch-manipulation shrink-0 min-h-[min(25vw,16vh)] pt-[min(1.5vw,1vh)]" style={{ WebkitOverflowScrolling: 'touch' }}>
                   {playerHand.length === 0 && <span className="m-auto opacity-30 italic text-[min(3vw,1.5vh)]">Рука пуста</span>}
-                  {playerHand.map((card) => (
-                    <Card key={card.id} card={card} isSelected={selectedHandCard?.id === card.id} onClick={() => handleHandClick(card)} />
+                  {playerHand.map((card, i) => (
+                    <div key={card.id} 
+                         className="relative transition-all duration-300 hover:z-40 hover:-translate-y-[min(2vw,1.5vh)] group"
+                         style={{ 
+                             marginLeft: getHandMarginLeft(i, playerHand.length),
+                             zIndex: selectedHandCard?.id === card.id ? 50 : i 
+                         }}>
+                      <Card card={card} isSelected={selectedHandCard?.id === card.id} onClick={() => handleHandClick(card)} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -927,6 +1019,8 @@
                           <li>☠️ <em>Смертельное касание</em>: Убивает врага при любом уроне.</li>
                           <li>🩸x3 <em>Достойная жертва</em>: Дает сразу 3 крови.</li>
                           <li>♾️ <em>Много жизней</em>: Не исчезает при жертве.</li>
+                          <li>🛡️ <em>Страж</em>: Блокирует урон от Воздушных карт.</li>
+                          <li>🌵 <em>Острые иглы</em>: Наносит 1 урон атакующему.</li>
                         </ul>
                       </li>
                     </ul>
