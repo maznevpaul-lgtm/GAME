@@ -79,6 +79,7 @@
           return q;
         };
 
+        // Генерация до 3 случайных предметов
         const generateRandomItems = (max = 3) => {
           const count = Math.floor(Math.random() * (max + 1));
           const newItems = [];
@@ -214,6 +215,10 @@
 
           const [isSoundEnabled, setIsSoundEnabled] = useState(initialData.isSoundEnabled);
           const [showRules, setShowRules] = useState(false);
+
+          // Новые состояния для событий
+          const [cardChoices, setCardChoices] = useState(null);
+          const [punishment, setPunishment] = useState(null);
 
           const [selectedHandCard, setSelectedHandCard] = useState(null);
           const [sacrifices, setSacrifices] = useState([]); 
@@ -436,6 +441,15 @@
             }
           };
 
+          // Функция выбора карты после потери свечи игроком
+          const handleCardChoice = (selectedCard) => {
+            playSound('card', isSoundEnabled);
+            setPlayerHand(prev => [...prev, selectedCard]); // Карта мгновенно добавляется в руку
+            setCardChoices(null);
+            setMessage('Новый раунд. Возьмите карту.');
+            setPhase('draw');
+          };
+
           const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
           const endTurn = async () => {
@@ -501,12 +515,65 @@
               setItems(pItems);
               setEnemyItems(eItems);
               
-              if (droppedItemsText.length > 0) {
-                  setMessage(`Найдено: ${droppedItemsText.join(', ')}`);
-              } else {
-                  setMessage('Новый раунд. Возьмите карту.');
+              // === НОВЫЕ СОБЫТИЯ ПРИ ПОТЕРЕ СВЕЧИ ===
+              if (winner === 'opponent') {
+                  // Игрок потерял свечу: выбор новой карты
+                  const draftTypes = Object.values(CARD_TYPES).filter(c => c.type !== 'resource');
+                  const choice1 = createCard(draftTypes[Math.floor(Math.random() * draftTypes.length)]);
+                  let choice2 = createCard(draftTypes[Math.floor(Math.random() * draftTypes.length)]);
+                  while(choice1.name === choice2.name) {
+                       choice2 = createCard(draftTypes[Math.floor(Math.random() * draftTypes.length)]);
+                  }
+                  setCardChoices([choice1, choice2]);
+                  setPhase('event');
+                  return; // Ждем выбора игрока
+              } else if (winner === 'player') {
+                  // Тень потеряла свечу: расплата (уничтожение карт)
+                  setPunishment("Свеча тени погасла.\nГрядет расплата...");
+                  await sleep(2500);
+
+                  const punishType = Math.random() > 0.5 ? 'column' : 'random';
+                  
+                  if (punishType === 'column') {
+                      const col = Math.floor(Math.random() * 4);
+                      if (currentPlayerBoard[col]) currentPlayerBoard[col] = { ...currentPlayerBoard[col], isDying: true };
+                      if (currentOppBoard[col]) currentOppBoard[col] = { ...currentOppBoard[col], isDying: true };
+                      setPlayerBoard([...currentPlayerBoard]);
+                      setOpponentBoard([...currentOppBoard]);
+                      if (currentPlayerBoard[col] || currentOppBoard[col]) playSound('sacrifice', isSoundEnabled);
+                      await sleep(500);
+                      currentPlayerBoard[col] = null;
+                      currentOppBoard[col] = null;
+                  } else {
+                      const pIndexes = currentPlayerBoard.map((c, i) => c && !c.isDying ? i : -1).filter(i => i !== -1);
+                      const oIndexes = currentOppBoard.map((c, i) => c && !c.isDying ? i : -1).filter(i => i !== -1);
+                      let pTarget = pIndexes.length > 0 ? pIndexes[Math.floor(Math.random() * pIndexes.length)] : -1;
+                      let oTarget = oIndexes.length > 0 ? oIndexes[Math.floor(Math.random() * oIndexes.length)] : -1;
+
+                      if (pTarget !== -1) currentPlayerBoard[pTarget] = { ...currentPlayerBoard[pTarget], isDying: true };
+                      if (oTarget !== -1) currentOppBoard[oTarget] = { ...currentOppBoard[oTarget], isDying: true };
+
+                      setPlayerBoard([...currentPlayerBoard]);
+                      setOpponentBoard([...currentOppBoard]);
+                      if (pTarget !== -1 || oTarget !== -1) {
+                          playSound('sacrifice', isSoundEnabled);
+                          await sleep(500);
+                      }
+                      if (pTarget !== -1) currentPlayerBoard[pTarget] = null;
+                      if (oTarget !== -1) currentOppBoard[oTarget] = null;
+                  }
+
+                  setPlayerBoard([...currentPlayerBoard]);
+                  setOpponentBoard([...currentOppBoard]);
+                  setPunishment(null);
+                  
+                  if (droppedItemsText.length > 0) {
+                      setMessage(`Найдено: ${droppedItemsText.join(', ')}. Ваш ход.`);
+                  } else {
+                      setMessage('Новый раунд. Возьмите карту.');
+                  }
+                  setPhase('draw');
               }
-              setPhase('draw');
             };
 
             for (let i = 0; i < 4; i++) {
@@ -843,7 +910,7 @@
                   </div>
                 </div>
 
-                {/* ГЛАЗА (Увеличены) */}
+                {/* ГЛАЗА */}
                 <div ref={eyesContainerRef} className="absolute left-1/2 -translate-x-1/2 top-[min(0.5vh,1vw)] flex gap-[min(4vw,3vh)] justify-center items-center opacity-85 mix-blend-screen pointer-events-none">
                   <div className="anim-eyes flex gap-[min(4vw,3vh)]">
                     <div className="w-[min(12vw,9vh)] h-[min(6vw,4.5vh)] bg-[#050403] rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-t border-[#222]">
@@ -1003,16 +1070,39 @@
                 </div>
               </div>
 
+              {/* --- МОДАЛКИ СЮЖЕТА --- */}
+              {cardChoices && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-4">
+                  <h2 className="text-[min(4vw,3vh)] font-black text-[#e6d8ba] mb-[min(4vw,3vh)] text-center">Свеча погасла...<br/>Выберите подмогу в руку:</h2>
+                  <div className="flex gap-[min(4vw,3vh)]">
+                    {cardChoices.map((c, i) => (
+                      <div key={i} className="hover:-translate-y-[min(2vw,1vh)] hover:scale-110 transition-all cursor-pointer" onClick={() => handleCardChoice(c)}>
+                        <Card card={c} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {punishment && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 pointer-events-none">
+                  <div className="bg-[#1a1612] border-2 border-red-900 p-[3vh] rounded-xl flex flex-col items-center text-center shadow-[0_0_50px_rgba(220,38,38,0.6)] animate-pulse">
+                    <h2 className="text-[min(5vw,3.5vh)] font-black text-red-600 mb-[1vh]">РАСПЛАТА</h2>
+                    <p className="text-[#d4c3a3] text-[min(3vw,2vh)] whitespace-pre-line">{punishment}</p>
+                  </div>
+                </div>
+              )}
+
               {/* --- МОДАЛКИ --- */}
               {showRules && (
                 <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowRules(false)}>
                   <div className="bg-[#e6d8ba] text-[#2c241b] border-4 border-[#332c22] p-[3vh] rounded shadow-[0_0_50px_rgba(0,0,0,1)] w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/old-paper.png")` }} onClick={e => e.stopPropagation()}>
                     <h2 className="text-[3vh] font-black mb-[1.5vh] border-b-2 border-[#332c22] pb-2">Правила Игры</h2>
                     <ul className="space-y-[1vh] text-[1.6vh] text-left">
-                      <li><strong>🩸 Жертвоприношение:</strong> Чтобы разыграть карту зверя (Горностай, Волк), вам нужна кровь. Выберите карту в руке, кликните по своим существам на доске (Белкам), чтобы принести их в жертву, а затем на пустой слот.</li>
-                      <li><strong>⚖️ Весы:</strong> Вы побеждаете в раунде, если нанесете на 5 урона больше. Урон наносится напрямую весам, если напротив вашей карты нет вражеской.</li>
-                      <li><strong>🕯️ Свечи:</strong> Каждая победа в раунде тушит одну свечу врага (или вашу при проигрыше). Победите 3 раза.</li>
-                      <li><strong>🔔 Бой:</strong> Карты атакуют автоматически слева направо при нажатии на колокольчик.</li>
+                      <li><strong>🩸 Жертвоприношение:</strong> Чтобы разыграть карту зверя, вам нужна кровь. Выберите карту в руке, кликните по существам на доске, чтобы принести их в жертву, а затем на пустой слот.</li>
+                      <li><strong>⚖️ Весы:</strong> Вы побеждаете в раунде, если нанесете на 5 урона больше.</li>
+                      <li><strong>🕯️ Свечи и Расплата:</strong> Если гаснет ваша свеча, вы сможете выбрать новую карту. Если гаснет свеча тени — она в ярости уничтожит случайные карты на доске! Победите 3 раза.</li>
+                      <li><strong>🔔 Бой:</strong> Карты атакуют автоматически слева направо.</li>
                       <li><strong>Сигилы:</strong>
                         <ul className="pl-4 mt-1 list-disc opacity-80">
                           <li>🕊️ <em>Воздушный</em>: Бьет по весам, игнорируя врага.</li>
