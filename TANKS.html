@@ -213,7 +213,7 @@
                 <div></div>
             </div>
             <div class="flex items-center justify-center gap-2">
-                <div class="btn-mine text-center" id="btn-mineContainer"><span id="lbl_mineBtn">МИНА<br>(B/И)</span></div>
+                <div class="btn-mine text-center" id="btn-mine"><span id="lbl_mineBtn">МИНА<br>(B/И)</span></div>
                 <div class="btn-fire" id="btn-fire"></div>
             </div>
         </div>
@@ -229,7 +229,10 @@ const i18n = {
         objDefend: "ЦЕЛЬ: ЗАЩИТИТЬ БАЗУ (ВРАГОВ: {n})",
         objBoss: "ЦЕЛЬ: УНИЧТОЖИТЬ БОССА!",
         objSub: "ЦЕЛЬ: УНИЧТОЖИТЬ СИНЮЮ ПОДСТАНЦИЮ!",
+        objMiniBosses: "ЦЕЛЬ: УНИЧТОЖИТЬ {n} МИНИ-БОССОВ, ЗАТЕМ ФОРТ!",
         objFort: "ЦЕЛЬ: ПРОРВАТЬСЯ К КРАСНОМУ ФОРТУ",
+        objCommand: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ И ЗАЩИТИТЬ РАДАРЫ! ({n}/3)",
+        objStealth: "ЦЕЛЬ: ПРОКРАСТЬСЯ К ФОРТУ! НЕ ШУМЕТЬ!",
         title: "ТАНКИ", campaign: "КАМПАНИЯ",
         newGame: "НОВАЯ ИГРА", continue: "ПРОДОЛЖИТЬ", saveFile: "ФАЙЛ СОХРАНЕНИЯ",
         soundOn: "ЗВУК: ВКЛ", soundOff: "ЗВУК: ВЫКЛ",
@@ -249,7 +252,10 @@ const i18n = {
         objDefend: "OBJECTIVE: DEFEND BASE (ENEMIES: {n})",
         objBoss: "OBJECTIVE: DESTROY THE BOSS!",
         objSub: "OBJECTIVE: DESTROY BLUE SUBSTATION!",
+        objMiniBosses: "OBJECTIVE: DESTROY {n} MINI-BOSSES, THEN FORT!",
         objFort: "OBJECTIVE: BREAK THROUGH TO RED FORT",
+        objCommand: "OBJECTIVE: DESTROY FORT & DEFEND RADARS! ({n}/3)",
+        objStealth: "OBJECTIVE: SNEAK TO THE FORT! STAY HIDDEN!",
         title: "BATTLE CITY", campaign: "CAMPAIGN",
         newGame: "NEW GAME", continue: "CONTINUE", saveFile: "SAVE FILE",
         soundOn: "SOUND: ON", soundOff: "SOUND: OFF",
@@ -329,9 +335,16 @@ const BASE = 3;
 const ENEMY_BASE = 4;
 const SUBSTATION = 5;
 const WATER = 6;
+const RADAR = 7;
+const BUSH = 8; // Стелс-кусты
 
 const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
 const BONUS_TYPES = ['LIFE', 'SHIELD', 'FIRE', 'BASE', 'ALLY', 'TURRET', 'BOMB', 'TIME'];
+
+// Помощник для точных пересечений хитбоксов пуль и частичных кирпичей
+function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+}
 
 /**
  * 8-БИТНЫЙ АУДИО ДВИЖОК (Web Audio API)
@@ -444,6 +457,7 @@ const sfx = {
  * СОСТОЯНИЕ ИГРЫ
  */
 let grid = [];
+let brickState = []; 
 let player = null;
 let enemies = [];
 let allies = [];
@@ -460,9 +474,16 @@ let continues = 3;
 let minesCount = 3;
 let level = 1;
 let levelType = 'CLASSIC'; 
-let gameState = 'START'; // START, PLAYING, PAUSED, DYING, LEVEL_TRANSITION, GAMEOVER
+let assaultMode = 'NORMAL'; 
+let gameState = 'START'; 
 let baseAlive = true;
 let substationAlive = false;
+let radarsAlive = 3;
+
+let spottedTimer = 0;
+let wasSpottedLastFrame = false;
+
+const countMiniBosses = () => enemies.filter(e => e.isMiniBoss && !e.markForDeletion && e.hp > 0).length;
 
 let enemiesToSpawn = 0;
 let enemySpawnTimer = 0;
@@ -475,11 +496,13 @@ let baseDefTimer = 0;
 let mineCooldown = 0;
 let timeStopTimer = 0;
 
-let playerWeaponLevel = 0; // 0 = Normal, 1 = Rapid, 2 = Laser
+let playerWeaponLevel = 0; 
 let lastBossLevel = 0; 
 
 let savedGrid = [];
+let savedBrickState = [];
 let savedLevelType = 'CLASSIC';
+let savedAssaultMode = 'NORMAL';
 let savedEnemyBaseCol = 7;
 let savedEnemiesToSpawn = 0;
 let savedEnemyMinesCoords = [];
@@ -547,7 +570,12 @@ function generateLevel() {
         levelType = 'BOSS';
         lastBossLevel = level;
     } else {
-        levelType = level === 1 ? 'CLASSIC' : (Math.random() > 0.5 ? 'CLASSIC' : 'ASSAULT');
+        let modes = ['CLASSIC', 'ASSAULT', 'COMMAND', 'STEALTH'];
+        if (level < 3) {
+            levelType = level === 1 ? 'CLASSIC' : 'ASSAULT';
+        } else {
+            levelType = modes[Math.floor(Math.random() * modes.length)];
+        }
     }
     
     if (levelType === 'CLASSIC') {
@@ -558,6 +586,10 @@ function generateLevel() {
         ROWS = Math.floor(Math.random() * 15) + 20; 
         enemiesToSpawn = Math.min(4 + level * 2, 25); 
         MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8);
+    } else if (levelType === 'COMMAND' || levelType === 'STEALTH') {
+        ROWS = Math.floor(Math.random() * 10) + 20; 
+        enemiesToSpawn = Math.min(4 + level * 2, 25);
+        MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8);
     } else if (levelType === 'BOSS') {
         ROWS = 18; 
         enemiesToSpawn = 0; 
@@ -567,15 +599,25 @@ function generateLevel() {
     baseAlive = true;
     baseDefTimer = 0;
     substationAlive = false;
+    assaultMode = 'NORMAL';
     timeStopTimer = 0;
+    spottedTimer = 0;
+    wasSpottedLastFrame = false;
     enemyMines = [];
-    updateObjectiveUI();
+    radarsAlive = 3;
+    
+    let hasMines = (levelType === 'ASSAULT' || levelType === 'COMMAND') && level >= 2 && Math.random() < 0.4;
+    if (levelType === 'ASSAULT' && level >= 2) {
+        let roll = Math.random();
+        if (roll < 0.33) assaultMode = 'SUBSTATION';
+        else if (roll < 0.66) assaultMode = 'MINIBOSSES';
+    }
 
-    let hasSubstation = levelType === 'ASSAULT' && level >= 2 && Math.random() < 0.4;
-    let hasMines = levelType === 'ASSAULT' && level >= 2 && Math.random() < 0.4;
+    updateObjectiveUI();
 
     while (!validLevel) {
         grid = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+        brickState = Array.from({ length: ROWS }, () => Array(COLS).fill(15));
         enemyMines = [];
         let safeZones = [];
 
@@ -597,7 +639,7 @@ function generateLevel() {
             safeZones.push({r: ROWS - 1, c: 7}); 
             safeZones.push({r: 4, c: 2}, {r: 4, c: 7}, {r: 4, c: 12}); 
             
-            if (hasSubstation) {
+            if (assaultMode === 'SUBSTATION') {
                 let subR = Math.floor(Math.random() * (ROWS - 12)) + 6;
                 let subC = Math.floor(Math.random() * (COLS - 4)) + 2;
                 grid[subR][subC] = SUBSTATION;
@@ -609,7 +651,50 @@ function generateLevel() {
                     }
                 }
                 substationAlive = true;
+            } else if (assaultMode === 'MINIBOSSES') {
+                safeZones.push({r: 2, c: 1}, {r: 2, c: 13});
             }
+        } else if (levelType === 'COMMAND') {
+            enemyBaseCol = Math.floor(Math.random() * 9) + 3;
+            grid[1][enemyBaseCol] = ENEMY_BASE;
+            for(let r=0; r<=2; r++) {
+                for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
+                    if(r===1 && c===enemyBaseCol) continue;
+                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK;
+                }
+            }
+            safeZones.push({r: ROWS - 1, c: 7}); 
+            safeZones.push({r: 4, c: 2}, {r: 4, c: 7}, {r: 4, c: 12}); 
+            
+            let radarPositions = [{r: ROWS - 3, c: 3}, {r: ROWS - 3, c: 7}, {r: ROWS - 3, c: 11}];
+            for (let pos of radarPositions) {
+                grid[pos.r][pos.c] = RADAR;
+                grid[pos.r-1][pos.c] = BRICK;
+                grid[pos.r][pos.c-1] = BRICK;
+                grid[pos.r][pos.c+1] = BRICK;
+                safeZones.push(pos);
+            }
+        } else if (levelType === 'STEALTH') {
+            enemyBaseCol = Math.floor(Math.random() * 9) + 3;
+            grid[1][enemyBaseCol] = ENEMY_BASE;
+            for(let r=0; r<=2; r++) {
+                for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
+                    if(r===1 && c===enemyBaseCol) continue;
+                    grid[r][c] = STEEL;
+                }
+            }
+            
+            grid[ROWS-1][7] = BASE;
+            grid[ROWS-1][6] = BRICK; grid[ROWS-1][8] = BRICK;
+            grid[ROWS-2][6] = BRICK; grid[ROWS-2][7] = BRICK; grid[ROWS-2][8] = BRICK;
+            
+            safeZones.push({r: ROWS-1, c: 7});
+            safeZones.push({r: ROWS-1, c: 4}); 
+            safeZones.push({r: 1, c: enemyBaseCol});
+            
+            // Всегда прячем игрока при старте
+            grid[ROWS-1][4] = BUSH; 
+            
         } else if (levelType === 'BOSS') {
             grid[17][7] = BASE;
             grid[17][6] = BRICK; grid[17][8] = BRICK;
@@ -633,25 +718,30 @@ function generateLevel() {
                 }
                 if (!inSafeZone && levelType !== 'BOSS') { 
                     let rand = Math.random();
-                    if (rand < 0.20) grid[r][c] = BRICK; 
-                    else if (rand < 0.28) grid[r][c] = STEEL;
-                    else if (rand < 0.35) grid[r][c] = WATER;
+                    if (levelType === 'STEALTH') {
+                        if (rand < 0.60) grid[r][c] = BUSH;
+                        else if (rand < 0.70) grid[r][c] = BRICK;
+                        else if (rand < 0.75) grid[r][c] = WATER;
+                    } else {
+                        if (rand < 0.20) grid[r][c] = BRICK; 
+                        else if (rand < 0.28) grid[r][c] = STEEL;
+                        else if (rand < 0.35) grid[r][c] = WATER;
+                    }
                 }
             }
         }
 
-        // Умная защита базы сверху для Классики и Босса
-        if (levelType === 'CLASSIC' || levelType === 'BOSS') {
-            let baseR = levelType === 'CLASSIC' ? 14 : 17;
+        if (levelType === 'CLASSIC' || levelType === 'BOSS' || levelType === 'STEALTH') {
+            let baseR = levelType === 'BOSS' ? 17 : (levelType === 'STEALTH' ? ROWS - 1 : 14);
             let numBlocks = 2 + Math.floor(Math.random() * 3);
             for(let i=0; i<numBlocks; i++) {
                 let rr = baseR - 3 - Math.floor(Math.random() * 3);
-                let cc = 5 + Math.floor(Math.random() * 5); // с 5 по 9
+                let cc = 5 + Math.floor(Math.random() * 5); 
                 if (rr >= 0 && rr < ROWS && grid[rr][cc] === EMPTY) grid[rr][cc] = STEEL;
             }
         }
         
-        if (levelType === 'ASSAULT' && hasMines) {
+        if ((levelType === 'ASSAULT' || levelType === 'COMMAND') && hasMines) {
             let mineCount = Math.floor(Math.random() * 4) + 3;
             let attempts = 0;
             while (enemyMines.length < mineCount && attempts < 50) {
@@ -668,7 +758,9 @@ function generateLevel() {
     }
 
     savedGrid = grid.map(row => [...row]);
+    savedBrickState = brickState.map(row => [...row]);
     savedLevelType = levelType;
+    savedAssaultMode = assaultMode;
     savedEnemyBaseCol = enemyBaseCol;
     savedEnemiesToSpawn = enemiesToSpawn;
     savedEnemyMinesCoords = enemyMines.map(m => ({x: m.x, y: m.y}));
@@ -678,10 +770,12 @@ function checkLevelPlayability() {
     let visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     let startR = levelType === 'CLASSIC' ? 14 : (levelType === 'BOSS' ? 17 : ROWS - 1); 
     let startC = levelType === 'CLASSIC' ? 4 : (levelType === 'BOSS' ? 4 : 7);
+    if (levelType === 'STEALTH') startC = 4;
+    
     let queue = [{ r: startR, c: startC }]; visited[startR][startC] = true;
 
     let subR = -1, subC = -1;
-    if (levelType === 'ASSAULT') {
+    if (levelType === 'ASSAULT' || levelType === 'COMMAND') {
         for (let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
                 if (grid[r][c] === SUBSTATION) { subR = r; subC = c; break; }
@@ -694,7 +788,6 @@ function checkLevelPlayability() {
         for (let dir of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
             let nr = curr.r + dir[0]; let nc = curr.c + dir[1];
             if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-                // Вода тоже считается непреодолимым препятствием
                 if (!visited[nr][nc] && grid[nr][nc] !== STEEL && grid[nr][nc] !== WATER) {
                     visited[nr][nc] = true; queue.push({ r: nr, c: nc });
                 }
@@ -702,7 +795,7 @@ function checkLevelPlayability() {
         }
     }
 
-    if (levelType === 'CLASSIC' || levelType === 'BOSS') {
+    if (levelType === 'CLASSIC' || levelType === 'BOSS' || levelType === 'STEALTH') {
         if (!visited[0][7]) return false; 
     } else {
         if (!visited[2][enemyBaseCol] && !visited[1][enemyBaseCol-1] && !visited[1][enemyBaseCol+1]) return false;
@@ -726,10 +819,19 @@ function updateObjectiveUI() {
     } else if (levelType === 'BOSS') {
         objUI.innerText = t('objBoss');
         objUI.className = "w-full text-center mb-2 font-bold text-yellow-300 bg-gray-800 rounded py-1 border border-yellow-700 text-[11px] sm:text-xs animate-pulse";
+    } else if (levelType === 'COMMAND') {
+        objUI.innerText = t('objCommand', {n: radarsAlive});
+        objUI.className = "w-full text-center mb-2 font-bold text-cyan-300 bg-gray-800 rounded py-1 border border-cyan-700 text-[11px] sm:text-xs";
+    } else if (levelType === 'STEALTH') {
+        objUI.innerText = t('objStealth');
+        objUI.className = "w-full text-center mb-2 font-bold text-emerald-400 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs";
     } else {
-        if (substationAlive) {
+        if (assaultMode === 'SUBSTATION' && substationAlive) {
             objUI.innerText = t('objSub');
             objUI.className = "w-full text-center mb-2 font-bold text-blue-300 bg-gray-800 rounded py-1 border border-blue-700 text-[11px] sm:text-xs animate-pulse";
+        } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) {
+            objUI.innerText = t('objMiniBosses', {n: countMiniBosses()});
+            objUI.className = "w-full text-center mb-2 font-bold text-orange-400 bg-gray-800 rounded py-1 border border-orange-700 text-[11px] sm:text-xs animate-pulse";
         } else {
             objUI.innerText = t('objFort');
             objUI.className = "w-full text-center mb-2 font-bold text-red-300 bg-gray-800 rounded py-1 border border-red-700 text-[11px] sm:text-xs";
@@ -769,19 +871,31 @@ class Mine {
             }
         } else {
             for (let e of enemies) {
-                if (Math.hypot(e.x + e.w/2 - this.x, e.y + e.h/2 - this.y) < 18) {
+                if (!e.markForDeletion && Math.hypot(e.x + e.w/2 - this.x, e.y + e.h/2 - this.y) < 18) {
                     this.markForDeletion = true;
-                    e.markForDeletion = true;
-                    createExplosion(this.x, this.y, '#ff0000', 30);
-                    sfx.playExplosion(true);
-                    score += (e.isBoss ? 1000 : (e.eType === 'NORMAL' ? 100 : 300));
-                    document.getElementById('scoreUI').innerText = score;
-                    updateObjectiveUI();
+                    e.hp -= 10;
+                    if (e.hp <= 0) {
+                        e.markForDeletion = true;
+                        createExplosion(this.x, this.y, '#ff0000', 30);
+                        sfx.playExplosion(true);
+                        score += (e.isBoss ? 1000 : (e.isMiniBoss ? 500 : (e.eType === 'NORMAL' ? 100 : 300)));
+                        document.getElementById('scoreUI').innerText = score;
+                        updateObjectiveUI();
+                    } else {
+                        createExplosion(this.x, this.y, '#ff9900', 15);
+                        sfx.playArmorHit();
+                    }
                 }
             }
         }
     }
     draw(ctx) {
+        if (levelType === 'COMMAND' && this.isEnemy && player && !player.markForDeletion) {
+             let dist = Math.hypot(this.x - (player.x + player.w/2), this.y - (player.y + player.h/2));
+             let visRadius = radarsAlive === 3 ? 9999 : (radarsAlive === 2 ? 250 : (radarsAlive === 1 ? 150 : 80));
+             if (dist > visRadius) return;
+        }
+
         ctx.fillStyle = this.isEnemy ? '#374151' : '#ef4444';
         ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
         if (Math.floor(Date.now() / 250) % 2 === 0) {
@@ -856,7 +970,7 @@ class Turret {
         if (this.dir === DIR_DOWN) { bdy = 1; by += 12; }
         if (this.dir === DIR_LEFT) { bdx = -1; bx -= 12; }
         if (this.dir === DIR_RIGHT) { bdx = 1; bx += 12; }
-        bullets.push(new Bullet(bx, by, bdx, bdy, true, { weaponLevel: 0 })); sfx.playShoot(true);
+        bullets.push(new Bullet(bx, by, bdx, bdy, true, this)); sfx.playShoot(true);
     }
     draw(ctx) {
         ctx.save(); ctx.translate(this.x + TILE_SIZE/2, this.y + TILE_SIZE/2);
@@ -899,6 +1013,8 @@ class Tank {
     constructor(x, y, isPlayer, eType = 'NORMAL', isAllyAI = false) {
         this.eType = eType; 
         this.isBoss = (eType === 'BOSS');
+        this.isMiniBoss = (eType === 'MINIBOSS');
+        
         this.w = this.isBoss ? 48 : 28; 
         this.h = this.isBoss ? 48 : 28;
         this.x = x * TILE_SIZE + (TILE_SIZE - this.w)/2; 
@@ -907,14 +1023,19 @@ class Tank {
         this.dir = DIR_UP; 
         
         if (this.isBoss) this.speed = 60;
+        else if (this.isMiniBoss) this.speed = 70;
         else this.speed = isPlayer && !isAllyAI ? 120 : (isAllyAI ? 100 : 80); 
         
         this.cooldown = 0; this.markForDeletion = false;
         
-        this.hp = isAllyAI ? 3 : (this.isBoss ? 30 : 1); 
+        this.hp = isAllyAI ? 3 : (this.isBoss ? 30 : (this.isMiniBoss ? 15 : 1)); 
         this.maxHp = this.hp;
         this.shieldTimer = (isPlayer && !isAllyAI) ? 3000 : (isAllyAI ? 2000 : 0); 
         this.weaponLevel = (isPlayer && !isAllyAI) ? playerWeaponLevel : 0; 
+        
+        this.droneTimer = 0;
+        this.droneCooldown = 0;
+        this.droneDir = DIR_UP;
 
         if (!isPlayer || isAllyAI) {
             this.dir = isAllyAI ? DIR_UP : DIR_DOWN;
@@ -929,7 +1050,6 @@ class Tank {
         if (this.cooldown > 0) this.cooldown -= dt;
         if (this.shieldTimer > 0) this.shieldTimer -= dt;
         
-        // Заморозка времени для врагов
         if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) return;
 
         let dx = 0, dy = 0; let moving = false;
@@ -942,9 +1062,40 @@ class Tank {
             
             if ((keys[' '] || touchFire) && this.cooldown <= 0) this.shoot();
             
+            // Дрон-турель на танке игрока
+            if (this.droneTimer > 0) {
+                this.droneTimer -= dt;
+                this.droneCooldown -= dt;
+                if (this.droneCooldown <= 0 && enemies.length > 0) {
+                    let closest = enemies[0]; let minDist = Infinity;
+                    for (let e of enemies) {
+                        let d = Math.hypot(e.x - this.x, e.y - this.y);
+                        if (d < minDist) { minDist = d; closest = e; }
+                    }
+                    let diffX = closest.x - this.x; let diffY = closest.y - this.y;
+                    if (Math.abs(diffX) > Math.abs(diffY)) this.droneDir = diffX > 0 ? DIR_RIGHT : DIR_LEFT;
+                    else this.droneDir = diffY > 0 ? DIR_DOWN : DIR_UP;
+
+                    let bx = this.x + this.w / 2; let by = this.y + this.h / 2; let bdx = 0, bdy = 0;
+                    let offset = 14; 
+                    if (this.droneDir === DIR_UP) { bdy = -1; by -= offset; }
+                    if (this.droneDir === DIR_DOWN) { bdy = 1; by += offset; }
+                    if (this.droneDir === DIR_LEFT) { bdx = -1; bx -= offset; }
+                    if (this.droneDir === DIR_RIGHT) { bdx = 1; bx += offset; }
+                    
+                    bullets.push(new Bullet(bx, by, bdx, bdy, true, this, true));
+                    sfx.playShoot(true);
+                    this.droneCooldown = 600;
+                }
+            }
+
             if (moving && gameState === 'PLAYING') sfx.startEngine(); else sfx.stopEngine();
         } else {
             moving = true; this.aiTimer -= dt;
+            
+            let isAlerted = (levelType === 'STEALTH' && spottedTimer > 0);
+            let isPatrol = (levelType === 'STEALTH' && spottedTimer <= 0);
+
             if (this.aiTimer <= 0) {
                 this.aiTimer = 500 + Math.random() * 800;
                 if (this.isAllyAI) {
@@ -958,8 +1109,13 @@ class Tank {
                     } else this.dir = Math.floor(Math.random() * 4);
                 } else {
                     let targetX = player ? player.x : null; let targetY = player ? player.y : null;
-                    if (levelType === 'CLASSIC' && baseAlive && Math.random() < 0.3) { targetX = 7 * TILE_SIZE; targetY = 14 * TILE_SIZE; }
-                    if (targetX !== null && targetY !== null && Math.random() < 0.7) {
+                    if ((levelType === 'CLASSIC' || isAlerted) && baseAlive && Math.random() < 0.4) { 
+                        targetX = 7 * TILE_SIZE; targetY = (levelType === 'STEALTH' ? ROWS - 1 : 14) * TILE_SIZE; 
+                    }
+
+                    if (isPatrol) {
+                        this.aiTimer = 1000; 
+                    } else if (targetX !== null && targetY !== null && Math.random() < 0.7) {
                         let diffX = targetX - this.x; let diffY = targetY - this.y;
                         if (Math.abs(diffX) > Math.abs(diffY)) this.dir = diffX > 0 ? DIR_RIGHT : DIR_LEFT;
                         else this.dir = diffY > 0 ? DIR_DOWN : DIR_UP;
@@ -968,7 +1124,9 @@ class Tank {
             }
             if (this.dir === DIR_UP) dy = -1; if (this.dir === DIR_DOWN) dy = 1;
             if (this.dir === DIR_LEFT) dx = -1; if (this.dir === DIR_RIGHT) dx = 1;
-            if (Math.random() < (this.isBoss ? 0.08 : 0.05) && this.cooldown <= 0) this.shoot();
+            
+            let shootChance = isPatrol ? 0.01 : (this.isBoss ? 0.08 : 0.05);
+            if (Math.random() < shootChance && this.cooldown <= 0) this.shoot();
         }
 
         if (moving) {
@@ -1022,13 +1180,27 @@ class Tank {
         for (let r = topRow; r <= bottomRow; r++) {
             for (let c = leftCol; c <= rightCol; c++) {
                 if (r >= 0 && r < ROWS && c >= 0 && c < COLS) { 
-                    if (grid[r][c] !== EMPTY) {
-                        if (this.isBoss && grid[r][c] === BRICK) {
+                    let cell = grid[r][c];
+                    if (cell !== EMPTY && cell !== BUSH) {
+                        if (this.isBoss && cell === BRICK) {
                             grid[r][c] = EMPTY;
+                            brickState[r][c] = 0;
                             createExplosion(c * TILE_SIZE + 16, r * TILE_SIZE + 16, '#ff9900', 5);
                             continue;
                         }
-                        return true; 
+                        
+                        if (cell === BRICK) {
+                            let state = brickState[r][c];
+                            let px = c * TILE_SIZE; let py = r * TILE_SIZE;
+                            let hit = false;
+                            if ((state & 1) && rectIntersect(nextX, nextY, this.w, this.h, px, py, 16, 16)) hit = true;
+                            if ((state & 2) && rectIntersect(nextX, nextY, this.w, this.h, px+16, py, 16, 16)) hit = true;
+                            if ((state & 4) && rectIntersect(nextX, nextY, this.w, this.h, px, py+16, 16, 16)) hit = true;
+                            if ((state & 8) && rectIntersect(nextX, nextY, this.w, this.h, px+16, py+16, 16, 16)) hit = true;
+                            if (hit) return true;
+                        } else {
+                            return true; 
+                        }
                     }
                 }
             }
@@ -1044,6 +1216,8 @@ class Tank {
     }
 
     shoot() {
+        if (this.isPlayer && levelType === 'STEALTH') spottedTimer = 3000;
+
         if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 2) {
             let bx = this.x + this.w / 2; let by = this.y + this.h / 2;
             let stepX = 0, stepY = 0;
@@ -1062,34 +1236,53 @@ class Tank {
                 let cCol = Math.floor(curX / TILE_SIZE); let cRow = Math.floor(curY / TILE_SIZE);
                 if (cRow >= 0 && cRow < ROWS && cCol >= 0 && cCol < COLS) {
                     let cell = grid[cRow][cCol];
-                    if (cell === STEEL || cell === BASE || cell === SUBSTATION || (cell === ENEMY_BASE && this.isPlayer)) {
+                    if (cell === STEEL || cell === BASE || cell === SUBSTATION || cell === RADAR || (cell === ENEMY_BASE && this.isPlayer)) {
                         hitWall = true;
                         if (cell === BASE) { baseAlive = false; levelFailed(t('baseDestroyed')); }
-                        if (cell === ENEMY_BASE && !substationAlive) { grid[cRow][cCol] = EMPTY; winLevel(); }
+                        
+                        if (cell === ENEMY_BASE) {
+                            if (assaultMode === 'SUBSTATION' && substationAlive) {
+                                sfx.playArmorHit(); createExplosion(curX, curY, '#3b82f6', 15);
+                            } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) {
+                                sfx.playArmorHit(); createExplosion(curX, curY, '#f59e0b', 15);
+                            } else {
+                                grid[cRow][cCol] = EMPTY; createExplosion(curX, curY, '#ff00ff', 50); sfx.playExplosion(true); winLevel();
+                            }
+                        }
+                        
                         if (cell === SUBSTATION) { grid[cRow][cCol] = EMPTY; substationAlive = false; updateObjectiveUI(); }
-                        createExplosion(curX, curY, '#ffaa00', 10);
+                        if (cell === RADAR) { grid[cRow][cCol] = EMPTY; radarsAlive--; updateObjectiveUI(); createExplosion(curX, curY, '#0ea5e9', 40); }
+                        if (cell !== ENEMY_BASE && cell !== RADAR) createExplosion(curX, curY, '#ffaa00', 10);
                         break;
                     } else if (cell === BRICK) {
-                        grid[cRow][cCol] = EMPTY; createExplosion(cCol*TILE_SIZE+16, cRow*TILE_SIZE+16, '#ff9900', 5);
+                        grid[cRow][cCol] = EMPTY; 
+                        brickState[cRow][cCol] = 0;
+                        createExplosion(cCol*TILE_SIZE+16, cRow*TILE_SIZE+16, '#ff9900', 5);
                     } 
                 }
                 
                 for (let e of enemies) {
                     if (!e.markForDeletion && curX >= e.x && curX <= e.x+e.w && curY >= e.y && curY <= e.y+e.h) {
-                        e.hp = 0; 
-                        e.markForDeletion = true;
-                        score += (e.isBoss ? 1000 : (e.eType === 'NORMAL' ? 100 : 300));
-                        document.getElementById('scoreUI').innerText = score;
-                        createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', e.isBoss ? 80 : 30);
-                        updateObjectiveUI();
+                        if (e.isBoss) e.hp -= 5;
+                        else e.hp = 0; 
                         
-                        if (Math.random() < 0.20) {
-                            let bType; let roll = Math.random();
-                            if (roll < 0.05) bType = 'BOMB';
-                            else if (roll < 0.15) bType = 'TIME';
-                            else if (roll < 0.35) bType = Math.random() < 0.5 ? 'ALLY' : 'TURRET';
-                            else { const std = ['LIFE', 'SHIELD', 'FIRE', 'BASE']; bType = std[Math.floor(Math.random() * std.length)]; }
-                            bonuses.push(new Bonus(e.x + 10, e.y + 10, bType));
+                        if (e.hp <= 0) {
+                            e.markForDeletion = true;
+                            score += (e.isBoss ? 1000 : (e.isMiniBoss ? 500 : (e.eType === 'NORMAL' ? 100 : 300)));
+                            document.getElementById('scoreUI').innerText = score;
+                            createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', e.isBoss ? 80 : 30);
+                            updateObjectiveUI();
+                            
+                            if (Math.random() < 0.20) {
+                                let bType; let roll = Math.random();
+                                if (roll < 0.05) bType = 'BOMB';
+                                else if (roll < 0.15) bType = 'TIME';
+                                else if (roll < 0.35) bType = Math.random() < 0.5 ? 'ALLY' : 'TURRET';
+                                else { const std = ['LIFE', 'SHIELD', 'FIRE', 'BASE']; bType = std[Math.floor(Math.random() * std.length)]; }
+                                bonuses.push(new Bonus(e.x + 10, e.y + 10, bType));
+                            }
+                        } else {
+                            createExplosion(curX, curY, '#fff', 10); sfx.playArmorHit();
                         }
                     }
                 }
@@ -1102,7 +1295,7 @@ class Tank {
         }
 
         const activeBullets = bullets.filter(b => b.ownerId === this);
-        let maxBul = (this.isPlayer && !this.isAllyAI) ? (this.weaponLevel >= 1 ? 3 : 1) : (this.eType === 'RAPID' ? 2 : (this.isBoss ? 4 : 1));
+        let maxBul = (this.isPlayer && !this.isAllyAI) ? (this.weaponLevel >= 1 ? 3 : 1) : (this.eType === 'RAPID' ? 2 : (this.isBoss ? 4 : (this.isMiniBoss ? 2 : 1)));
         if (activeBullets.length >= maxBul) return;
 
         if (this.isBoss) {
@@ -1129,11 +1322,17 @@ class Tank {
             bullets.push(new Bullet(bx, by, bdx, bdy, this.isPlayer, this)); sfx.playShoot(this.isPlayer && !this.isAllyAI);
             
             if (this.isPlayer && !this.isAllyAI) this.cooldown = this.weaponLevel >= 1 ? 150 : 400;
-            else this.cooldown = this.eType === 'RAPID' ? 200 : 500;
+            else this.cooldown = (this.eType === 'RAPID' || this.isMiniBoss) ? 200 : 500;
         }
     }
 
     draw(ctx) {
+        if (levelType === 'COMMAND' && radarsAlive < 3 && !this.isPlayer && !this.isAllyAI && player && !player.markForDeletion) {
+            let dist = Math.hypot(this.x - player.x, this.y - player.y);
+            let visRadius = radarsAlive === 2 ? 250 : (radarsAlive === 1 ? 150 : 80);
+            if (dist > visRadius) return;
+        }
+
         ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
         
         if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) {
@@ -1156,6 +1355,7 @@ class Tank {
         } else {
             if (this.isPlayer && !this.isAllyAI) ctx.fillStyle = '#eab308'; 
             else if (this.isAllyAI) ctx.fillStyle = '#0ea5e9'; 
+            else if (this.isMiniBoss) ctx.fillStyle = '#ea580c'; 
             else if (this.eType === 'FAST') ctx.fillStyle = '#f472b6'; 
             else if (this.eType === 'ARMORED') ctx.fillStyle = '#14532d'; 
             else if (this.eType === 'RAPID') ctx.fillStyle = '#f97316'; 
@@ -1168,11 +1368,29 @@ class Tank {
             ctx.fillRect(-3, -this.h/2 - 8, 6, 18);
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); 
         }
+        
+        // Отрисовка Дрона на крыше
+        if (this.droneTimer > 0) {
+            ctx.restore(); // Сбрасываем поворот базы
+            ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+            if (this.droneDir === DIR_RIGHT) ctx.rotate(Math.PI / 2); else if (this.droneDir === DIR_DOWN) ctx.rotate(Math.PI); else if (this.droneDir === DIR_LEFT) ctx.rotate(-Math.PI / 2);
+            
+            if (this.droneTimer < 3000 && Math.floor(Date.now() / 150) % 2 === 0) ctx.fillStyle = '#ffaaaa';
+            else ctx.fillStyle = '#a855f7'; 
+            
+            ctx.fillRect(-6, -6, 12, 12);
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(-4, -4, 8, 8);
+            ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#a855f7';
+            ctx.fillRect(-1.5, -10, 3, 10);
+        }
+
         ctx.restore();
 
-        if (this.isBoss) {
-            ctx.fillStyle = '#ef4444'; ctx.fillRect(this.x, this.y - 12, this.w, 6);
-            ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x, this.y - 12, this.w * (this.hp / this.maxHp), 6);
+        if (this.isBoss || this.isMiniBoss) {
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(this.x, this.y - 8, this.w, 4);
+            ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x, this.y - 8, this.w * (this.hp / this.maxHp), 4);
         }
 
         if (this.shieldTimer > 0) {
@@ -1183,10 +1401,11 @@ class Tank {
 }
 
 class Bullet {
-    constructor(x, y, dx, dy, isPlayer, ownerId) {
+    constructor(x, y, dx, dy, isPlayer, ownerId, isDrone = false) {
         this.x = x; this.y = y; this.dx = dx; this.dy = dy;
-        this.speed = (isPlayer && ownerId.weaponLevel >= 1) ? 450 : 350;
+        this.speed = (isPlayer && ownerId.weaponLevel >= 1 && !isDrone) ? 450 : 350;
         this.isPlayer = isPlayer; this.ownerId = ownerId;
+        this.isDrone = isDrone;
         this.radius = 4; this.markForDeletion = false;
     }
 
@@ -1197,26 +1416,91 @@ class Bullet {
             this.markForDeletion = true; createExplosion(this.x, this.y, '#aaa', 5); sfx.playArmorHit(); return;
         }
 
+        // Проверка: своя пуля или нет (игрок-дрон, союзник, турель)
+        let isFriendlyShooter = this.isDrone || (this.ownerId && (this.ownerId.isAllyAI || this.ownerId.constructor.name === 'Turret'));
+        
+        let checkFriendlyStructure = (r, c) => {
+            for (let br = Math.max(0, r - 2); br <= Math.min(ROWS - 1, r + 2); br++) {
+                for (let bc = Math.max(0, c - 2); bc <= Math.min(COLS - 1, c + 2); bc++) {
+                    if (grid[br][bc] === BASE || grid[br][bc] === RADAR) return true;
+                }
+            }
+            return false;
+        };
+
         let col = Math.floor(this.x / TILE_SIZE); let row = Math.floor(this.y / TILE_SIZE);
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             let cell = grid[row][col];
-            if (cell !== EMPTY && cell !== WATER) {
-                this.markForDeletion = true; createExplosion(this.x, this.y, '#ff9900', 10);
-                if (cell === BRICK) { grid[row][col] = EMPTY; sfx.playExplosion(false); }
-                else if (cell === STEEL) { sfx.playArmorHit(); }
-                else if (cell === BASE) { baseAlive = false; createExplosion(this.x, this.y, '#ff0000', 40); sfx.playExplosion(true); levelFailed(t('baseDestroyed')); return; }
-                else if (cell === SUBSTATION && this.isPlayer) {
-                    grid[row][col] = EMPTY; substationAlive = false;
-                    createExplosion(this.x, this.y, '#0ea5e9', 50); sfx.playExplosion(true); sfx.playBonus(); updateObjectiveUI();
-                }
-                else if (cell === ENEMY_BASE && this.isPlayer) { 
-                    if (substationAlive) {
-                        sfx.playArmorHit(); createExplosion(this.x, this.y, '#3b82f6', 15);
-                    } else {
-                        grid[row][col] = EMPTY; createExplosion(this.x, this.y, '#ff00ff', 50); sfx.playExplosion(true); winLevel(); 
+            if (cell !== EMPTY && cell !== WATER && cell !== BUSH) {
+                if (cell === BRICK) {
+                    // Дружественный огонь по кирпичам базы
+                    if (isFriendlyShooter && checkFriendlyStructure(row, col)) {
+                        this.markForDeletion = true; 
+                        createExplosion(this.x, this.y, '#ff9900', 5);
+                        return; 
                     }
+
+                    let state = brickState[row][col];
+                    let px = col * TILE_SIZE; let py = row * TILE_SIZE;
+                    let hit = false;
+                    let newState = state;
+
+                    let dbx = this.x - this.radius; let dby = this.y - this.radius;
+                    let dbw = this.radius * 2; let dbh = this.radius * 2;
+                    if (this.dy < 0) { dby -= 8; dbh += 8; dbx -= 4; dbw += 8; } 
+                    else if (this.dy > 0) { dbh += 8; dbx -= 4; dbw += 8; } 
+                    else if (this.dx < 0) { dbx -= 8; dbw += 8; dby -= 4; dbh += 8; } 
+                    else if (this.dx > 0) { dbw += 8; dby -= 4; dbh += 8; } 
+
+                    let quarters = [
+                        {bit: 1, x: px, y: py}, {bit: 2, x: px+16, y: py},
+                        {bit: 4, x: px, y: py+16}, {bit: 8, x: px+16, y: py+16}
+                    ];
+                    
+                    for (let q of quarters) {
+                        if ((state & q.bit) && rectIntersect(dbx, dby, dbw, dbh, q.x, q.y, 16, 16)) {
+                            hit = true; newState &= ~q.bit; 
+                        }
+                    }
+                    
+                    if (hit) {
+                        this.markForDeletion = true; 
+                        createExplosion(this.x, this.y, '#ff9900', 10);
+                        sfx.playExplosion(false);
+                        brickState[row][col] = newState;
+                        if (newState === 0) grid[row][col] = EMPTY;
+                        return;
+                    }
+                } else {
+                    if (isFriendlyShooter && (cell === BASE || cell === RADAR)) {
+                        this.markForDeletion = true; 
+                        createExplosion(this.x, this.y, '#ffaa00', 5);
+                        return; // Защита союзниками самой базы и радаров
+                    }
+
+                    this.markForDeletion = true; createExplosion(this.x, this.y, '#ff9900', 10);
+                    if (cell === STEEL) { sfx.playArmorHit(); }
+                    else if (cell === BASE) { baseAlive = false; createExplosion(this.x, this.y, '#ff0000', 40); sfx.playExplosion(true); levelFailed(t('baseDestroyed')); return; }
+                    else if (cell === SUBSTATION && this.isPlayer) {
+                        grid[row][col] = EMPTY; substationAlive = false;
+                        createExplosion(this.x, this.y, '#0ea5e9', 50); sfx.playExplosion(true); sfx.playBonus(); updateObjectiveUI();
+                    }
+                    else if (cell === RADAR) {
+                        grid[row][col] = EMPTY; radarsAlive--;
+                        createExplosion(this.x, this.y, '#0ea5e9', 40); sfx.playExplosion(true); updateObjectiveUI();
+                        return;
+                    }
+                    else if (cell === ENEMY_BASE && this.isPlayer) { 
+                        if (assaultMode === 'SUBSTATION' && substationAlive) {
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#3b82f6', 15);
+                        } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) {
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#f59e0b', 15);
+                        } else {
+                            grid[row][col] = EMPTY; createExplosion(this.x, this.y, '#ff00ff', 50); sfx.playExplosion(true); winLevel(); 
+                        }
+                    }
+                    return;
                 }
-                return;
             }
         }
 
@@ -1235,7 +1519,8 @@ class Bullet {
                 if (!enemy.markForDeletion && this.checkTankHit(enemy)) {
                     this.markForDeletion = true; enemy.hp--;
                     if (enemy.hp <= 0) {
-                        enemy.markForDeletion = true; score += (enemy.isBoss ? 1000 : (enemy.eType === 'NORMAL' ? 100 : 300));
+                        enemy.markForDeletion = true; 
+                        score += (enemy.isBoss ? 1000 : (enemy.isMiniBoss ? 500 : (enemy.eType === 'NORMAL' ? 100 : 300)));
                         document.getElementById('scoreUI').innerText = score;
                         createExplosion(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ff4400', enemy.isBoss ? 80 : 25); sfx.playExplosion(true);
                         updateObjectiveUI();
@@ -1318,13 +1603,17 @@ function initLevel(retry = false) {
     
     if (!retry) generateLevel();
     else {
-        grid = savedGrid.map(row => [...row]); levelType = savedLevelType; enemyBaseCol = savedEnemyBaseCol; enemiesToSpawn = savedEnemiesToSpawn;
+        grid = savedGrid.map(row => [...row]); 
+        brickState = savedBrickState.map(row => [...row]);
+        levelType = savedLevelType; assaultMode = savedAssaultMode; enemyBaseCol = savedEnemyBaseCol; enemiesToSpawn = savedEnemiesToSpawn;
         ROWS = grid.length; baseAlive = true; baseDefTimer = 0; 
         
         substationAlive = false;
+        radarsAlive = 0;
         for (let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
                 if (grid[r][c] === SUBSTATION) substationAlive = true;
+                if (grid[r][c] === RADAR) radarsAlive++;
             }
         }
         enemyMines = savedEnemyMinesCoords.map(c => new Mine(c.x, c.y, true));
@@ -1332,18 +1621,27 @@ function initLevel(retry = false) {
     }
     
     if (levelType === 'CLASSIC') player = new Tank(4, 14, true); 
-    else if (levelType === 'ASSAULT') player = new Tank(7, ROWS - 1, true);
+    else if (levelType === 'ASSAULT' || levelType === 'COMMAND') player = new Tank(7, ROWS - 1, true);
+    else if (levelType === 'STEALTH') player = new Tank(4, ROWS - 1, true);
     else if (levelType === 'BOSS') {
         player = new Tank(4, 17, true);
         enemies.push(new Tank(7, 2, false, 'BOSS'));
     }
     
+    if (levelType === 'ASSAULT' && assaultMode === 'MINIBOSSES') {
+        enemies.push(new Tank(1, 2, false, 'MINIBOSS'));
+        enemies.push(new Tank(13, 2, false, 'MINIBOSS'));
+    }
+    
     player.weaponLevel = playerWeaponLevel;
     
-    camera.y = levelType === 'ASSAULT' ? (ROWS * TILE_SIZE - canvas.height) : 0;
+    camera.y = (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') ? (ROWS * TILE_SIZE - canvas.height) : 0;
     if (levelType === 'BOSS') camera.y = ROWS * TILE_SIZE - canvas.height;
     
     gameState = 'PLAYING';
+    spottedTimer = 0;
+    wasSpottedLastFrame = false;
+
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('transitionScreen').classList.add('hidden');
@@ -1405,7 +1703,8 @@ function playerDeath() {
     else setTimeout(() => { 
         if(gameState === 'PLAYING') {
             if (levelType === 'CLASSIC') player = new Tank(4, 14, true);
-            else if (levelType === 'ASSAULT') player = new Tank(7, ROWS-1, true);
+            else if (levelType === 'ASSAULT' || levelType === 'COMMAND') player = new Tank(7, ROWS-1, true);
+            else if (levelType === 'STEALTH') player = new Tank(4, ROWS-1, true);
             else if (levelType === 'BOSS') player = new Tank(4, 17, true);
         }
     }, 1000);
@@ -1425,6 +1724,10 @@ function spawnEnemy() {
         let types = ['FAST', 'ARMORED', 'RAPID']; eType = types[Math.floor(Math.random() * types.length)];
     }
     let spawnPoints = levelType === 'CLASSIC' ? [{c: 0, r: 0}, {c: 7, r: 0}, {c: 14, r: 0}] : [{c: 2, r: 4}, {c: 7, r: 4}, {c: 12, r: 4}]; 
+    if (levelType === 'STEALTH') {
+        spawnPoints = [{c: 0, r: 1}, {c: 7, r: 1}, {c: 14, r: 1}];
+    }
+    
     let validSpawns = spawnPoints.filter(pt => {
         let px = pt.c * TILE_SIZE; let py = pt.r * TILE_SIZE;
         for(let e of enemies) if(Math.abs(e.x - px) < TILE_SIZE && Math.abs(e.y - py) < TILE_SIZE) return false;
@@ -1442,7 +1745,7 @@ function update(dt) {
         particles.forEach(p => p.update(dt)); particles = particles.filter(p => p.life > 0); return;
     }
 
-    if (levelType === 'CLASSIC' && enemiesToSpawn <= 0 && enemies.length === 0) { winLevel(); return; }
+    if ((levelType === 'CLASSIC' || levelType === 'STEALTH') && enemiesToSpawn <= 0 && enemies.length === 0) { winLevel(); return; }
     if (levelType === 'BOSS' && enemies.length === 0) { winLevel(); return; }
 
     if (timeStopTimer > 0) timeStopTimer -= dt;
@@ -1451,10 +1754,15 @@ function update(dt) {
 
     if (baseDefTimer > 0) {
         baseDefTimer -= dt;
-        if (baseDefTimer <= 0 && (levelType === 'CLASSIC' || levelType === 'BOSS')) {
-            let br = levelType === 'CLASSIC' ? 14 : 17;
+        if (baseDefTimer <= 0 && (levelType === 'CLASSIC' || levelType === 'BOSS' || levelType === 'STEALTH')) {
+            let br = levelType === 'BOSS' ? 17 : (levelType === 'STEALTH' ? ROWS - 1 : 14);
             let pts = [[br,6], [br,8], [br-1,6], [br-1,7], [br-1,8]];
-            pts.forEach(p => { if (p[0] >= 0 && p[0] < ROWS && p[1] >= 0 && p[1] < COLS && grid[p[0]][p[1]] !== BASE) grid[p[0]][p[1]] = BRICK; });
+            pts.forEach(p => { 
+                if (p[0] >= 0 && p[0] < ROWS && p[1] >= 0 && p[1] < COLS && grid[p[0]][p[1]] === STEEL) {
+                    grid[p[0]][p[1]] = BRICK; 
+                    brickState[p[0]][p[1]] = 15; 
+                } 
+            });
         }
     }
 
@@ -1463,6 +1771,24 @@ function update(dt) {
     if (player && !player.markForDeletion) {
         player.update(dt);
         
+        // Логика обнаружения в стелсе
+        if (levelType === 'STEALTH') {
+            let pr = Math.floor((player.y + player.h/2) / TILE_SIZE);
+            let pc = Math.floor((player.x + player.w/2) / TILE_SIZE);
+            if (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS) {
+                if (grid[pr][pc] !== BUSH) {
+                    spottedTimer = 3000;
+                }
+            }
+        }
+        if (spottedTimer > 0) spottedTimer -= dt;
+
+        let currentlySpotted = spottedTimer > 0;
+        if (!wasSpottedLastFrame && currentlySpotted && levelType === 'STEALTH') {
+            sfx.playMelody([[800, 0.1], [1000, 0.1]], 'sawtooth'); // Аларм!
+        }
+        wasSpottedLastFrame = currentlySpotted;
+
         if ((keys['b'] || keys['B'] || keys['и'] || keys['И'] || touchMine) && mineCooldown <= 0 && minesCount > 0) {
             placedMines.push(new Mine(player.x + player.w/2, player.y + player.h/2));
             minesCount--;
@@ -1482,28 +1808,49 @@ function update(dt) {
                     if (playerWeaponLevel < 2) playerWeaponLevel++; 
                     player.weaponLevel = playerWeaponLevel; 
                 } 
-                else if (bonus.type === 'BASE' && (levelType === 'CLASSIC' || levelType === 'BOSS')) {
+                else if (bonus.type === 'BASE' && (levelType === 'CLASSIC' || levelType === 'BOSS' || levelType === 'STEALTH')) {
                     baseDefTimer = 15000; 
-                    let br = levelType === 'CLASSIC' ? 14 : 17;
+                    let br = levelType === 'BOSS' ? 17 : (levelType === 'STEALTH' ? ROWS - 1 : 14);
                     let pts = [[br,6], [br,8], [br-1,6], [br-1,7], [br-1,8]];
                     pts.forEach(p => { if (p[0] >= 0 && p[0] < ROWS && p[1] >= 0 && p[1] < COLS && grid[p[0]][p[1]] !== BASE) grid[p[0]][p[1]] = STEEL; });
                 } 
                 else if (bonus.type === 'ALLY') {
-                    let spawnR = levelType === 'CLASSIC' ? 14 : (levelType === 'BOSS' ? 17 : ROWS - 1); 
+                    let spawnR = levelType === 'BOSS' ? 17 : (levelType === 'CLASSIC' ? 14 : ROWS - 1); 
                     let spawnC = levelType === 'CLASSIC' ? 4 : (levelType === 'BOSS' ? 4 : 7);
                     allies.push(new Tank(spawnC, spawnR, true, 'NORMAL', true));
                 } 
                 else if (bonus.type === 'TURRET') {
-                    let tc = Math.floor(player.x / TILE_SIZE); let tr = Math.floor(player.y / TILE_SIZE) - 2;
-                    if (levelType === 'CLASSIC' || levelType === 'BOSS') { tc = 7; tr = (levelType === 'CLASSIC' ? 12 : 15); } if (tr < 0) tr = 0;
-                    if (grid[tr][tc] === BRICK || grid[tr][tc] === STEEL || grid[tr][tc] === WATER) grid[tr][tc] = EMPTY; 
-                    turrets.push(new Turret(tc, tr));
+                    let spawned = false;
+                    if (Math.random() < 0.3) {
+                        let pr = Math.floor(player.y / TILE_SIZE);
+                        let pc = Math.floor(player.x / TILE_SIZE);
+                        let offsets = [[0,-1],[0,1],[-1,0],[1,0],[-1,-1],[1,-1],[-1,1],[1,1]];
+                        for (let off of offsets) {
+                            let tr = pr + off[0]; let tc = pc + off[1];
+                            if (tr >= 0 && tr < ROWS && tc >= 0 && tc < COLS && (grid[tr][tc] === EMPTY || grid[tr][tc] === BUSH)) {
+                                grid[tr][tc] = EMPTY; brickState[tr][tc] = 0;
+                                turrets.push(new Turret(tc, tr));
+                                spawned = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!spawned) {
+                        player.droneTimer = 25000;
+                        player.droneCooldown = 0;
+                        player.droneDir = DIR_UP;
+                    }
                 }
                 else if (bonus.type === 'BOMB') {
                     sfx.playExplosion(true);
                     enemies.forEach(e => {
-                        e.markForDeletion = true; createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', e.isBoss ? 80 : 30);
-                        score += (e.isBoss ? 1000 : (e.eType === 'NORMAL' ? 100 : 300));
+                        if (e.isBoss) e.hp -= 15;
+                        else e.hp = 0;
+                        
+                        if (e.hp <= 0) {
+                            e.markForDeletion = true; createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', e.isBoss ? 80 : 30);
+                            score += (e.isBoss ? 1000 : (e.isMiniBoss ? 500 : (e.eType === 'NORMAL' ? 100 : 300)));
+                        }
                     });
                     document.getElementById('scoreUI').innerText = score;
                     updateObjectiveUI();
@@ -1514,7 +1861,7 @@ function update(dt) {
             }
         }
         
-        if (levelType === 'ASSAULT') {
+        if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') {
             let targetCamY = player.y - canvas.height / 2 + player.h / 2;
             camera.y += (targetCamY - camera.y) * 0.1;
             if (camera.y < 0) camera.y = 0; if (camera.y > ROWS * TILE_SIZE - canvas.height) camera.y = ROWS * TILE_SIZE - canvas.height;
@@ -1541,13 +1888,28 @@ function draw() {
     let startRow = Math.max(0, Math.floor(camera.y / TILE_SIZE));
     let endRow = Math.min(ROWS - 1, Math.floor((camera.y + canvas.height) / TILE_SIZE) + 1);
 
+    // Слой 1: Пол, Стены, Вода, Базы (без кустов)
     for (let r = startRow; r <= endRow; r++) {
         for (let c = 0; c < COLS; c++) {
             let cell = grid[r][c]; let px = c * TILE_SIZE; let py = r * TILE_SIZE;
             if (cell === BRICK) {
-                ctx.fillStyle = '#b94022'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE); ctx.strokeStyle = '#e67357'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(px, py + TILE_SIZE/2); ctx.lineTo(px + TILE_SIZE, py + TILE_SIZE/2);
-                ctx.moveTo(px + TILE_SIZE/2, py); ctx.lineTo(px + TILE_SIZE/2, py + TILE_SIZE/2); ctx.stroke();
+                let state = brickState[r][c];
+                ctx.fillStyle = '#b94022'; 
+                ctx.strokeStyle = '#e67357'; 
+                ctx.lineWidth = 1;
+                
+                let drawQuarter = (qx, qy) => {
+                    ctx.fillRect(px + qx, py + qy, 16, 16);
+                    ctx.beginPath(); 
+                    ctx.moveTo(px + qx, py + qy + 8); ctx.lineTo(px + qx + 16, py + qy + 8);
+                    ctx.moveTo(px + qx + 8, py + qy); ctx.lineTo(px + qx + 8, py + qy + 16); 
+                    ctx.stroke();
+                };
+
+                if (state & 1) drawQuarter(0, 0); 
+                if (state & 2) drawQuarter(16, 0); 
+                if (state & 4) drawQuarter(0, 16); 
+                if (state & 8) drawQuarter(16, 16); 
             } 
             else if (cell === STEEL) {
                 ctx.fillStyle = '#ccc'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
@@ -1574,20 +1936,39 @@ function draw() {
                 ctx.fillStyle = (Math.floor(Date.now() / 200) % 2 === 0) ? '#fff' : '#7dd3fc';
                 ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 4, 0, Math.PI*2); ctx.fill();
             }
+            else if (cell === RADAR) {
+                ctx.fillStyle = '#1f2937'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 10, 0, Math.PI*2); ctx.stroke();
+                
+                ctx.save();
+                ctx.translate(px + TILE_SIZE/2, py + TILE_SIZE/2);
+                ctx.rotate((Date.now() % 2000) / 2000 * Math.PI * 2);
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -10); ctx.stroke();
+                ctx.restore();
+                
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 2, 0, Math.PI*2); ctx.fill();
+            }
             else if (cell === ENEMY_BASE) {
                 ctx.fillStyle = '#b91c1c'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE); ctx.fillStyle = '#7f1d1d'; ctx.beginPath(); 
                 ctx.moveTo(px + TILE_SIZE/2, py + 4); ctx.lineTo(px + TILE_SIZE - 4, py + TILE_SIZE - 4);
                 ctx.lineTo(px + 4, py + TILE_SIZE - 4); ctx.fill();
                 
-                if (substationAlive) {
+                if (assaultMode === 'SUBSTATION' && substationAlive) {
                     ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE/2 + 2, 0, Math.PI*2); ctx.stroke();
                     ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; ctx.fill();
+                } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) {
+                    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE/2 + 2, 0, Math.PI*2); ctx.stroke();
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.3)'; ctx.fill();
                 }
             }
         }
     }
 
+    // Слой 2: Сущности
     placedMines.forEach(m => m.draw(ctx));
     enemyMines.forEach(m => m.draw(ctx));
     bonuses.forEach(b => b.draw(ctx));
@@ -1598,7 +1979,57 @@ function draw() {
     bullets.forEach(b => b.draw(ctx));
     lasers.forEach(l => l.draw(ctx));
     particles.forEach(p => p.draw(ctx));
+
+    // Слой 3: Кусты (перекрывают танки)
+    for (let r = startRow; r <= endRow; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c] === BUSH) {
+                let px = c * TILE_SIZE; let py = r * TILE_SIZE;
+                ctx.fillStyle = '#166534'; // Темно-зеленый фон
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#15803d'; // Светлые листья
+                ctx.fillRect(px + 4, py + 4, 8, 8);
+                ctx.fillRect(px + 20, py + 8, 6, 6);
+                ctx.fillRect(px + 8, py + 20, 10, 8);
+            }
+        }
+    }
+
     ctx.restore();
+
+    // Отрисовка эффектов интерфейса поверх камеры
+    
+    // Красный эффект тревоги при Стелсе
+    if (levelType === 'STEALTH' && spottedTimer > 0) {
+        ctx.fillStyle = `rgba(239, 68, 68, ${Math.abs(Math.sin(Date.now() / 200)) * 0.25})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Отрисовка затемнения для режима Командного центра
+    if (levelType === 'COMMAND' && radarsAlive < 3 && player && !player.markForDeletion) {
+        let darkness = radarsAlive === 2 ? 0.5 : (radarsAlive === 1 ? 0.8 : 1.0);
+        let visRadius = radarsAlive === 2 ? 250 : (radarsAlive === 1 ? 150 : 80);
+        
+        let screenCx = player.x + player.w/2;
+        let screenCy = player.y + player.h/2 - camera.y;
+        
+        ctx.save();
+        ctx.fillStyle = `rgba(0,0,0,${darkness})`;
+        
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.arc(screenCx, screenCy, visRadius, 0, Math.PI * 2, true);
+        ctx.fill();
+        
+        let grad = ctx.createRadialGradient(screenCx, screenCy, visRadius * 0.5, screenCx, screenCy, visRadius);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, `rgba(0,0,0,${darkness})`);
+        ctx.beginPath();
+        ctx.arc(screenCx, screenCy, visRadius, 0, Math.PI * 2, false);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+    }
 }
 
 function gameLoop(timestamp) {
