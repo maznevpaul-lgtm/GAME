@@ -247,8 +247,32 @@
 
 <script>
 /**
- * ЛОКАЛИЗАЦИЯ (I18N)
+ * ЛОКАЛИЗАЦИЯ И КОНСТАНТЫ
  */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const TILE_SIZE = 32; 
+const COLS = 15; 
+let ROWS = 15;   
+
+const EMPTY = 0;
+const BRICK = 1;
+const STEEL = 2;
+const BASE = 3;
+const ENEMY_BASE = 4;
+const SUBSTATION = 5;
+const WATER = 6;
+const RADAR = 7;
+const BUSH = 8; 
+const RAIL = 9;
+const GENERATOR = 10;
+const BTN_OFF = 11;
+const BTN_ON = 12;
+const GATE = 13;
+
+const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
+
 const i18n = {
     ru: {
         score: "СЧЕТ:", lvl: "УР:",
@@ -329,6 +353,9 @@ const t = (key, params = {}) => {
     return str;
 };
 
+/**
+ * УТИЛИТЫ UI
+ */
 function resetToStartScreen() {
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
@@ -449,46 +476,8 @@ function updateStaticUI() {
     updateObjectiveUI();
 }
 
-document.getElementById('langToggleBtn').addEventListener('click', () => {
-    currentLang = currentLang === 'ru' ? 'en' : 'ru';
-    localStorage.setItem('tanksLang', currentLang);
-    updateStaticUI();
-});
-
 /**
- * НАСТРОЙКИ И КОНСТАНТЫ
- */
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-const TILE_SIZE = 32; 
-const COLS = 15; 
-let ROWS = 15;   
-
-const EMPTY = 0;
-const BRICK = 1;
-const STEEL = 2;
-const BASE = 3;
-const ENEMY_BASE = 4;
-const SUBSTATION = 5;
-const WATER = 6;
-const RADAR = 7;
-const BUSH = 8; 
-const RAIL = 9;
-const GENERATOR = 10;
-const BTN_OFF = 11;
-const BTN_ON = 12;
-const GATE = 13;
-
-const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
-const BONUS_TYPES = ['LIFE', 'SHIELD', 'FIRE', 'BASE', 'ALLY', 'TURRET', 'BOMB', 'TIME'];
-
-function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
-    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
-}
-
-/**
- * 8-БИТНЫЙ АУДИО ДВИЖОК (Web Audio API)
+ * АУДИО ДВИЖОК
  */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const sfx = {
@@ -504,7 +493,6 @@ const sfx = {
         return buffer;
     },
     noiseBuffer: null,
-    
     playShoot(isPlayer = true) {
         if (this.isMuted || audioCtx.state === 'suspended') return;
         const osc = audioCtx.createOscillator();
@@ -517,7 +505,6 @@ const sfx = {
         osc.connect(gain); gain.connect(audioCtx.destination);
         osc.start(); osc.stop(audioCtx.currentTime + 0.1);
     },
-
     playLaser() {
         if (this.isMuted || audioCtx.state === 'suspended') return;
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
@@ -529,7 +516,6 @@ const sfx = {
         osc.connect(gain); gain.connect(audioCtx.destination);
         osc.start(); osc.stop(audioCtx.currentTime + 0.3);
     },
-    
     playExplosion(isBig = false) {
         if (this.isMuted || audioCtx.state === 'suspended') return;
         if (!this.noiseBuffer) this.noiseBuffer = this.createNoiseBuffer();
@@ -543,7 +529,6 @@ const sfx = {
         noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
         noise.start(); noise.stop(audioCtx.currentTime + dur);
     },
-
     playArmorHit() {
         if (this.isMuted || audioCtx.state === 'suspended') return;
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
@@ -555,9 +540,7 @@ const sfx = {
         osc.connect(gain); gain.connect(audioCtx.destination);
         osc.start(); osc.stop(audioCtx.currentTime + 0.05);
     },
-
     playBonus() { this.playMelody([[600,0.1], [800,0.2]]); },
-
     engineOsc: null, engineGain: null,
     startEngine() {
         if (this.isMuted || this.engineOsc || audioCtx.state === 'suspended') return;
@@ -574,7 +557,6 @@ const sfx = {
             this.engineOsc = null;
         }
     },
-
     playMelody(notes, type='square') { 
         if (this.isMuted || audioCtx.state === 'suspended') return;
         let time = audioCtx.currentTime;
@@ -595,7 +577,7 @@ const sfx = {
 };
 
 /**
- * СОСТОЯНИЕ ИГРЫ
+ * ИГРОВОЕ СОСТОЯНИЕ
  */
 let grid = [];
 let brickState = []; 
@@ -609,6 +591,7 @@ let particles = [];
 let bonuses = [];
 let placedMines = [];
 let enemyMines = [];
+
 let score = 0;
 let lives = 3;
 let continues = 3;
@@ -661,6 +644,9 @@ let touchDirs = { up: false, down: false, left: false, right: false };
 let touchFire = false;
 let touchMine = false;
 
+function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+}
 
 /**
  * КЛАССЫ СУЩНОСТЕЙ
@@ -1318,16 +1304,16 @@ class Tank {
                     } 
                 }
                 
-                for (let enemy of enemies) {
-                    if (!enemy.markForDeletion && curX >= enemy.x && curX <= enemy.x+enemy.w && curY >= enemy.y && curY <= enemy.y+enemy.h) {
-                        if (enemy.isBoss) enemy.hp -= 5;
-                        else enemy.hp = 0; 
+                for (let e of enemies) {
+                    if (!e.markForDeletion && curX >= e.x && curX <= e.x+e.w && curY >= e.y && curY <= e.y+e.h) {
+                        if (e.isBoss) e.hp -= 5;
+                        else e.hp = 0; 
                         
-                        if (enemy.hp <= 0) {
-                            enemy.markForDeletion = true;
-                            score += (enemy.isBoss ? 1000 : (enemy.isMiniBoss ? 500 : (enemy.eType === 'NORMAL' ? 100 : 300)));
+                        if (e.hp <= 0) {
+                            e.markForDeletion = true;
+                            score += (e.isBoss ? 1000 : (e.isMiniBoss ? 500 : (e.eType === 'NORMAL' ? 100 : 300)));
                             document.getElementById('scoreUI').innerText = score;
-                            createExplosion(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ff4400', enemy.isBoss ? 80 : 30);
+                            createExplosion(e.x + e.w/2, e.y + e.h/2, '#ff4400', e.isBoss ? 80 : 30);
                             updateObjectiveUI();
                             
                             if (Math.random() < 0.20) {
@@ -1336,7 +1322,7 @@ class Tank {
                                 else if (roll < 0.15) bType = 'TIME';
                                 else if (roll < 0.35) bType = Math.random() < 0.5 ? 'ALLY' : 'TURRET';
                                 else { const std = ['LIFE', 'SHIELD', 'FIRE', 'BASE']; bType = std[Math.floor(Math.random() * std.length)]; }
-                                bonuses.push(new Bonus(enemy.x + 10, enemy.y + 10, bType));
+                                bonuses.push(new Bonus(e.x + 10, e.y + 10, bType));
                             }
                         } else {
                             createExplosion(curX, curY, '#fff', 10); sfx.playArmorHit();
@@ -1485,7 +1471,7 @@ class Tank {
 }
 
 /**
- * СОХРАНЕНИЕ / ЗАГРУЗКА
+ * ИГРОВАЯ ЛОГИКА
  */
 function saveGame() {
     const data = { 
@@ -1499,15 +1485,17 @@ function saveGame() {
     localStorage.setItem('battleCityEvoSave', JSON.stringify(data));
     
     let btn = document.getElementById('saveBtn');
-    let old = btn.innerText;
-    btn.innerText = t('success');
-    setTimeout(() => { btn.innerText = old; }, 2000);
+    if (btn) {
+        let old = btn.innerText;
+        btn.innerText = t('success');
+        setTimeout(() => { btn.innerText = old; }, 2000);
+    }
 }
 
 function loadGame(buttonId) {
     const save = localStorage.getItem('battleCityEvoSave');
     let btn = document.getElementById(buttonId);
-    let old = btn.innerText;
+    let old = btn ? btn.innerText : '';
 
     if (save) {
         const data = JSON.parse(save);
@@ -1522,9 +1510,9 @@ function loadGame(buttonId) {
         document.getElementById('livesUI').innerText = lives;
         document.getElementById('continuesUI').innerText = continues;
         
-        btn.innerText = t('loaded');
+        if (btn) btn.innerText = t('loaded');
         setTimeout(() => { 
-            btn.innerText = old; 
+            if (btn) btn.innerText = old; 
             document.getElementById('pauseScreen').classList.add('hidden');
             document.getElementById('startScreen').classList.add('hidden');
             
@@ -1559,16 +1547,16 @@ function loadGame(buttonId) {
             }
         }, 500);
     } else {
-        btn.innerText = t('noSaves');
-        setTimeout(() => { btn.innerText = old; }, 2000);
+        if (btn) {
+            btn.innerText = t('noSaves');
+            setTimeout(() => { btn.innerText = old; }, 2000);
+        }
     }
 }
 
-/**
- * ГЕНЕРАЦИЯ УРОВНЯ
- */
 function generateLevel() {
     let validLevel = false;
+    let genAttempts = 0;
     
     if (level >= 8 && (level - lastBossLevel) >= 8 && Math.random() < 0.4) {
         levelType = 'BOSS';
@@ -1630,7 +1618,8 @@ function generateLevel() {
 
     updateObjectiveUI();
 
-    while (!validLevel) {
+    while (!validLevel && genAttempts < 100) {
+        genAttempts++;
         grid = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
         brickState = Array.from({ length: ROWS }, () => Array(COLS).fill(15));
         enemyMines = [];
@@ -1755,17 +1744,27 @@ function generateLevel() {
             grid[1][genCol-1] = STEEL; grid[1][genCol+1] = STEEL; grid[0][genCol] = STEEL;
             safeZones.push({r: 2, c: genCol});
 
-            for (let r = 3; r < ROWS - 2; r++) {
-                grid[r][2] = RAIL;
-                grid[r][COLS-3] = RAIL;
-            }
-            for (let c = 2; c <= COLS-3; c++) {
-                grid[ROWS-3][c] = RAIL;
-                grid[7][c] = RAIL;
-            }
+            let curR = 3;
+            let curC = genCol;
+            grid[curR][curC] = RAIL;
+            let phase1R = Math.floor(ROWS * 0.4);
+            while(curR < phase1R) { grid[curR][curC] = RAIL; curR++; }
+            let targetC = (genCol < COLS / 2) ? COLS - 3 : 2;
+            let step = (targetC > curC) ? 1 : -1;
+            while(curC !== targetC) { grid[curR][curC] = RAIL; curC += step; }
+            let phase2R = Math.floor(ROWS * 0.75);
+            while(curR < phase2R) { grid[curR][curC] = RAIL; curR++; }
+            step = (7 > curC) ? 1 : -1;
+            while(curC !== 7) { grid[curR][curC] = RAIL; curC += step; }
+            while(curR < ROWS - 2) { grid[curR][curC] = RAIL; curR++; }
             
-            let safeSpots = [{r: 7, c: Math.floor(COLS/2)}, {r: ROWS-3, c: Math.floor(COLS/2)}, {r: ROWS-3, c: 4}, {r: ROWS-3, c: COLS-5}];
-            safeSpots.forEach(s => grid[s.r][s.c] = BRICK);
+            for(let r=0; r<ROWS; r++){
+                for(let c=0; c<COLS; c++){
+                    if(grid[r][c] === RAIL && Math.random() < 0.20) {
+                        grid[r][c] = BRICK;
+                    }
+                }
+            }
             generatorAlive = true;
             electricTimer = 4000;
         } else if (levelType === 'BOSS') {
@@ -1781,28 +1780,40 @@ function generateLevel() {
             }
         }
 
-        // Карвинг краев
         if (levelType !== 'CLASSIC' && levelType !== 'BOSS') {
-            let leftW = Math.floor(Math.random() * 3);
-            let rightW = Math.floor(Math.random() * 3);
-            for (let r = 1; r < ROWS - 1; r++) {
-                if (Math.random() < 0.4) leftW += (Math.random() < 0.5 ? 1 : -1);
-                if (Math.random() < 0.4) rightW += (Math.random() < 0.5 ? 1 : -1);
-                if (leftW < 0) leftW = 0; if (leftW > 4) leftW = 4;
-                if (rightW < 0) rightW = 0; if (rightW > 4) rightW = 4;
-
-                if (r > 3 && r < ROWS - 4) { 
-                    for (let c = 0; c < leftW; c++) {
-                        if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL;
+            let shapeType = Math.floor(Math.random() * 4); 
+            let blockR1 = Math.floor(ROWS * 0.3);
+            let blockR2 = Math.floor(ROWS * 0.6);
+            
+            if (shapeType === 0) { 
+                for (let r = 4; r < blockR2; r++) {
+                    for (let c = 0; c < 7; c++) { if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL; }
+                }
+                for (let r = blockR2 + 2; r < ROWS - 4; r++) {
+                    for (let c = 8; c < COLS; c++) { if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL; }
+                }
+            } else if (shapeType === 1) { 
+                for (let r = 4; r < ROWS - 4; r++) {
+                    for (let c = 0; c < 6; c++) { 
+                        if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL; 
                     }
-                    for (let c = COLS - 1; c > COLS - 1 - rightW; c--) {
-                        if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL;
+                }
+            } else if (shapeType === 2) { 
+                for (let r = 6; r < ROWS - 6; r++) {
+                    for (let c = 4; c < 11; c++) { 
+                        if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL; 
+                    }
+                }
+            } else if (shapeType === 3) { 
+                for (let r = 4; r < ROWS - 4; r++) {
+                    let centerC = Math.floor((r / ROWS) * COLS);
+                    for (let c = centerC - 2; c <= centerC + 2; c++) {
+                        if (c >= 0 && c < COLS && (grid[r][c] === EMPTY || grid[r][c] === BUSH)) grid[r][c] = STEEL;
                     }
                 }
             }
         }
 
-        // Рандомные блоки
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (grid[r][c] !== EMPTY) continue; 
@@ -1850,6 +1861,26 @@ function generateLevel() {
         }
 
         validLevel = checkLevelPlayability();
+
+        if (!validLevel && genAttempts >= 99) {
+            for (let r = 1; r < ROWS - 1; r++) {
+                for (let c = 6; c <= 8; c++) {
+                    if (grid[r][c] === STEEL || grid[r][c] === WATER) grid[r][c] = EMPTY;
+                }
+            }
+            for(let r=0; r<ROWS; r++){
+                for(let c=0; c<COLS; c++){
+                    if([BTN_OFF, RADAR, GENERATOR, SUBSTATION].includes(grid[r][c])) {
+                        let stepC = c < 7 ? 1 : -1; let curC = c + stepC;
+                        while(curC !== 7 && curC >= 0 && curC < COLS) {
+                            if (grid[r][curC] === STEEL || grid[r][curC] === WATER) grid[r][curC] = EMPTY;
+                            curC += stepC;
+                        }
+                    }
+                }
+            }
+            validLevel = true;
+        }
     }
 
     savedGrid = grid.map(row => [...row]);
@@ -2025,13 +2056,6 @@ function winLevel() {
     setTimeout(() => { initLevel(false); }, 3500); 
 }
 
-function gameOver() {
-    gameState = 'GAMEOVER';
-    document.getElementById('headerPauseBtn').classList.add('hidden');
-    document.getElementById('gameOverScreen').classList.remove('hidden');
-    document.getElementById('finalScore').innerText = score;
-}
-
 function levelFailed(reason) {
     if (gameState === 'DYING' || gameState === 'GAMEOVER' || gameState === 'LEVEL_TRANSITION') return;
     gameState = 'DYING'; sfx.stopEngine(); sfx.playLose();
@@ -2049,6 +2073,13 @@ function levelFailed(reason) {
             gameOver();
         }
     }, 1500); 
+}
+
+function gameOver() {
+    gameState = 'GAMEOVER';
+    document.getElementById('headerPauseBtn').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.remove('hidden');
+    document.getElementById('finalScore').innerText = score;
 }
 
 function playerDeath() {
