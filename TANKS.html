@@ -101,10 +101,18 @@
     <div id="game-wrapper" class="px-2 sm:px-0 flex flex-col pb-4 sm:pb-0">
         <!-- Кнопки управления окном -->
         <div class="w-full flex justify-between items-center mb-2">
-            <button onclick="window.location.href='index.html';" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-600 transition-colors shadow text-xs flex items-center gap-1 cursor-pointer" id="lbl_backToMenu">
-                🏠 В меню
-            </button>
             <div class="flex gap-2">
+                <button onclick="window.location.href='index.html';" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-600 transition-colors shadow text-xs flex items-center gap-1 cursor-pointer" id="lbl_backToMenu">
+                    🏠 В меню
+                </button>
+                <button id="infoBtn" class="bg-cyan-800 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded border-2 border-cyan-600 transition-colors shadow text-xs flex items-center cursor-pointer" title="Энциклопедия">
+                    📚
+                </button>
+            </div>
+            <div class="flex gap-2">
+                <button id="muteBtnHeader" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-500 transition-colors shadow text-xs flex items-center cursor-pointer" title="Звук">
+                    🔊
+                </button>
                 <button id="langToggleBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-500 transition-colors shadow text-xs flex items-center cursor-pointer">
                     🌐 EN
                 </button>
@@ -147,9 +155,6 @@
                             <input type="file" id="fileLoadStart" class="hidden" accept=".json">
                         </label>
                     </div>
-                    <button id="muteBtn" class="mt-2 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded border-2 border-green-700 text-sm transition-colors">
-                        ЗВУК: ВКЛ
-                    </button>
                 </div>
             </div>
 
@@ -197,6 +202,24 @@
                     В МЕНЮ
                 </button>
             </div>
+
+            <!-- Экран Энциклопедии -->
+            <div id="encyclopediaScreen" class="overlay hidden backdrop-blur-md z-50">
+                <div class="bg-gray-900 border-4 border-gray-500 p-4 rounded-lg max-w-[90%] w-[350px] max-h-[90vh] overflow-y-auto text-left text-[11px] sm:text-xs text-white">
+                    <h2 class="text-lg font-bold text-yellow-400 mb-3 text-center border-b border-gray-600 pb-2" id="lbl_encTitle">ЭНЦИКЛОПЕДИЯ БОНУСОВ</h2>
+                    <ul class="space-y-3">
+                        <li class="flex items-start gap-2"><span class="text-red-500 text-lg leading-none font-bold">♥</span> <span id="enc_life"><b>Жизнь:</b> Дает дополнительную попытку (макс. 6).</span></li>
+                        <li class="flex items-start gap-2"><span class="text-blue-500 text-lg leading-none font-bold">S</span> <span id="enc_shield"><b>Щит:</b> Непробиваемый купол на 10 секунд.</span></li>
+                        <li class="flex items-start gap-2"><span class="text-yellow-500 text-lg leading-none font-bold">★</span> <span id="enc_fire"><b>Оружие:</b> 1: Очередь. 2: Двойная пушка. 3: Лазер (пробивает всё).</span></li>
+                        <li class="flex items-start gap-2"><span class="text-green-500 text-lg leading-none font-bold">B</span> <span id="enc_base"><b>Защита:</b> Восстанавливает и покрывает базу бетоном на 15с.</span></li>
+                        <li class="flex items-start gap-2"><span class="text-sky-500 text-lg leading-none font-bold">A</span> <span id="enc_ally"><b>Союзник:</b> Призывает синий танк-помощник.</span></li>
+                        <li class="flex items-start gap-2"><span class="text-purple-500 text-lg leading-none font-bold">T</span> <span id="enc_turret"><b>Турель:</b> Вышка (30%) или боевой дрон на крышу (70%).</span></li>
+                        <li class="flex items-start gap-2"><span class="text-gray-400 text-lg leading-none">💣</span> <span id="enc_bomb"><b>Бомба:</b> Авиаудар, огромный урон всем врагам.</span></li>
+                        <li class="flex items-start gap-2"><span class="text-amber-500 text-lg leading-none">⏱</span> <span id="enc_time"><b>Часы:</b> Замораживает всех врагов на 8 секунд.</span></li>
+                    </ul>
+                    <button id="closeInfoBtn" class="mt-4 w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded border-2 border-gray-500 transition-colors" id="lbl_encClose">ЗАКРЫТЬ</button>
+                </div>
+            </div>
         </div>
 
         <!-- Мобильное управление -->
@@ -233,10 +256,11 @@ const i18n = {
         objFort: "ЦЕЛЬ: ПРОРВАТЬСЯ К КРАСНОМУ ФОРТУ",
         objCommand: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ И ЗАЩИТИТЬ РАДАРЫ! ({n}/3)",
         objStealth: "ЦЕЛЬ: ПРОКРАСТЬСЯ К ФОРТУ! НЕ ШУМЕТЬ!",
+        objStealthSub: "ЦЕЛЬ: РАЗБИТЬ ПОДСТАНЦИЮ! НЕ ШУМЕТЬ!",
+        objStealthMiniBosses: "ЦЕЛЬ: УСТРАНИТЬ СТРАЖЕЙ ({n})! НЕ ШУМЕТЬ!",
         objElectro: "ЦЕЛЬ: УНИЧТОЖИТЬ ГЕНЕРАТОР И ФОРТ! ОПАСНОСТЬ: ТОК!",
         title: "ТАНКИ", campaign: "КАМПАНИЯ",
         newGame: "НОВАЯ ИГРА", continue: "ПРОДОЛЖИТЬ", saveFile: "ФАЙЛ СОХРАНЕНИЯ",
-        soundOn: "ЗВУК: ВКЛ", soundOff: "ЗВУК: ВЫКЛ",
         pauseTitle: "ПАУЗА", resume: "ПРОДОЛЖИТЬ", cacheTitle: "Кэш браузера",
         save: "СОХРАНИТЬ", load: "ЗАГРУЗИТЬ", deviceTitle: "Файл на устройстве", download: "СКАЧАТЬ",
         levelCleared: "УРОВЕНЬ ПРОЙДЕН!<br><br><span class='text-white text-xl'>ПРИГОТОВЬТЕСЬ К УРОВНЮ {n}</span>",
@@ -246,7 +270,16 @@ const i18n = {
         attemptsLeft: "<br><br><span class='text-white text-xl'>ОСТАЛОСЬ ПОПЫТОК: {n}</span>",
         success: "УСПЕШНО!", loaded: "ЗАГРУЖЕНО!", noSaves: "НЕТ СОХРАНЕНИЙ", downloaded: "СКАЧАНО!",
         saveError: "Ошибка чтения файла сохранения! Возможно файл поврежден.",
-        langToggle: "🌐 EN"
+        langToggle: "🌐 EN",
+        encTitle: "ЭНЦИКЛОПЕДИЯ БОНУСОВ", encClose: "ЗАКРЫТЬ",
+        encLife: "<b>Жизнь:</b> Дает дополнительную попытку (макс. 6).",
+        encShield: "<b>Щит:</b> Непробиваемый купол на 10 секунд.",
+        encFire: "<b>Оружие:</b> 1: Очередь. 2: Двойная пушка. 3: Лазер (пробивает всё).",
+        encBase: "<b>Защита:</b> Восстанавливает и покрывает базу бетоном на 15с.",
+        encAlly: "<b>Союзник:</b> Призывает синий танк-помощник.",
+        encTurret: "<b>Турель:</b> Вышка (30%) или боевой дрон на крышу (70%).",
+        encBomb: "<b>Бомба:</b> Авиаудар, огромный урон всем врагам.",
+        encTime: "<b>Часы:</b> Замораживает всех врагов на 8 секунд."
     },
     en: {
         score: "SCORE:", lvl: "LVL:",
@@ -257,10 +290,11 @@ const i18n = {
         objFort: "OBJECTIVE: BREAK THROUGH TO RED FORT",
         objCommand: "OBJECTIVE: DESTROY FORT & DEFEND RADARS! ({n}/3)",
         objStealth: "OBJECTIVE: SNEAK TO THE FORT! STAY HIDDEN!",
+        objStealthSub: "OBJECTIVE: DESTROY SUBSTATION! STAY HIDDEN!",
+        objStealthMiniBosses: "OBJECTIVE: ELIMINATE GUARDS ({n})! STAY HIDDEN!",
         objElectro: "OBJECTIVE: DESTROY GENERATOR & FORT! DANGER: HIGH VOLTAGE!",
         title: "BATTLE CITY", campaign: "CAMPAIGN",
         newGame: "NEW GAME", continue: "CONTINUE", saveFile: "SAVE FILE",
-        soundOn: "SOUND: ON", soundOff: "SOUND: OFF",
         pauseTitle: "PAUSE", resume: "RESUME", cacheTitle: "Browser Cache",
         save: "SAVE", load: "LOAD", deviceTitle: "Device File", download: "DOWNLOAD",
         levelCleared: "LEVEL CLEARED!<br><br><span class='text-white text-xl'>GET READY FOR LEVEL {n}</span>",
@@ -270,7 +304,16 @@ const i18n = {
         attemptsLeft: "<br><br><span class='text-white text-xl'>ATTEMPTS LEFT: {n}</span>",
         success: "SUCCESS!", loaded: "LOADED!", noSaves: "NO SAVES", downloaded: "DOWNLOADED!",
         saveError: "Error reading save file! It might be corrupted.",
-        langToggle: "🌐 RU"
+        langToggle: "🌐 RU",
+        encTitle: "BONUS ENCYCLOPEDIA", encClose: "CLOSE",
+        encLife: "<b>Life:</b> Grants an extra attempt (max 6).",
+        encShield: "<b>Shield:</b> Impenetrable force field for 10s.",
+        encFire: "<b>Weapon:</b> 1: Rapid. 2: Twin Cannon. 3: Piercing Laser.",
+        encBase: "<b>Defend:</b> Restores and covers base in steel for 15s.",
+        encAlly: "<b>Ally:</b> Summons a blue ally tank.",
+        encTurret: "<b>Turret:</b> Drops stationary turret (30%) or roof drone (70%).",
+        encBomb: "<b>Bomb:</b> Airstrike dealing massive damage to enemies.",
+        encTime: "<b>Clock:</b> Freezes all enemies for 8 seconds."
     }
 };
 
@@ -310,6 +353,18 @@ function updateStaticUI() {
     document.getElementById('headerPauseBtn').innerHTML = t('pauseBtn');
     document.getElementById('lbl_mineBtn').innerHTML = t('mineBtn');
     document.getElementById('langToggleBtn').innerHTML = t('langToggle');
+
+    // Перевод Энциклопедии
+    document.getElementById('lbl_encTitle').innerHTML = t('encTitle');
+    document.getElementById('lbl_encClose').innerHTML = t('encClose');
+    document.getElementById('enc_life').innerHTML = t('encLife');
+    document.getElementById('enc_shield').innerHTML = t('encShield');
+    document.getElementById('enc_fire').innerHTML = t('encFire');
+    document.getElementById('enc_base').innerHTML = t('encBase');
+    document.getElementById('enc_ally').innerHTML = t('encAlly');
+    document.getElementById('enc_turret').innerHTML = t('encTurret');
+    document.getElementById('enc_bomb').innerHTML = t('encBomb');
+    document.getElementById('enc_time').innerHTML = t('encTime');
     
     updateObjectiveUI();
 }
@@ -528,7 +583,14 @@ let touchMine = false;
  * СОХРАНЕНИЕ / ЗАГРУЗКА
  */
 function saveGame() {
-    const data = { level, score, lives, continues, lastBossLevel, playerWeaponLevel };
+    const data = { 
+        level, score, lives, continues, lastBossLevel, playerWeaponLevel,
+        grid, brickState, savedGrid, savedBrickState, 
+        savedLevelType: levelType, savedAssaultMode: assaultMode, 
+        savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: savedEnemiesToSpawn, 
+        savedEnemyMinesCoords: savedEnemyMinesCoords,
+        enemiesToSpawn, radarsAlive, substationAlive, generatorAlive
+    };
     localStorage.setItem('battleCityEvoSave', JSON.stringify(data));
     
     let btn = document.getElementById('saveBtn');
@@ -544,10 +606,10 @@ function loadGame(buttonId) {
 
     if (save) {
         const data = JSON.parse(save);
-        level = data.level;
-        score = data.score;
-        lives = data.lives;
-        continues = data.continues;
+        level = data.level || 1;
+        score = data.score || 0;
+        lives = data.lives || 3;
+        continues = data.continues || 3;
         lastBossLevel = data.lastBossLevel || 0;
         playerWeaponLevel = data.playerWeaponLevel || 0;
         
@@ -559,8 +621,36 @@ function loadGame(buttonId) {
         setTimeout(() => { 
             btn.innerText = old; 
             document.getElementById('pauseScreen').classList.add('hidden');
-            initLevel(false);
-            if (gameState === 'PAUSED') togglePause();
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            if (data.grid) {
+                grid = data.grid;
+                brickState = data.brickState;
+                savedGrid = data.savedGrid;
+                savedBrickState = data.savedBrickState;
+                savedLevelType = data.savedLevelType;
+                savedAssaultMode = data.savedAssaultMode;
+                savedEnemyBaseCol = data.savedEnemyBaseCol;
+                savedEnemiesToSpawn = data.savedEnemiesToSpawn;
+                savedEnemyMinesCoords = data.savedEnemyMinesCoords || [];
+                
+                levelType = data.savedLevelType;
+                assaultMode = data.savedAssaultMode;
+                enemyBaseCol = data.savedEnemyBaseCol;
+                enemiesToSpawn = data.enemiesToSpawn;
+                radarsAlive = data.radarsAlive ?? 3;
+                substationAlive = data.substationAlive ?? false;
+                generatorAlive = data.generatorAlive ?? false;
+                
+                initLevel(false, true); 
+            } else {
+                initLevel(false);
+            }
+
+            if (gameState === 'PAUSED' || gameState === 'START') {
+                gameState = 'PLAYING';
+                lastTime = performance.now();
+            }
         }, 500);
     } else {
         btn.innerText = t('noSaves');
@@ -618,11 +708,15 @@ function generateLevel() {
     enemyMines = [];
     radarsAlive = 3;
     
-    let hasMines = (levelType === 'ASSAULT' || levelType === 'COMMAND') && level >= 2 && Math.random() < 0.4;
+    let hasMines = (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') && level >= 2 && Math.random() < 0.4;
+    
     if (levelType === 'ASSAULT' && level >= 2) {
         let roll = Math.random();
         if (roll < 0.33) assaultMode = 'SUBSTATION';
         else if (roll < 0.66) assaultMode = 'MINIBOSSES';
+    } else if (levelType === 'STEALTH' && level >= 2) {
+        // В Стелсе убираем мини-боссов, оставляем только подстанцию или обычный режим
+        assaultMode = Math.random() < 0.5 ? 'SUBSTATION' : 'NORMAL';
     }
 
     updateObjectiveUI();
@@ -692,7 +786,7 @@ function generateLevel() {
             for(let r=0; r<=2; r++) {
                 for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
                     if(r===1 && c===enemyBaseCol) continue;
-                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK; // Исправлено: теперь тут спавнятся и кирпичи
+                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK;
                 }
             }
             
@@ -705,6 +799,20 @@ function generateLevel() {
             safeZones.push({r: 1, c: enemyBaseCol});
             
             grid[ROWS-1][4] = BUSH; 
+
+            if (assaultMode === 'SUBSTATION') {
+                let subR = Math.floor(Math.random() * (ROWS - 12)) + 6;
+                let subC = Math.floor(Math.random() * (COLS - 4)) + 2;
+                grid[subR][subC] = SUBSTATION;
+                for(let r=subR-1; r<=subR+1; r++) {
+                    for(let c=subC-1; c<=subC+1; c++) {
+                        if (r>=0 && r<ROWS && c>=0 && c<COLS && grid[r][c] === EMPTY && Math.random() > 0.3) {
+                            grid[r][c] = (Math.random() > 0.5) ? BUSH : STEEL;
+                        }
+                    }
+                }
+                substationAlive = true;
+            }
             
         } else if (levelType === 'ELECTRO') {
             enemyBaseCol = Math.floor(Math.random() * 5) + 5; 
@@ -799,7 +907,7 @@ function generateLevel() {
             }
         }
         
-        if ((levelType === 'ASSAULT' || levelType === 'COMMAND') && hasMines) {
+        if ((levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') && hasMines) {
             let mineCount = Math.floor(Math.random() * 4) + 3;
             let attempts = 0;
             while (enemyMines.length < mineCount && attempts < 50) {
@@ -833,7 +941,7 @@ function checkLevelPlayability() {
     let queue = [{ r: startR, c: startC }]; visited[startR][startC] = true;
 
     let subR = -1, subC = -1;
-    if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'ELECTRO') {
+    if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'ELECTRO' || levelType === 'STEALTH') {
         for (let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
                 if (grid[r][c] === SUBSTATION || grid[r][c] === GENERATOR) { subR = r; subC = c; break; }
@@ -855,7 +963,6 @@ function checkLevelPlayability() {
     }
 
     if (levelType === 'CLASSIC' || levelType === 'BOSS') { 
-        // Исправлено: STEALTH убран отсюда, так как в стелсе нужно проверять доступность ВРАЖЕСКОЙ базы
         if (!visited[0][7]) return false; 
     } else {
         if (!visited[2][enemyBaseCol] && !visited[1][enemyBaseCol-1] && !visited[1][enemyBaseCol+1]) return false;
@@ -873,7 +980,7 @@ function checkLevelPlayability() {
 
 function updateObjectiveUI() {
     const objUI = document.getElementById('objectiveUI');
-    let activeEnemies = enemies.filter(e => !e.markForDeletion).length; // Исправлено: Считаем только реально живых врагов
+    let activeEnemies = enemies.filter(e => !e.markForDeletion).length; 
 
     if (levelType === 'CLASSIC') {
         objUI.innerText = t('objDefend', {n: enemiesToSpawn + activeEnemies});
@@ -885,8 +992,13 @@ function updateObjectiveUI() {
         objUI.innerText = t('objCommand', {n: radarsAlive});
         objUI.className = "w-full text-center mb-2 font-bold text-cyan-300 bg-gray-800 rounded py-1 border border-cyan-700 text-[11px] sm:text-xs";
     } else if (levelType === 'STEALTH') {
-        objUI.innerText = t('objStealth');
-        objUI.className = "w-full text-center mb-2 font-bold text-emerald-400 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs";
+        if (assaultMode === 'SUBSTATION' && substationAlive) {
+            objUI.innerText = t('objStealthSub');
+            objUI.className = "w-full text-center mb-2 font-bold text-emerald-400 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs animate-pulse";
+        } else {
+            objUI.innerText = t('objStealth');
+            objUI.className = "w-full text-center mb-2 font-bold text-emerald-300 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs";
+        }
     } else if (levelType === 'ELECTRO') {
         if (generatorAlive) {
             objUI.innerText = t('objElectro');
@@ -997,7 +1109,7 @@ class Bonus {
         let char = '';
         if(this.type === 'LIFE') { ctx.fillStyle = '#ef4444'; char = '♥'; }
         else if(this.type === 'SHIELD') { ctx.fillStyle = '#3b82f6'; char = 'S'; }
-        else if(this.type === 'FIRE') { ctx.fillStyle = '#eab308'; char = 'F'; }
+        else if(this.type === 'FIRE') { ctx.fillStyle = '#eab308'; char = '★'; ctx.font = '18px sans-serif'; }
         else if(this.type === 'BASE') { ctx.fillStyle = '#22c55e'; char = 'B'; }
         else if(this.type === 'ALLY') { ctx.fillStyle = '#0ea5e9'; char = 'A'; }
         else if(this.type === 'TURRET') { ctx.fillStyle = '#a855f7'; char = 'T'; }
@@ -1107,6 +1219,9 @@ class Tank {
         this.droneCooldown = 0;
         this.droneDir = DIR_UP;
 
+        this.revealedTimer = 0;
+        this.isHidden = false;
+
         if (!isPlayer || isAllyAI) {
             this.dir = isAllyAI ? DIR_UP : DIR_DOWN;
             this.aiTimer = 0; this.blockedTimer = 0;
@@ -1119,6 +1234,14 @@ class Tank {
     update(dt) {
         if (this.cooldown > 0) this.cooldown -= dt;
         if (this.shieldTimer > 0) this.shieldTimer -= dt;
+        if (this.revealedTimer > 0) this.revealedTimer -= dt;
+
+        if (this.isPlayer && !this.isAllyAI) {
+            let pr = Math.floor((this.y + this.h/2) / TILE_SIZE);
+            let pc = Math.floor((this.x + this.w/2) / TILE_SIZE);
+            let inBush = (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS && grid[pr][pc] === BUSH);
+            this.isHidden = inBush && this.revealedTimer <= 0;
+        }
         
         if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) return;
 
@@ -1155,6 +1278,7 @@ class Tank {
                     
                     bullets.push(new Bullet(bx, by, bdx, bdy, true, this, true));
                     sfx.playShoot(true);
+                    this.revealedTimer = 2000;
                     this.droneCooldown = 600;
                 }
             }
@@ -1178,7 +1302,9 @@ class Tank {
                         } else this.dir = Math.floor(Math.random() * 4);
                     } else this.dir = Math.floor(Math.random() * 4);
                 } else {
-                    let targetX = player ? player.x : null; let targetY = player ? player.y : null;
+                    let targetX = (player && !player.isHidden) ? player.x : null; 
+                    let targetY = (player && !player.isHidden) ? player.y : null;
+                    
                     if ((levelType === 'CLASSIC' || isAlerted) && baseAlive && Math.random() < 0.4) { 
                         targetX = 7 * TILE_SIZE; targetY = (levelType === 'STEALTH' ? ROWS - 1 : 14) * TILE_SIZE; 
                     }
@@ -1286,12 +1412,15 @@ class Tank {
     }
 
     shoot() {
-        if (this.isPlayer && levelType === 'STEALTH') {
-            exposureTimer = 1500; 
-            spottedTimer = 3000;
+        if (this.isPlayer && !this.isAllyAI) {
+            this.revealedTimer = 2000; 
+            if (levelType === 'STEALTH') {
+                exposureTimer = 1500; 
+                spottedTimer = 3000;
+            }
         }
 
-        if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 2) {
+        if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 3) {
             let bx = this.x + this.w / 2; let by = this.y + this.h / 2;
             let stepX = 0, stepY = 0;
             if (this.dir === DIR_UP) stepY = -4;
@@ -1371,8 +1500,25 @@ class Tank {
         }
 
         const activeBullets = bullets.filter(b => b.ownerId === this);
-        let maxBul = (this.isPlayer && !this.isAllyAI) ? (this.weaponLevel >= 1 ? 3 : 1) : (this.eType === 'RAPID' ? 2 : (this.isBoss ? 4 : (this.isMiniBoss ? 2 : 1)));
+        let maxBul = (this.isPlayer && !this.isAllyAI) ? (this.weaponLevel === 2 ? 6 : (this.weaponLevel >= 1 ? 3 : 1)) : (this.eType === 'RAPID' ? 2 : (this.isBoss ? 4 : (this.isMiniBoss ? 2 : 1)));
         if (activeBullets.length >= maxBul) return;
+
+        if (this.isPlayer && !this.isAllyAI && this.weaponLevel === 2) {
+            let bx1 = this.x + this.w / 2; let by1 = this.y + this.h / 2; let bdx1 = 0, bdy1 = 0;
+            let bx2 = this.x + this.w / 2; let by2 = this.y + this.h / 2; let bdx2 = 0, bdy2 = 0;
+            let offset = 6; 
+            
+            if (this.dir === DIR_UP) { bdy1 = -1; by1 -= 4; bdy2 = -1; by2 -= 4; bx1 -= offset; bx2 += offset; }
+            if (this.dir === DIR_DOWN) { bdy1 = 1; by1 += 4; bdy2 = 1; by2 += 4; bx1 -= offset; bx2 += offset; }
+            if (this.dir === DIR_LEFT) { bdx1 = -1; bx1 -= 4; bdx2 = -1; bx2 -= 4; by1 -= offset; by2 += offset; }
+            if (this.dir === DIR_RIGHT) { bdx1 = 1; bx1 += 4; bdx2 = 1; bx2 += 4; by1 -= offset; by2 += offset; }
+
+            bullets.push(new Bullet(bx1, by1, bdx1, bdy1, this.isPlayer, this));
+            bullets.push(new Bullet(bx2, by2, bdx2, bdy2, this.isPlayer, this));
+            sfx.playShoot(true);
+            this.cooldown = 150; 
+            return;
+        }
 
         if (this.isBoss) {
             let bx1 = this.x + this.w / 2; let by1 = this.y + this.h / 2; let bdx1 = 0, bdy1 = 0;
@@ -1411,6 +1557,10 @@ class Tank {
 
         ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
         
+        if (this.isPlayer && this.isHidden) {
+            ctx.globalAlpha = 0.5; // Визуальный эффект маскировки
+        }
+        
         if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) {
             ctx.globalAlpha = 0.8;
             ctx.fillStyle = '#60a5fa'; 
@@ -1440,8 +1590,15 @@ class Tank {
             ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h); ctx.fillStyle = '#222';
             ctx.fillRect(-this.w/2, -this.h/2, 6, this.h); ctx.fillRect(this.w/2 - 6, -this.h/2, 6, this.h);
             
-            ctx.fillStyle = this.isPlayer ? ((this.weaponLevel >= 2 && !this.isAllyAI) ? '#ef4444' : '#16a34a') : '#ef4444'; 
-            ctx.fillRect(-3, -this.h/2 - 8, 6, 18);
+            ctx.fillStyle = this.isPlayer ? ((this.weaponLevel >= 3 && !this.isAllyAI) ? '#ef4444' : '#16a34a') : '#ef4444'; 
+            if (this.isPlayer && !this.isAllyAI && this.weaponLevel === 2) {
+                ctx.fillRect(-7, -this.h/2 - 8, 4, 18); // Левая пушка
+                ctx.fillRect(3, -this.h/2 - 8, 4, 18);  // Правая пушка
+            } else if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 3) {
+                ctx.fillRect(-4, -this.h/2 - 10, 8, 20); // Лазерная пушка
+            } else {
+                ctx.fillRect(-3, -this.h/2 - 8, 6, 18);  // Обычная пушка
+            }
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); 
         }
         
@@ -1677,12 +1834,24 @@ function initGame() {
     initLevel(false);
 }
 
-function initLevel(retry = false) {
+function initLevel(retry = false, loadFromSave = false) {
     bullets = []; lasers = []; particles = []; enemies = []; bonuses = []; allies = []; turrets = []; placedMines = []; enemyMines = [];
     document.getElementById('levelUI').innerText = level;
     minesCount = 3; document.getElementById('minesUI').innerText = minesCount; mineCooldown = 0; timeStopTimer = 0;
     
-    if (!retry) generateLevel();
+    if (loadFromSave) {
+        ROWS = grid.length;
+        baseAlive = false;
+        for (let r=0; r<ROWS; r++) {
+            for(let c=0; c<COLS; c++) {
+                if (grid[r][c] === BASE) baseAlive = true;
+            }
+        }
+        baseDefTimer = 0; 
+        enemyMines = savedEnemyMinesCoords.map(c => new Mine(c.x, c.y, true));
+        updateObjectiveUI();
+    }
+    else if (!retry) generateLevel();
     else {
         grid = savedGrid.map(row => [...row]); 
         brickState = savedBrickState.map(row => [...row]);
@@ -1922,6 +2091,8 @@ function update(dt) {
             minesCount--;
             document.getElementById('minesUI').innerText = minesCount;
             mineCooldown = 500;
+            player.revealedTimer = 2000;
+            if (levelType === 'STEALTH') { exposureTimer = 1500; spottedTimer = 3000; }
             sfx.playArmorHit(); 
         }
 
@@ -1933,7 +2104,7 @@ function update(dt) {
                 if (bonus.type === 'LIFE') { if (lives < 6) lives++; document.getElementById('livesUI').innerText = lives; } 
                 else if (bonus.type === 'SHIELD') { player.shieldTimer = 10000; } 
                 else if (bonus.type === 'FIRE') { 
-                    if (playerWeaponLevel < 2) playerWeaponLevel++; 
+                    if (playerWeaponLevel < 3) playerWeaponLevel++; 
                     player.weaponLevel = playerWeaponLevel; 
                 } 
                 else if (bonus.type === 'BASE' && (levelType === 'CLASSIC' || levelType === 'BOSS' || levelType === 'STEALTH')) {
@@ -2251,7 +2422,14 @@ document.getElementById('pauseLoadBtn').addEventListener('click', () => { loadGa
 
 // Экспорт в физический файл на ПК/Телефон
 document.getElementById('exportBtn').addEventListener('click', () => {
-    const data = { level, score, lives, continues, lastBossLevel, playerWeaponLevel };
+    const data = { 
+        level, score, lives, continues, lastBossLevel, playerWeaponLevel,
+        grid, brickState, savedGrid, savedBrickState, 
+        savedLevelType: levelType, savedAssaultMode: assaultMode, 
+        savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: savedEnemiesToSpawn, 
+        savedEnemyMinesCoords: savedEnemyMinesCoords,
+        enemiesToSpawn, radarsAlive, substationAlive, generatorAlive
+    };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
     const dlAnchorElem = document.createElement('a');
     dlAnchorElem.setAttribute("href", dataStr);
@@ -2289,8 +2467,31 @@ const handleFileLoad = (event) => {
             document.getElementById('pauseScreen').classList.add('hidden');
             document.getElementById('startScreen').classList.add('hidden');
             
-            initLevel(false);
-            if (gameState === 'PAUSED') {
+            if (data.grid) {
+                grid = data.grid;
+                brickState = data.brickState;
+                savedGrid = data.savedGrid;
+                savedBrickState = data.savedBrickState;
+                savedLevelType = data.savedLevelType;
+                savedAssaultMode = data.savedAssaultMode;
+                savedEnemyBaseCol = data.savedEnemyBaseCol;
+                savedEnemiesToSpawn = data.savedEnemiesToSpawn;
+                savedEnemyMinesCoords = data.savedEnemyMinesCoords || [];
+                
+                levelType = data.savedLevelType;
+                assaultMode = data.savedAssaultMode;
+                enemyBaseCol = data.savedEnemyBaseCol;
+                enemiesToSpawn = data.enemiesToSpawn;
+                radarsAlive = data.radarsAlive ?? 3;
+                substationAlive = data.substationAlive ?? false;
+                generatorAlive = data.generatorAlive ?? false;
+                
+                initLevel(false, true); 
+            } else {
+                initLevel(false);
+            }
+
+            if (gameState === 'PAUSED' || gameState === 'START') {
                 gameState = 'PLAYING';
                 lastTime = performance.now();
             }
@@ -2305,11 +2506,36 @@ const handleFileLoad = (event) => {
 document.getElementById('fileLoadStart').addEventListener('change', handleFileLoad);
 document.getElementById('fileLoadPause').addEventListener('change', handleFileLoad);
 
-document.getElementById('muteBtn').addEventListener('click', (e) => {
+// Обработчик кнопки звука (в заголовке)
+document.getElementById('muteBtnHeader').addEventListener('click', (e) => {
     sfx.isMuted = !sfx.isMuted;
-    updateStaticUI();
+    e.target.innerText = sfx.isMuted ? '🔇' : '🔊';
     if (!sfx.isMuted && audioCtx.state === 'suspended') audioCtx.resume();
 });
+
+// Обработчик энциклопедии
+function toggleInfo() {
+    const encScreen = document.getElementById('encyclopediaScreen');
+    if (encScreen.classList.contains('hidden')) {
+        if (gameState === 'PLAYING') {
+            gameState = 'PAUSED';
+            sfx.stopEngine();
+        }
+        encScreen.classList.remove('hidden');
+    } else {
+        encScreen.classList.add('hidden');
+        if (gameState === 'PAUSED' &&
+            document.getElementById('pauseScreen').classList.contains('hidden') &&
+            document.getElementById('startScreen').classList.contains('hidden') &&
+            document.getElementById('transitionScreen').classList.contains('hidden') &&
+            document.getElementById('gameOverScreen').classList.contains('hidden')) {
+            gameState = 'PLAYING';
+            lastTime = performance.now();
+        }
+    }
+}
+document.getElementById('infoBtn').addEventListener('click', toggleInfo);
+document.getElementById('closeInfoBtn').addEventListener('click', toggleInfo);
 
 // Глобальная обработка тачей для "скольжения" (D-PAD)
 const mobileControls = document.getElementById('mobile-controls');
