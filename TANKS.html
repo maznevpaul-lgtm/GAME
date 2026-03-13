@@ -195,7 +195,7 @@
             </div>
 
             <!-- Экран проигрыша -->
-            <div id="gameOverScreen" class="overlay hidden">
+            <div id="gameOverScreen" class="overlay hidden backdrop-blur-md">
                 <h1 class="text-4xl font-bold text-red-500 mb-2 text-center" id="lbl_gameOverTitle">МИССИЯ ПРОВАЛЕНА</h1>
                 <p class="text-xl mb-6"><span id="lbl_finalScore">Итоговый счет:</span> <span id="finalScore" class="text-yellow-400">0</span></p>
                 <button id="restartBtn" class="bg-white hover:bg-gray-200 text-black font-bold py-3 px-8 rounded border-4 border-gray-400 text-xl transition-colors">
@@ -257,7 +257,7 @@ const i18n = {
         objCommand: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ И ЗАЩИТИТЬ РАДАРЫ! ({n}/3)",
         objStealth: "ЦЕЛЬ: ПРОКРАСТЬСЯ К ФОРТУ! НЕ ШУМЕТЬ!",
         objStealthSub: "ЦЕЛЬ: РАЗБИТЬ ПОДСТАНЦИЮ! НЕ ШУМЕТЬ!",
-        objStealthMiniBosses: "ЦЕЛЬ: УСТРАНИТЬ СТРАЖЕЙ ({n})! НЕ ШУМЕТЬ!",
+        objStealthBtn: "ЦЕЛЬ: НАЖАТЬ КНОПКИ ({n}) И УНИЧТОЖИТЬ ФОРТ!",
         objElectro: "ЦЕЛЬ: УНИЧТОЖИТЬ ГЕНЕРАТОР И ФОРТ! ОПАСНОСТЬ: ТОК!",
         title: "ТАНКИ", campaign: "КАМПАНИЯ",
         newGame: "НОВАЯ ИГРА", continue: "ПРОДОЛЖИТЬ", saveFile: "ФАЙЛ СОХРАНЕНИЯ",
@@ -291,7 +291,7 @@ const i18n = {
         objCommand: "OBJECTIVE: DESTROY FORT & DEFEND RADARS! ({n}/3)",
         objStealth: "OBJECTIVE: SNEAK TO THE FORT! STAY HIDDEN!",
         objStealthSub: "OBJECTIVE: DESTROY SUBSTATION! STAY HIDDEN!",
-        objStealthMiniBosses: "OBJECTIVE: ELIMINATE GUARDS ({n})! STAY HIDDEN!",
+        objStealthBtn: "OBJECTIVE: PRESS BUTTONS ({n}) & DESTROY FORT!",
         objElectro: "OBJECTIVE: DESTROY GENERATOR & FORT! DANGER: HIGH VOLTAGE!",
         title: "BATTLE CITY", campaign: "CAMPAIGN",
         newGame: "NEW GAME", continue: "CONTINUE", saveFile: "SAVE FILE",
@@ -354,7 +354,6 @@ function updateStaticUI() {
     document.getElementById('lbl_mineBtn').innerHTML = t('mineBtn');
     document.getElementById('langToggleBtn').innerHTML = t('langToggle');
 
-    // Перевод Энциклопедии
     document.getElementById('lbl_encTitle').innerHTML = t('encTitle');
     document.getElementById('lbl_encClose').innerHTML = t('encClose');
     document.getElementById('enc_life').innerHTML = t('encLife');
@@ -396,11 +395,13 @@ const RADAR = 7;
 const BUSH = 8; 
 const RAIL = 9;
 const GENERATOR = 10;
+const BTN_OFF = 11;
+const BTN_ON = 12;
+const GATE = 13;
 
 const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
 const BONUS_TYPES = ['LIFE', 'SHIELD', 'FIRE', 'BASE', 'ALLY', 'TURRET', 'BOMB', 'TIME'];
 
-// Помощник для точных пересечений хитбоксов пуль и частичных кирпичей
 function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
     return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
 }
@@ -539,6 +540,7 @@ let baseAlive = true;
 let substationAlive = false;
 let generatorAlive = false;
 let radarsAlive = 3;
+let buttonsLeft = 0;
 
 let electricTimer = 0;
 let isShocking = false;
@@ -570,6 +572,7 @@ let savedAssaultMode = 'NORMAL';
 let savedEnemyBaseCol = 7;
 let savedEnemiesToSpawn = 0;
 let savedEnemyMinesCoords = [];
+let savedButtonsLeft = 0;
 
 let lastTime = 0;
 let animationId;
@@ -588,8 +591,8 @@ function saveGame() {
         grid, brickState, savedGrid, savedBrickState, 
         savedLevelType: levelType, savedAssaultMode: assaultMode, 
         savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: savedEnemiesToSpawn, 
-        savedEnemyMinesCoords: savedEnemyMinesCoords,
-        enemiesToSpawn, radarsAlive, substationAlive, generatorAlive
+        savedEnemyMinesCoords: savedEnemyMinesCoords, savedButtonsLeft: buttonsLeft,
+        enemiesToSpawn, radarsAlive, substationAlive, generatorAlive, buttonsLeft
     };
     localStorage.setItem('battleCityEvoSave', JSON.stringify(data));
     
@@ -641,6 +644,7 @@ function loadGame(buttonId) {
                 radarsAlive = data.radarsAlive ?? 3;
                 substationAlive = data.substationAlive ?? false;
                 generatorAlive = data.generatorAlive ?? false;
+                buttonsLeft = data.buttonsLeft ?? 0;
                 
                 initLevel(false, true); 
             } else {
@@ -707,6 +711,7 @@ function generateLevel() {
     wasSpottedLastFrame = false;
     enemyMines = [];
     radarsAlive = 3;
+    buttonsLeft = 0;
     
     let hasMines = (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') && level >= 2 && Math.random() < 0.4;
     
@@ -715,8 +720,10 @@ function generateLevel() {
         if (roll < 0.33) assaultMode = 'SUBSTATION';
         else if (roll < 0.66) assaultMode = 'MINIBOSSES';
     } else if (levelType === 'STEALTH' && level >= 2) {
-        // В Стелсе убираем мини-боссов, оставляем только подстанцию или обычный режим
-        assaultMode = Math.random() < 0.5 ? 'SUBSTATION' : 'NORMAL';
+        let roll = Math.random();
+        if (roll < 0.4) assaultMode = 'BUTTONS';
+        else if (roll < 0.8) assaultMode = 'SUBSTATION';
+        else assaultMode = 'NORMAL';
     }
 
     updateObjectiveUI();
@@ -781,12 +788,27 @@ function generateLevel() {
                 safeZones.push(pos);
             }
         } else if (levelType === 'STEALTH') {
-            enemyBaseCol = Math.floor(Math.random() * 9) + 3;
+            enemyBaseCol = Math.floor(Math.random() * 5) + 5;
             grid[1][enemyBaseCol] = ENEMY_BASE;
-            for(let r=0; r<=2; r++) {
-                for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
-                    if(r===1 && c===enemyBaseCol) continue;
-                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK;
+            
+            if (assaultMode === 'BUTTONS') {
+                for(let r=0; r<=2; r++) {
+                    for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
+                        if(r===1 && c===enemyBaseCol) continue;
+                        grid[r][c] = GATE; // Непробиваемые лазерные ворота
+                    }
+                }
+                buttonsLeft = 2;
+                let btnR = Math.floor(ROWS / 2) + Math.floor(Math.random() * 3);
+                grid[btnR][2] = BTN_OFF;
+                grid[btnR][COLS - 3] = BTN_OFF;
+                safeZones.push({r: btnR, c: 2}, {r: btnR, c: COLS-3});
+            } else {
+                for(let r=0; r<=2; r++) {
+                    for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
+                        if(r===1 && c===enemyBaseCol) continue;
+                        grid[r][c] = STEEL;
+                    }
                 }
             }
             
@@ -831,7 +853,6 @@ function generateLevel() {
             grid[1][genCol-1] = STEEL; grid[1][genCol+1] = STEEL; grid[0][genCol] = STEEL;
             safeZones.push({r: 2, c: genCol});
 
-            // Расставляем рельсы
             for (let r = 3; r < ROWS - 2; r++) {
                 grid[r][2] = RAIL;
                 grid[r][COLS-3] = RAIL;
@@ -841,7 +862,6 @@ function generateLevel() {
                 grid[7][c] = RAIL;
             }
             
-            // Изоляторы (безопасные зоны на рельсах)
             let safeSpots = [{r: 7, c: Math.floor(COLS/2)}, {r: ROWS-3, c: Math.floor(COLS/2)}, {r: ROWS-3, c: 4}, {r: ROWS-3, c: COLS-5}];
             safeSpots.forEach(s => grid[s.r][s.c] = BRICK);
             generatorAlive = true;
@@ -859,16 +879,23 @@ function generateLevel() {
             }
         }
 
-        // Карвинг краев (Делаем карты непрямоугольными)
+        // Карвинг краев (Делаем карты непрямоугольными - улучшенный алгоритм)
         if (levelType !== 'CLASSIC' && levelType !== 'BOSS') {
-            for (let r = 4; r < ROWS - 4; r++) {
-                let leftIndent = Math.floor(Math.random() * 3); 
-                let rightIndent = Math.floor(Math.random() * 3);
-                for (let c = 0; c < leftIndent; c++) {
-                    if (grid[r][c] === EMPTY) grid[r][c] = STEEL;
-                }
-                for (let c = COLS - 1; c > COLS - 1 - rightIndent; c--) {
-                    if (grid[r][c] === EMPTY) grid[r][c] = STEEL;
+            let leftW = Math.floor(Math.random() * 3);
+            let rightW = Math.floor(Math.random() * 3);
+            for (let r = 1; r < ROWS - 1; r++) {
+                if (Math.random() < 0.4) leftW += (Math.random() < 0.5 ? 1 : -1);
+                if (Math.random() < 0.4) rightW += (Math.random() < 0.5 ? 1 : -1);
+                if (leftW < 0) leftW = 0; if (leftW > 4) leftW = 4;
+                if (rightW < 0) rightW = 0; if (rightW > 4) rightW = 4;
+
+                if (r > 3 && r < ROWS - 4) { // Оставляем зоны спавна чистыми
+                    for (let c = 0; c < leftW; c++) {
+                        if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL;
+                    }
+                    for (let c = COLS - 1; c > COLS - 1 - rightW; c--) {
+                        if (grid[r][c] === EMPTY || grid[r][c] === BUSH) grid[r][c] = STEEL;
+                    }
                 }
             }
         }
@@ -876,7 +903,7 @@ function generateLevel() {
         // Рандомные блоки
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
-                if (grid[r][c] !== EMPTY) continue; // Защищаем рельсы и генераторы
+                if (grid[r][c] !== EMPTY) continue; 
                 let inSafeZone = false;
                 for (let zone of safeZones) {
                     if (Math.abs(r - zone.r) <= 1 && Math.abs(c - zone.c) <= 1) { inSafeZone = true; break; }
@@ -954,10 +981,21 @@ function checkLevelPlayability() {
         for (let dir of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
             let nr = curr.r + dir[0]; let nc = curr.c + dir[1];
             if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-                // Вода тоже считается непреодолимым препятствием
-                if (!visited[nr][nc] && grid[nr][nc] !== STEEL && grid[nr][nc] !== WATER) {
+                // Врата GATE считаем проходимыми для проверки (т.к. они откроются кнопками)
+                let isPassable = (grid[nr][nc] !== STEEL && grid[nr][nc] !== WATER);
+                if (grid[nr][nc] === GATE) isPassable = true;
+
+                if (!visited[nr][nc] && isPassable) {
                     visited[nr][nc] = true; queue.push({ r: nr, c: nc });
                 }
+            }
+        }
+    }
+
+    if (assaultMode === 'BUTTONS') {
+        for(let r=0; r<ROWS; r++){
+            for(let c=0; c<COLS; c++){
+                if((grid[r][c] === BTN_OFF || grid[r][c] === BTN_ON) && !visited[r][c]) return false;
             }
         }
     }
@@ -995,6 +1033,9 @@ function updateObjectiveUI() {
         if (assaultMode === 'SUBSTATION' && substationAlive) {
             objUI.innerText = t('objStealthSub');
             objUI.className = "w-full text-center mb-2 font-bold text-emerald-400 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs animate-pulse";
+        } else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) {
+            objUI.innerText = t('objStealthBtn', {n: buttonsLeft});
+            objUI.className = "w-full text-center mb-2 font-bold text-red-400 bg-gray-800 rounded py-1 border border-red-700 text-[11px] sm:text-xs animate-pulse";
         } else {
             objUI.innerText = t('objStealth');
             objUI.className = "w-full text-center mb-2 font-bold text-emerald-300 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs";
@@ -1241,6 +1282,24 @@ class Tank {
             let pc = Math.floor((this.x + this.w/2) / TILE_SIZE);
             let inBush = (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS && grid[pr][pc] === BUSH);
             this.isHidden = inBush && this.revealedTimer <= 0;
+            
+            // Логика нажатия кнопок (Стелс)
+            if (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS) {
+                if (grid[pr][pc] === BTN_OFF) {
+                    grid[pr][pc] = BTN_ON;
+                    sfx.playBonus();
+                    buttonsLeft--;
+                    updateObjectiveUI();
+                    if (buttonsLeft <= 0) {
+                        for(let r=0; r<ROWS; r++) {
+                            for(let c=0; c<COLS; c++) {
+                                if(grid[r][c] === GATE) grid[r][c] = EMPTY;
+                            }
+                        }
+                        sfx.playExplosion(true);
+                    }
+                }
+            }
         }
         
         if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) return;
@@ -1377,7 +1436,8 @@ class Tank {
             for (let c = leftCol; c <= rightCol; c++) {
                 if (r >= 0 && r < ROWS && c >= 0 && c < COLS) { 
                     let cell = grid[r][c];
-                    if (cell !== EMPTY && cell !== BUSH && cell !== RAIL) { // По рельсам можно ездить
+                    // Кнопки (11, 12), рельсы (9) и кусты (8) можно переезжать
+                    if (cell !== EMPTY && cell !== BUSH && cell !== RAIL && cell !== BTN_OFF && cell !== BTN_ON) { 
                         if (this.isBoss && cell === BRICK) {
                             grid[r][c] = EMPTY;
                             brickState[r][c] = 0;
@@ -1438,7 +1498,7 @@ class Tank {
                 let cCol = Math.floor(curX / TILE_SIZE); let cRow = Math.floor(curY / TILE_SIZE);
                 if (cRow >= 0 && cRow < ROWS && cCol >= 0 && cCol < COLS) {
                     let cell = grid[cRow][cCol];
-                    if (cell === STEEL || cell === BASE || cell === SUBSTATION || cell === RADAR || cell === GENERATOR || (cell === ENEMY_BASE && this.isPlayer)) {
+                    if (cell === STEEL || cell === BASE || cell === SUBSTATION || cell === RADAR || cell === GENERATOR || cell === GATE || (cell === ENEMY_BASE && this.isPlayer)) {
                         hitWall = true;
                         if (cell === BASE) { baseAlive = false; levelFailed(t('baseDestroyed')); }
                         
@@ -1449,6 +1509,8 @@ class Tank {
                                 sfx.playArmorHit(); createExplosion(curX, curY, '#f59e0b', 15);
                             } else if (levelType === 'ELECTRO' && generatorAlive) {
                                 sfx.playArmorHit(); createExplosion(curX, curY, '#fde047', 15);
+                            } else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) {
+                                sfx.playArmorHit(); createExplosion(curX, curY, '#ef4444', 15);
                             } else {
                                 grid[cRow][cCol] = EMPTY; createExplosion(curX, curY, '#ff00ff', 50); sfx.playExplosion(true); winLevel();
                             }
@@ -1457,7 +1519,8 @@ class Tank {
                         if (cell === SUBSTATION) { grid[cRow][cCol] = EMPTY; substationAlive = false; updateObjectiveUI(); }
                         if (cell === GENERATOR) { grid[cRow][cCol] = EMPTY; generatorAlive = false; isShocking = false; updateObjectiveUI(); }
                         if (cell === RADAR) { grid[cRow][cCol] = EMPTY; radarsAlive--; updateObjectiveUI(); createExplosion(curX, curY, '#0ea5e9', 40); }
-                        if (cell !== ENEMY_BASE && cell !== RADAR) createExplosion(curX, curY, '#ffaa00', 10);
+                        if (cell !== ENEMY_BASE && cell !== RADAR && cell !== GATE) createExplosion(curX, curY, '#ffaa00', 10);
+                        if (cell === GATE) { sfx.playArmorHit(); createExplosion(curX, curY, '#ef4444', 10); }
                         break;
                     } else if (cell === BRICK) {
                         grid[cRow][cCol] = EMPTY; 
@@ -1558,7 +1621,7 @@ class Tank {
         ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
         
         if (this.isPlayer && this.isHidden) {
-            ctx.globalAlpha = 0.5; // Визуальный эффект маскировки
+            ctx.globalAlpha = 0.5; 
         }
         
         if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) {
@@ -1592,19 +1655,18 @@ class Tank {
             
             ctx.fillStyle = this.isPlayer ? ((this.weaponLevel >= 3 && !this.isAllyAI) ? '#ef4444' : '#16a34a') : '#ef4444'; 
             if (this.isPlayer && !this.isAllyAI && this.weaponLevel === 2) {
-                ctx.fillRect(-7, -this.h/2 - 8, 4, 18); // Левая пушка
-                ctx.fillRect(3, -this.h/2 - 8, 4, 18);  // Правая пушка
+                ctx.fillRect(-7, -this.h/2 - 8, 4, 18); 
+                ctx.fillRect(3, -this.h/2 - 8, 4, 18);  
             } else if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 3) {
-                ctx.fillRect(-4, -this.h/2 - 10, 8, 20); // Лазерная пушка
+                ctx.fillRect(-4, -this.h/2 - 10, 8, 20); 
             } else {
-                ctx.fillRect(-3, -this.h/2 - 8, 6, 18);  // Обычная пушка
+                ctx.fillRect(-3, -this.h/2 - 8, 6, 18);  
             }
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); 
         }
         
-        // Отрисовка Дрона на крыше
         if (this.droneTimer > 0) {
-            ctx.restore(); // Сбрасываем поворот базы
+            ctx.restore(); 
             ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
             if (this.droneDir === DIR_RIGHT) ctx.rotate(Math.PI / 2); else if (this.droneDir === DIR_DOWN) ctx.rotate(Math.PI); else if (this.droneDir === DIR_LEFT) ctx.rotate(-Math.PI / 2);
             
@@ -1649,7 +1711,6 @@ class Bullet {
             this.markForDeletion = true; createExplosion(this.x, this.y, '#aaa', 5); sfx.playArmorHit(); return;
         }
 
-        // Проверка: своя пуля или нет
         let isFriendlyShooter = this.isDrone || (this.ownerId && (this.ownerId.isAllyAI || this.ownerId.constructor.name === 'Turret'));
         
         let checkFriendlyStructure = (r, c) => {
@@ -1664,7 +1725,7 @@ class Bullet {
         let col = Math.floor(this.x / TILE_SIZE); let row = Math.floor(this.y / TILE_SIZE);
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             let cell = grid[row][col];
-            if (cell !== EMPTY && cell !== WATER && cell !== BUSH && cell !== RAIL) {
+            if (cell !== EMPTY && cell !== WATER && cell !== BUSH && cell !== RAIL && cell !== BTN_OFF && cell !== BTN_ON) {
                 if (cell === BRICK) {
                     if (isFriendlyShooter && checkFriendlyStructure(row, col)) {
                         this.markForDeletion = true; 
@@ -1711,7 +1772,7 @@ class Bullet {
                     }
 
                     this.markForDeletion = true; createExplosion(this.x, this.y, '#ff9900', 10);
-                    if (cell === STEEL) { sfx.playArmorHit(); }
+                    if (cell === STEEL || cell === GATE) { sfx.playArmorHit(); }
                     else if (cell === BASE) { baseAlive = false; createExplosion(this.x, this.y, '#ff0000', 40); sfx.playExplosion(true); levelFailed(t('baseDestroyed')); return; }
                     else if (cell === SUBSTATION && this.isPlayer) {
                         grid[row][col] = EMPTY; substationAlive = false;
@@ -1733,6 +1794,8 @@ class Bullet {
                             sfx.playArmorHit(); createExplosion(this.x, this.y, '#f59e0b', 15);
                         } else if (levelType === 'ELECTRO' && generatorAlive) {
                             sfx.playArmorHit(); createExplosion(this.x, this.y, '#fde047', 15);
+                        } else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) {
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#ef4444', 15);
                         } else {
                             grid[row][col] = EMPTY; createExplosion(this.x, this.y, '#ff00ff', 50); sfx.playExplosion(true); winLevel(); 
                         }
@@ -1861,6 +1924,7 @@ function initLevel(retry = false, loadFromSave = false) {
         substationAlive = false;
         generatorAlive = false;
         radarsAlive = 0;
+        buttonsLeft = savedButtonsLeft || 0;
         for (let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
                 if (grid[r][c] === SUBSTATION) substationAlive = true;
@@ -2250,6 +2314,27 @@ function draw() {
                     ctx.beginPath(); ctx.arc(px+16, py+16, 6, 0, Math.PI*2); ctx.fill();
                 }
             }
+            else if (cell === GATE) {
+                ctx.fillStyle = '#374151'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#ef4444'; 
+                ctx.fillRect(px + 6, py, 4, TILE_SIZE);
+                ctx.fillRect(px + 22, py, 4, TILE_SIZE);
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+            }
+            else if (cell === BTN_OFF) {
+                ctx.fillStyle = '#333'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#7f1d1d';
+                ctx.beginPath(); ctx.arc(px + 16, py + 16, 10, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+            }
+            else if (cell === BTN_ON) {
+                ctx.fillStyle = '#333'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath(); ctx.arc(px + 16, py + 16, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#86efac';
+                ctx.beginPath(); ctx.arc(px + 16, py + 16, 4, 0, Math.PI*2); ctx.fill();
+            }
             else if (cell === BASE) {
                 if (baseAlive) {
                     ctx.fillStyle = '#16a34a'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE); ctx.fillStyle = '#15803d';
@@ -2396,7 +2481,7 @@ function gameLoop(timestamp) {
     }
     draw();
 
-    if (gameState === 'PLAYING' || gameState === 'LEVEL_TRANSITION' || gameState === 'DYING' || gameState === 'PAUSED') {
+    if (gameState === 'PLAYING' || gameState === 'LEVEL_TRANSITION' || gameState === 'DYING' || gameState === 'PAUSED' || gameState === 'GAMEOVER') {
         animationId = requestAnimationFrame(gameLoop);
     }
 }
@@ -2427,8 +2512,8 @@ document.getElementById('exportBtn').addEventListener('click', () => {
         grid, brickState, savedGrid, savedBrickState, 
         savedLevelType: levelType, savedAssaultMode: assaultMode, 
         savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: savedEnemiesToSpawn, 
-        savedEnemyMinesCoords: savedEnemyMinesCoords,
-        enemiesToSpawn, radarsAlive, substationAlive, generatorAlive
+        savedEnemyMinesCoords: savedEnemyMinesCoords, savedButtonsLeft: buttonsLeft,
+        enemiesToSpawn, radarsAlive, substationAlive, generatorAlive, buttonsLeft
     };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
     const dlAnchorElem = document.createElement('a');
@@ -2485,6 +2570,7 @@ const handleFileLoad = (event) => {
                 radarsAlive = data.radarsAlive ?? 3;
                 substationAlive = data.substationAlive ?? false;
                 generatorAlive = data.generatorAlive ?? false;
+                buttonsLeft = data.buttonsLeft ?? 0;
                 
                 initLevel(false, true); 
             } else {
