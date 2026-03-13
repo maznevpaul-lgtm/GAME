@@ -233,6 +233,7 @@ const i18n = {
         objFort: "ЦЕЛЬ: ПРОРВАТЬСЯ К КРАСНОМУ ФОРТУ",
         objCommand: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ И ЗАЩИТИТЬ РАДАРЫ! ({n}/3)",
         objStealth: "ЦЕЛЬ: ПРОКРАСТЬСЯ К ФОРТУ! НЕ ШУМЕТЬ!",
+        objElectro: "ЦЕЛЬ: УНИЧТОЖИТЬ ГЕНЕРАТОР И ФОРТ! ОПАСНОСТЬ: ТОК!",
         title: "ТАНКИ", campaign: "КАМПАНИЯ",
         newGame: "НОВАЯ ИГРА", continue: "ПРОДОЛЖИТЬ", saveFile: "ФАЙЛ СОХРАНЕНИЯ",
         soundOn: "ЗВУК: ВКЛ", soundOff: "ЗВУК: ВЫКЛ",
@@ -256,6 +257,7 @@ const i18n = {
         objFort: "OBJECTIVE: BREAK THROUGH TO RED FORT",
         objCommand: "OBJECTIVE: DESTROY FORT & DEFEND RADARS! ({n}/3)",
         objStealth: "OBJECTIVE: SNEAK TO THE FORT! STAY HIDDEN!",
+        objElectro: "OBJECTIVE: DESTROY GENERATOR & FORT! DANGER: HIGH VOLTAGE!",
         title: "BATTLE CITY", campaign: "CAMPAIGN",
         newGame: "NEW GAME", continue: "CONTINUE", saveFile: "SAVE FILE",
         soundOn: "SOUND: ON", soundOff: "SOUND: OFF",
@@ -336,7 +338,9 @@ const ENEMY_BASE = 4;
 const SUBSTATION = 5;
 const WATER = 6;
 const RADAR = 7;
-const BUSH = 8; // Стелс-кусты
+const BUSH = 8; 
+const RAIL = 9;
+const GENERATOR = 10;
 
 const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
 const BONUS_TYPES = ['LIFE', 'SHIELD', 'FIRE', 'BASE', 'ALLY', 'TURRET', 'BOMB', 'TIME'];
@@ -478,8 +482,13 @@ let assaultMode = 'NORMAL';
 let gameState = 'START'; 
 let baseAlive = true;
 let substationAlive = false;
+let generatorAlive = false;
 let radarsAlive = 3;
 
+let electricTimer = 0;
+let isShocking = false;
+
+let exposureTimer = 0; 
 let spottedTimer = 0;
 let wasSpottedLastFrame = false;
 
@@ -510,7 +519,6 @@ let savedEnemyMinesCoords = [];
 let lastTime = 0;
 let animationId;
 
-// Поддержка русской раскладки
 const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, W: false, A: false, S: false, D: false, 'ц': false, 'ф': false, 'ы': false, 'в': false, 'Ц': false, 'Ф': false, 'Ы': false, 'В': false, ' ': false, 'b': false, 'B': false, 'и': false, 'И': false };
 let touchDirs = { up: false, down: false, left: false, right: false };
 let touchFire = false;
@@ -570,7 +578,7 @@ function generateLevel() {
         levelType = 'BOSS';
         lastBossLevel = level;
     } else {
-        let modes = ['CLASSIC', 'ASSAULT', 'COMMAND', 'STEALTH'];
+        let modes = ['CLASSIC', 'ASSAULT', 'COMMAND', 'STEALTH', 'ELECTRO'];
         if (level < 3) {
             levelType = level === 1 ? 'CLASSIC' : 'ASSAULT';
         } else {
@@ -586,7 +594,7 @@ function generateLevel() {
         ROWS = Math.floor(Math.random() * 15) + 20; 
         enemiesToSpawn = Math.min(4 + level * 2, 25); 
         MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8);
-    } else if (levelType === 'COMMAND' || levelType === 'STEALTH') {
+    } else if (levelType === 'COMMAND' || levelType === 'STEALTH' || levelType === 'ELECTRO') {
         ROWS = Math.floor(Math.random() * 10) + 20; 
         enemiesToSpawn = Math.min(4 + level * 2, 25);
         MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8);
@@ -599,9 +607,13 @@ function generateLevel() {
     baseAlive = true;
     baseDefTimer = 0;
     substationAlive = false;
+    generatorAlive = false;
     assaultMode = 'NORMAL';
     timeStopTimer = 0;
     spottedTimer = 0;
+    exposureTimer = 0;
+    electricTimer = 0;
+    isShocking = false;
     wasSpottedLastFrame = false;
     enemyMines = [];
     radarsAlive = 3;
@@ -680,7 +692,7 @@ function generateLevel() {
             for(let r=0; r<=2; r++) {
                 for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
                     if(r===1 && c===enemyBaseCol) continue;
-                    grid[r][c] = STEEL;
+                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK; // Исправлено: теперь тут спавнятся и кирпичи
                 }
             }
             
@@ -692,9 +704,40 @@ function generateLevel() {
             safeZones.push({r: ROWS-1, c: 4}); 
             safeZones.push({r: 1, c: enemyBaseCol});
             
-            // Всегда прячем игрока при старте
             grid[ROWS-1][4] = BUSH; 
             
+        } else if (levelType === 'ELECTRO') {
+            enemyBaseCol = Math.floor(Math.random() * 5) + 5; 
+            grid[1][enemyBaseCol] = ENEMY_BASE;
+            for(let r=0; r<=2; r++) {
+                for(let c=enemyBaseCol-2; c<=enemyBaseCol+2; c++) {
+                    if(r===1 && c===enemyBaseCol) continue;
+                    grid[r][c] = (Math.random() > 0.6) ? STEEL : BRICK;
+                }
+            }
+            safeZones.push({r: ROWS - 1, c: 7}); 
+            safeZones.push({r: 4, c: enemyBaseCol}); 
+            
+            let genCol = (Math.random() > 0.5) ? 2 : COLS - 3;
+            grid[2][genCol] = GENERATOR;
+            grid[1][genCol-1] = STEEL; grid[1][genCol+1] = STEEL; grid[0][genCol] = STEEL;
+            safeZones.push({r: 2, c: genCol});
+
+            // Расставляем рельсы
+            for (let r = 3; r < ROWS - 2; r++) {
+                grid[r][2] = RAIL;
+                grid[r][COLS-3] = RAIL;
+            }
+            for (let c = 2; c <= COLS-3; c++) {
+                grid[ROWS-3][c] = RAIL;
+                grid[7][c] = RAIL;
+            }
+            
+            // Изоляторы (безопасные зоны на рельсах)
+            let safeSpots = [{r: 7, c: Math.floor(COLS/2)}, {r: ROWS-3, c: Math.floor(COLS/2)}, {r: ROWS-3, c: 4}, {r: ROWS-3, c: COLS-5}];
+            safeSpots.forEach(s => grid[s.r][s.c] = BRICK);
+            generatorAlive = true;
+            electricTimer = 4000;
         } else if (levelType === 'BOSS') {
             grid[17][7] = BASE;
             grid[17][6] = BRICK; grid[17][8] = BRICK;
@@ -708,10 +751,24 @@ function generateLevel() {
             }
         }
 
+        // Карвинг краев (Делаем карты непрямоугольными)
+        if (levelType !== 'CLASSIC' && levelType !== 'BOSS') {
+            for (let r = 4; r < ROWS - 4; r++) {
+                let leftIndent = Math.floor(Math.random() * 3); 
+                let rightIndent = Math.floor(Math.random() * 3);
+                for (let c = 0; c < leftIndent; c++) {
+                    if (grid[r][c] === EMPTY) grid[r][c] = STEEL;
+                }
+                for (let c = COLS - 1; c > COLS - 1 - rightIndent; c--) {
+                    if (grid[r][c] === EMPTY) grid[r][c] = STEEL;
+                }
+            }
+        }
+
         // Рандомные блоки
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
-                if (grid[r][c] !== EMPTY) continue;
+                if (grid[r][c] !== EMPTY) continue; // Защищаем рельсы и генераторы
                 let inSafeZone = false;
                 for (let zone of safeZones) {
                     if (Math.abs(r - zone.r) <= 1 && Math.abs(c - zone.c) <= 1) { inSafeZone = true; break; }
@@ -726,6 +783,7 @@ function generateLevel() {
                         if (rand < 0.20) grid[r][c] = BRICK; 
                         else if (rand < 0.28) grid[r][c] = STEEL;
                         else if (rand < 0.35) grid[r][c] = WATER;
+                        else if (rand < 0.45) grid[r][c] = BUSH; 
                     }
                 }
             }
@@ -775,10 +833,10 @@ function checkLevelPlayability() {
     let queue = [{ r: startR, c: startC }]; visited[startR][startC] = true;
 
     let subR = -1, subC = -1;
-    if (levelType === 'ASSAULT' || levelType === 'COMMAND') {
+    if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'ELECTRO') {
         for (let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
-                if (grid[r][c] === SUBSTATION) { subR = r; subC = c; break; }
+                if (grid[r][c] === SUBSTATION || grid[r][c] === GENERATOR) { subR = r; subC = c; break; }
             }
         }
     }
@@ -788,6 +846,7 @@ function checkLevelPlayability() {
         for (let dir of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
             let nr = curr.r + dir[0]; let nc = curr.c + dir[1];
             if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                // Вода тоже считается непреодолимым препятствием
                 if (!visited[nr][nc] && grid[nr][nc] !== STEEL && grid[nr][nc] !== WATER) {
                     visited[nr][nc] = true; queue.push({ r: nr, c: nc });
                 }
@@ -795,7 +854,8 @@ function checkLevelPlayability() {
         }
     }
 
-    if (levelType === 'CLASSIC' || levelType === 'BOSS' || levelType === 'STEALTH') {
+    if (levelType === 'CLASSIC' || levelType === 'BOSS') { 
+        // Исправлено: STEALTH убран отсюда, так как в стелсе нужно проверять доступность ВРАЖЕСКОЙ базы
         if (!visited[0][7]) return false; 
     } else {
         if (!visited[2][enemyBaseCol] && !visited[1][enemyBaseCol-1] && !visited[1][enemyBaseCol+1]) return false;
@@ -813,8 +873,10 @@ function checkLevelPlayability() {
 
 function updateObjectiveUI() {
     const objUI = document.getElementById('objectiveUI');
+    let activeEnemies = enemies.filter(e => !e.markForDeletion).length; // Исправлено: Считаем только реально живых врагов
+
     if (levelType === 'CLASSIC') {
-        objUI.innerText = t('objDefend', {n: enemiesToSpawn + enemies.length});
+        objUI.innerText = t('objDefend', {n: enemiesToSpawn + activeEnemies});
         objUI.className = "w-full text-center mb-2 font-bold text-green-300 bg-gray-800 rounded py-1 border border-green-700 text-[11px] sm:text-xs";
     } else if (levelType === 'BOSS') {
         objUI.innerText = t('objBoss');
@@ -825,6 +887,14 @@ function updateObjectiveUI() {
     } else if (levelType === 'STEALTH') {
         objUI.innerText = t('objStealth');
         objUI.className = "w-full text-center mb-2 font-bold text-emerald-400 bg-gray-800 rounded py-1 border border-emerald-700 text-[11px] sm:text-xs";
+    } else if (levelType === 'ELECTRO') {
+        if (generatorAlive) {
+            objUI.innerText = t('objElectro');
+            objUI.className = "w-full text-center mb-2 font-bold text-yellow-400 bg-gray-800 rounded py-1 border border-yellow-700 text-[11px] sm:text-xs animate-pulse";
+        } else {
+            objUI.innerText = t('objFort');
+            objUI.className = "w-full text-center mb-2 font-bold text-red-300 bg-gray-800 rounded py-1 border border-red-700 text-[11px] sm:text-xs";
+        }
     } else {
         if (assaultMode === 'SUBSTATION' && substationAlive) {
             objUI.innerText = t('objSub');
@@ -1181,7 +1251,7 @@ class Tank {
             for (let c = leftCol; c <= rightCol; c++) {
                 if (r >= 0 && r < ROWS && c >= 0 && c < COLS) { 
                     let cell = grid[r][c];
-                    if (cell !== EMPTY && cell !== BUSH) {
+                    if (cell !== EMPTY && cell !== BUSH && cell !== RAIL) { // По рельсам можно ездить
                         if (this.isBoss && cell === BRICK) {
                             grid[r][c] = EMPTY;
                             brickState[r][c] = 0;
@@ -1216,7 +1286,10 @@ class Tank {
     }
 
     shoot() {
-        if (this.isPlayer && levelType === 'STEALTH') spottedTimer = 3000;
+        if (this.isPlayer && levelType === 'STEALTH') {
+            exposureTimer = 1500; 
+            spottedTimer = 3000;
+        }
 
         if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 2) {
             let bx = this.x + this.w / 2; let by = this.y + this.h / 2;
@@ -1236,7 +1309,7 @@ class Tank {
                 let cCol = Math.floor(curX / TILE_SIZE); let cRow = Math.floor(curY / TILE_SIZE);
                 if (cRow >= 0 && cRow < ROWS && cCol >= 0 && cCol < COLS) {
                     let cell = grid[cRow][cCol];
-                    if (cell === STEEL || cell === BASE || cell === SUBSTATION || cell === RADAR || (cell === ENEMY_BASE && this.isPlayer)) {
+                    if (cell === STEEL || cell === BASE || cell === SUBSTATION || cell === RADAR || cell === GENERATOR || (cell === ENEMY_BASE && this.isPlayer)) {
                         hitWall = true;
                         if (cell === BASE) { baseAlive = false; levelFailed(t('baseDestroyed')); }
                         
@@ -1245,12 +1318,15 @@ class Tank {
                                 sfx.playArmorHit(); createExplosion(curX, curY, '#3b82f6', 15);
                             } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) {
                                 sfx.playArmorHit(); createExplosion(curX, curY, '#f59e0b', 15);
+                            } else if (levelType === 'ELECTRO' && generatorAlive) {
+                                sfx.playArmorHit(); createExplosion(curX, curY, '#fde047', 15);
                             } else {
                                 grid[cRow][cCol] = EMPTY; createExplosion(curX, curY, '#ff00ff', 50); sfx.playExplosion(true); winLevel();
                             }
                         }
                         
                         if (cell === SUBSTATION) { grid[cRow][cCol] = EMPTY; substationAlive = false; updateObjectiveUI(); }
+                        if (cell === GENERATOR) { grid[cRow][cCol] = EMPTY; generatorAlive = false; isShocking = false; updateObjectiveUI(); }
                         if (cell === RADAR) { grid[cRow][cCol] = EMPTY; radarsAlive--; updateObjectiveUI(); createExplosion(curX, curY, '#0ea5e9', 40); }
                         if (cell !== ENEMY_BASE && cell !== RADAR) createExplosion(curX, curY, '#ffaa00', 10);
                         break;
@@ -1416,7 +1492,7 @@ class Bullet {
             this.markForDeletion = true; createExplosion(this.x, this.y, '#aaa', 5); sfx.playArmorHit(); return;
         }
 
-        // Проверка: своя пуля или нет (игрок-дрон, союзник, турель)
+        // Проверка: своя пуля или нет
         let isFriendlyShooter = this.isDrone || (this.ownerId && (this.ownerId.isAllyAI || this.ownerId.constructor.name === 'Turret'));
         
         let checkFriendlyStructure = (r, c) => {
@@ -1431,9 +1507,8 @@ class Bullet {
         let col = Math.floor(this.x / TILE_SIZE); let row = Math.floor(this.y / TILE_SIZE);
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
             let cell = grid[row][col];
-            if (cell !== EMPTY && cell !== WATER && cell !== BUSH) {
+            if (cell !== EMPTY && cell !== WATER && cell !== BUSH && cell !== RAIL) {
                 if (cell === BRICK) {
-                    // Дружественный огонь по кирпичам базы
                     if (isFriendlyShooter && checkFriendlyStructure(row, col)) {
                         this.markForDeletion = true; 
                         createExplosion(this.x, this.y, '#ff9900', 5);
@@ -1475,7 +1550,7 @@ class Bullet {
                     if (isFriendlyShooter && (cell === BASE || cell === RADAR)) {
                         this.markForDeletion = true; 
                         createExplosion(this.x, this.y, '#ffaa00', 5);
-                        return; // Защита союзниками самой базы и радаров
+                        return; 
                     }
 
                     this.markForDeletion = true; createExplosion(this.x, this.y, '#ff9900', 10);
@@ -1484,6 +1559,10 @@ class Bullet {
                     else if (cell === SUBSTATION && this.isPlayer) {
                         grid[row][col] = EMPTY; substationAlive = false;
                         createExplosion(this.x, this.y, '#0ea5e9', 50); sfx.playExplosion(true); sfx.playBonus(); updateObjectiveUI();
+                    }
+                    else if (cell === GENERATOR && this.isPlayer) {
+                        grid[row][col] = EMPTY; generatorAlive = false; isShocking = false;
+                        createExplosion(this.x, this.y, '#f59e0b', 50); sfx.playExplosion(true); sfx.playBonus(); updateObjectiveUI();
                     }
                     else if (cell === RADAR) {
                         grid[row][col] = EMPTY; radarsAlive--;
@@ -1495,6 +1574,8 @@ class Bullet {
                             sfx.playArmorHit(); createExplosion(this.x, this.y, '#3b82f6', 15);
                         } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) {
                             sfx.playArmorHit(); createExplosion(this.x, this.y, '#f59e0b', 15);
+                        } else if (levelType === 'ELECTRO' && generatorAlive) {
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#fde047', 15);
                         } else {
                             grid[row][col] = EMPTY; createExplosion(this.x, this.y, '#ff00ff', 50); sfx.playExplosion(true); winLevel(); 
                         }
@@ -1609,10 +1690,12 @@ function initLevel(retry = false) {
         ROWS = grid.length; baseAlive = true; baseDefTimer = 0; 
         
         substationAlive = false;
+        generatorAlive = false;
         radarsAlive = 0;
         for (let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
                 if (grid[r][c] === SUBSTATION) substationAlive = true;
+                if (grid[r][c] === GENERATOR) generatorAlive = true;
                 if (grid[r][c] === RADAR) radarsAlive++;
             }
         }
@@ -1621,7 +1704,7 @@ function initLevel(retry = false) {
     }
     
     if (levelType === 'CLASSIC') player = new Tank(4, 14, true); 
-    else if (levelType === 'ASSAULT' || levelType === 'COMMAND') player = new Tank(7, ROWS - 1, true);
+    else if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'ELECTRO') player = new Tank(7, ROWS - 1, true);
     else if (levelType === 'STEALTH') player = new Tank(4, ROWS - 1, true);
     else if (levelType === 'BOSS') {
         player = new Tank(4, 17, true);
@@ -1635,12 +1718,15 @@ function initLevel(retry = false) {
     
     player.weaponLevel = playerWeaponLevel;
     
-    camera.y = (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') ? (ROWS * TILE_SIZE - canvas.height) : 0;
+    camera.y = (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH' || levelType === 'ELECTRO') ? (ROWS * TILE_SIZE - canvas.height) : 0;
     if (levelType === 'BOSS') camera.y = ROWS * TILE_SIZE - canvas.height;
     
     gameState = 'PLAYING';
     spottedTimer = 0;
+    exposureTimer = 0;
     wasSpottedLastFrame = false;
+    isShocking = false;
+    electricTimer = 4000;
 
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
@@ -1703,18 +1789,11 @@ function playerDeath() {
     else setTimeout(() => { 
         if(gameState === 'PLAYING') {
             if (levelType === 'CLASSIC') player = new Tank(4, 14, true);
-            else if (levelType === 'ASSAULT' || levelType === 'COMMAND') player = new Tank(7, ROWS-1, true);
+            else if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'ELECTRO') player = new Tank(7, ROWS-1, true);
             else if (levelType === 'STEALTH') player = new Tank(4, ROWS-1, true);
             else if (levelType === 'BOSS') player = new Tank(4, 17, true);
         }
     }, 1000);
-}
-
-function gameOver() {
-    gameState = 'GAMEOVER';
-    document.getElementById('headerPauseBtn').classList.add('hidden');
-    document.getElementById('gameOverScreen').classList.remove('hidden');
-    document.getElementById('finalScore').innerText = score;
 }
 
 function spawnEnemy() {
@@ -1766,26 +1845,75 @@ function update(dt) {
         }
     }
 
+    if (levelType === 'ELECTRO' && generatorAlive) {
+        electricTimer -= dt;
+        if (electricTimer <= 0) {
+            if (!isShocking) {
+                isShocking = true;
+                electricTimer = 600; 
+                sfx.playLaser(); 
+            } else {
+                isShocking = false;
+                electricTimer = 4400; 
+            }
+        }
+        
+        if (isShocking) {
+            let allTanks = [player, ...enemies, ...allies].filter(t => t && !t.markForDeletion && t.hp > 0);
+            allTanks.forEach(t => {
+                let tc = Math.floor((t.x + t.w/2) / TILE_SIZE);
+                let tr = Math.floor((t.y + t.h/2) / TILE_SIZE);
+                if (tr >= 0 && tr < ROWS && tc >= 0 && tc < COLS && grid[tr][tc] === RAIL) {
+                    if (t.shieldTimer <= 0) {
+                        t.hp -= 10;
+                        if (t.hp <= 0) {
+                            t.markForDeletion = true;
+                            createExplosion(t.x + t.w/2, t.y + t.h/2, '#38bdf8', 40);
+                            if (t === player) playerDeath();
+                            else if (!t.isAllyAI) {
+                                score += (t.isBoss ? 1000 : (t.isMiniBoss ? 500 : (t.eType === 'NORMAL' ? 100 : 300)));
+                                document.getElementById('scoreUI').innerText = score;
+                                updateObjectiveUI();
+                            }
+                        } else {
+                            createExplosion(t.x + t.w/2, t.y + t.h/2, '#38bdf8', 15);
+                            sfx.playArmorHit();
+                        }
+                    }
+                }
+            });
+        }
+    } else {
+        isShocking = false;
+    }
+
     if (mineCooldown > 0) mineCooldown -= dt;
 
     if (player && !player.markForDeletion) {
         player.update(dt);
         
-        // Логика обнаружения в стелсе
         if (levelType === 'STEALTH') {
             let pr = Math.floor((player.y + player.h/2) / TILE_SIZE);
             let pc = Math.floor((player.x + player.w/2) / TILE_SIZE);
             if (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS) {
                 if (grid[pr][pc] !== BUSH) {
-                    spottedTimer = 3000;
+                    exposureTimer += dt;
+                    if (exposureTimer >= 1500) {
+                        exposureTimer = 1500;
+                        spottedTimer = 3000;
+                    }
+                } else {
+                    exposureTimer -= dt * 2; 
+                    if (exposureTimer < 0) exposureTimer = 0;
                 }
             }
         }
+        
         if (spottedTimer > 0) spottedTimer -= dt;
 
         let currentlySpotted = spottedTimer > 0;
         if (!wasSpottedLastFrame && currentlySpotted && levelType === 'STEALTH') {
-            sfx.playMelody([[800, 0.1], [1000, 0.1]], 'sawtooth'); // Аларм!
+            sfx.playMelody([[800, 0.1], [1000, 0.1]], 'sawtooth'); 
         }
         wasSpottedLastFrame = currentlySpotted;
 
@@ -1861,7 +1989,7 @@ function update(dt) {
             }
         }
         
-        if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH') {
+        if (levelType === 'ASSAULT' || levelType === 'COMMAND' || levelType === 'STEALTH' || levelType === 'ELECTRO') {
             let targetCamY = player.y - canvas.height / 2 + player.h / 2;
             camera.y += (targetCamY - camera.y) * 0.1;
             if (camera.y < 0) camera.y = 0; if (camera.y > ROWS * TILE_SIZE - canvas.height) camera.y = ROWS * TILE_SIZE - canvas.height;
@@ -1923,6 +2051,34 @@ function draw() {
                 ctx.fillRect(px + 4, py + 8 + offset, 24, 2);
                 ctx.fillRect(px + 4, py + 24 - offset, 24, 2);
             }
+            else if (cell === RAIL) {
+                ctx.fillStyle = '#222'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#6b7280'; 
+                ctx.fillRect(px + 8, py, 4, TILE_SIZE);
+                ctx.fillRect(px + 20, py, 4, TILE_SIZE);
+                ctx.fillStyle = '#4b5563'; 
+                for(let i=4; i<32; i+=12) ctx.fillRect(px + 4, py + i, 24, 4);
+
+                if (isShocking) {
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(px + 10, py);
+                    for(let i=0; i<=32; i+=8) ctx.lineTo(px + 10 + (Math.random()*12-6), py + i);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(px + 22, py);
+                    for(let i=0; i<=32; i+=8) ctx.lineTo(px + 22 + (Math.random()*12-6), py + i);
+                    ctx.stroke();
+                }
+            }
+            else if (cell === GENERATOR) {
+                ctx.fillStyle = '#f59e0b'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = '#b45309'; ctx.beginPath(); ctx.arc(px+16, py+16, 10, 0, Math.PI*2); ctx.fill();
+                if (isShocking || Math.random() < 0.1) {
+                    ctx.fillStyle = '#fde047';
+                    ctx.beginPath(); ctx.arc(px+16, py+16, 6, 0, Math.PI*2); ctx.fill();
+                }
+            }
             else if (cell === BASE) {
                 if (baseAlive) {
                     ctx.fillStyle = '#16a34a'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE); ctx.fillStyle = '#15803d';
@@ -1963,6 +2119,10 @@ function draw() {
                     ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE/2 + 2, 0, Math.PI*2); ctx.stroke();
                     ctx.fillStyle = 'rgba(245, 158, 11, 0.3)'; ctx.fill();
+                } else if (levelType === 'ELECTRO' && generatorAlive) {
+                    ctx.strokeStyle = '#fde047'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE/2 + 2, 0, Math.PI*2); ctx.stroke();
+                    ctx.fillStyle = 'rgba(253, 224, 71, 0.3)'; ctx.fill();
                 }
             }
         }
@@ -1980,25 +2140,48 @@ function draw() {
     lasers.forEach(l => l.draw(ctx));
     particles.forEach(p => p.draw(ctx));
 
-    // Слой 3: Кусты (перекрывают танки)
+    // Слой 3: Кусты (перекрывают танки, полупрозрачные как в оригинале)
+    ctx.globalAlpha = 0.75; 
     for (let r = startRow; r <= endRow; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c] === BUSH) {
                 let px = c * TILE_SIZE; let py = r * TILE_SIZE;
-                ctx.fillStyle = '#166534'; // Темно-зеленый фон
+                ctx.fillStyle = '#14532d'; // Темно-зеленая тень
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-                ctx.fillStyle = '#15803d'; // Светлые листья
-                ctx.fillRect(px + 4, py + 4, 8, 8);
-                ctx.fillRect(px + 20, py + 8, 6, 6);
-                ctx.fillRect(px + 8, py + 20, 10, 8);
+                ctx.fillStyle = '#22c55e'; // Яркие листья
+                ctx.fillRect(px + 2, py + 2, 6, 6);
+                ctx.fillRect(px + 14, py + 4, 8, 8);
+                ctx.fillRect(px + 24, py + 2, 6, 6);
+                ctx.fillRect(px + 4, py + 16, 8, 8);
+                ctx.fillRect(px + 18, py + 20, 8, 8);
+                ctx.fillStyle = '#16a34a'; // Средние листья
+                ctx.fillRect(px + 8, py + 10, 8, 8);
+                ctx.fillRect(px + 20, py + 12, 6, 6);
+                ctx.fillRect(px + 2, py + 24, 6, 6);
             }
         }
     }
+    ctx.globalAlpha = 1.0; 
 
     ctx.restore();
 
     // Отрисовка эффектов интерфейса поверх камеры
     
+    // Индикатор обнаружения (Стелс) над игроком
+    if (levelType === 'STEALTH' && exposureTimer > 0 && player && !player.markForDeletion) {
+        let ratio = Math.min(exposureTimer / 1500, 1.0);
+        let screenPx = player.x + player.w/2;
+        let screenPy = player.y - 12 - camera.y;
+
+        ctx.fillStyle = (ratio > 0.8) ? 'rgba(239, 68, 68, 0.9)' : 'rgba(234, 179, 8, 0.9)'; 
+        ctx.fillRect(player.x, screenPy, player.w * ratio, 4);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('?', screenPx, screenPy - 4);
+    }
+
     // Красный эффект тревоги при Стелсе
     if (levelType === 'STEALTH' && spottedTimer > 0) {
         ctx.fillStyle = `rgba(239, 68, 68, ${Math.abs(Math.sin(Date.now() / 200)) * 0.25})`;
