@@ -6,34 +6,45 @@
     <title>Танки: Эволюция</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body{background-color:#1a1a1a;color:white;font-family:'Courier New',Courier,monospace;touch-action:none;overflow:hidden;}
-        #game-wrapper{width:100%;max-width:488px;margin:0 auto;}
-        #game-container{position:relative;width:100%;aspect-ratio:1/1;background-color:#111;border:4px solid #4a4a4a;box-shadow:0 0 20px rgba(0,0,0,0.8);overflow:hidden;}
-        canvas{display:block;width:100%;height:100%;image-rendering:pixelated;}
-        .overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;text-align:center;padding:20px;}
-        .hidden{display:none !important;}
-        .controls-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:180px;}
-        .btn{background:#333;border:2px solid #555;color:white;border-radius:8px;height:56px;display:flex;align-items:center;justify-content:center;user-select:none;cursor:pointer;font-size:1.25rem;}
-        .btn:active,.btn.active-btn{background:#555;border-color:#777;}
-        .btn-fire{background:#b91c1c;border-color:#f87171;width:80px;height:80px;border-radius:50%;font-weight:bold;}
-        .btn-fire:active,.btn-fire.active-btn{background:#ef4444;border-color:#fca5a5;}
-        .btn-mine{background:#d97706;border-color:#fbbf24;width:56px;height:56px;border-radius:50%;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;user-select:none;cursor:pointer;line-height:1.1;}
-        .btn-mine:active,.btn-mine.active-btn{background:#b45309;border-color:#f59e0b;}
+        body { background-color: #1a1a1a; color: white; font-family: 'Courier New', Courier, monospace; touch-action: none; overflow: hidden; }
+        #game-wrapper { width: 100%; max-width: 488px; margin: 0 auto; }
+        #game-container { position: relative; width: 100%; aspect-ratio: 1 / 1; background-color: #111; border: 4px solid #4a4a4a; box-shadow: 0 0 20px rgba(0,0,0,0.8); overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; text-align: center; padding: 20px; }
+        .hidden { display: none !important; }
+        .controls-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 180px; }
+        .btn { background: #333; border: 2px solid #555; color: white; border-radius: 8px; height: 56px; display: flex; align-items: center; justify-content: center; user-select: none; cursor: pointer; font-size: 1.25rem; }
+        .btn:active, .btn.active-btn { background: #555; border-color: #777; }
+        .btn-fire { background: #b91c1c; border-color: #f87171; width: 80px; height: 80px; border-radius: 50%; font-weight: bold; }
+        .btn-fire:active, .btn-fire.active-btn { background: #ef4444; border-color: #fca5a5; }
+        .btn-mine { background: #d97706; border-color: #fbbf24; width: 56px; height: 56px; border-radius: 50%; font-weight: bold; font-size: 11px; display: flex; align-items: center; justify-content: center; user-select: none; cursor: pointer; line-height: 1.1; }
+        .btn-mine:active, .btn-mine.active-btn { background: #b45309; border-color: #f59e0b; }
     </style>
 </head>
 <body class="h-[100dvh] w-screen flex flex-col items-center justify-center select-none">
+
     <div id="game-wrapper" class="px-2 sm:px-0 flex flex-col pb-4 sm:pb-0">
+        <!-- Кнопки навигации -->
         <div class="w-full flex justify-between items-center mb-2">
             <div class="flex gap-2">
-                <button onclick="goHome();" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-600 shadow text-xs flex items-center gap-1 cursor-pointer" id="lbl_exitBtn">🏠 Выход</button>
-                <button id="infoBtn" class="bg-cyan-800 hover:bg-cyan-700 text-white font-bold py-1.5 px-3 rounded border-2 border-cyan-600 shadow text-xs cursor-pointer">📚</button>
+                <button onclick="goHome();" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-600 transition-colors shadow text-xs flex items-center gap-1 cursor-pointer" id="lbl_exitBtn">
+                    🏠 Выход
+                </button>
             </div>
             <div class="flex gap-2">
-                <button id="muteBtnHeader" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-500 shadow text-xs cursor-pointer">🔊</button>
-                <button id="langToggleBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-500 shadow text-xs cursor-pointer">🌐 EN</button>
-                <button id="headerPauseBtn" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded border-2 border-blue-600 shadow text-xs flex items-center gap-1 hidden">⏸️ <span id="lbl_pauseBtn">Пауза</span></button>
+                <button id="muteBtnHeader" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-500 transition-colors shadow text-xs flex items-center cursor-pointer" title="Звук">
+                    🔊
+                </button>
+                <button id="langToggleBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded border-2 border-gray-500 transition-colors shadow text-xs flex items-center cursor-pointer">
+                    🌐 EN
+                </button>
+                <button id="headerPauseBtn" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded border-2 border-blue-600 transition-colors shadow text-xs flex items-center gap-1 cursor-pointer hidden">
+                    ⏸️ <span id="lbl_pauseBtn">Пауза</span>
+                </button>
             </div>
         </div>
+
+        <!-- Интерфейс статуса -->
         <div class="w-full flex justify-between items-center mb-1 px-1 text-[11px] sm:text-xs font-bold">
             <div class="text-yellow-400"><span id="lbl_score">СЧЕТ:</span> <span id="scoreUI">0</span></div>
             <div class="text-blue-300"><span id="lbl_lvl">УР:</span> <span id="levelUI">1</span></div>
@@ -41,8 +52,11 @@
             <div class="text-purple-400">🔄: <span id="continuesUI">3</span></div>
             <div class="text-orange-400">💣: <span id="minesUI">3</span></div>
         </div>
-        <div class="w-full text-center mb-2 font-bold text-gray-300 bg-gray-800 rounded py-1 border border-gray-600 text-[11px] sm:text-xs" id="objectiveUI">ЦЕЛЬ: УНИЧТОЖИТЬ ВСЕХ</div>
-        
+        <div class="w-full text-center mb-2 font-bold text-gray-300 bg-gray-800 rounded py-1 border border-gray-600 text-[11px] sm:text-xs" id="objectiveUI">
+            ЦЕЛЬ: УНИЧТОЖИТЬ ВСЕХ
+        </div>
+
+        <!-- Игровое поле -->
         <div id="game-container">
             <canvas id="gameCanvas" width="480" height="480"></canvas>
             
@@ -50,21 +64,33 @@
                 <h1 class="text-4xl font-bold text-yellow-500 mb-2 tracking-widest" id="lbl_title">ТАНКИ</h1>
                 <h2 class="text-xl text-white mb-4" id="lbl_campaign">КАМПАНИЯ</h2>
                 <div class="flex flex-col gap-3 w-full max-w-[240px]">
-                    <button id="startBtn" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-3 px-4 rounded border-4 border-yellow-700 text-lg">НОВАЯ ИГРА</button>
-                    <button id="startLoadBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-sm">ПРОДОЛЖИТЬ</button>
+                    <button id="startBtn" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-3 px-4 rounded border-4 border-yellow-700 text-lg transition-colors">
+                        НОВАЯ ИГРА
+                    </button>
+                    <button id="startLoadBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-sm transition-colors">
+                        ПРОДОЛЖИТЬ ИЗ БРАУЗЕРА
+                    </button>
                 </div>
             </div>
 
             <div id="pauseScreen" class="overlay hidden backdrop-blur-sm">
                 <h1 class="text-4xl font-bold text-white mb-6 tracking-widest" id="lbl_pauseTitle">ПАУЗА</h1>
                 <div class="flex flex-col gap-3 w-full max-w-[240px]">
-                    <button id="resumeBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-lg mb-2">ПРОДОЛЖИТЬ</button>
-                    <button id="pauseToMenuBtn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded border-4 border-red-700 text-sm mb-2">В МЕНЮ ИГРЫ</button>
+                    <button id="resumeBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded border-4 border-blue-700 text-lg mb-2">
+                        ПРОДОЛЖИТЬ
+                    </button>
                     <div class="text-xs text-gray-300 text-center mt-1 border-b border-gray-600 pb-1" id="lbl_cacheTitle">Локальное сохранение</div>
-                    <div class="flex gap-2">
-                        <button id="saveBtn" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-2 rounded border-4 border-green-700 text-xs">СОХРАНИТЬ</button>
-                        <button id="pauseLoadBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-2 rounded border-4 border-yellow-700 text-xs">ЗАГРУЗИТЬ</button>
+                    <div class="flex gap-2 mt-2">
+                        <button id="saveBtn" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-2 rounded border-4 border-green-700 text-xs transition-colors">
+                            СОХРАНИТЬ
+                        </button>
+                        <button id="pauseLoadBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-2 rounded border-4 border-yellow-700 text-xs transition-colors">
+                            ЗАГРУЗИТЬ
+                        </button>
                     </div>
+                    <button id="pauseToMenuBtn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded border-4 border-red-700 text-sm mt-4 transition-colors">
+                        В МЕНЮ ИГРЫ
+                    </button>
                 </div>
             </div>
 
@@ -74,28 +100,14 @@
 
             <div id="gameOverScreen" class="overlay hidden backdrop-blur-md">
                 <h1 class="text-4xl font-bold text-red-500 mb-2 text-center" id="lbl_gameOverTitle">МИССИЯ ПРОВАЛЕНА</h1>
-                <p class="text-xl mb-6"><span id="lbl_finalScore">Счет:</span> <span id="finalScore" class="text-yellow-400">0</span></p>
-                <button id="restartBtn" class="bg-white hover:bg-gray-200 text-black font-bold py-3 px-8 rounded border-4 border-gray-400 text-xl">В МЕНЮ ИГРЫ</button>
-            </div>
-
-            <div id="encyclopediaScreen" class="overlay hidden backdrop-blur-md z-50">
-                <div class="bg-gray-900 border-4 border-gray-500 p-4 rounded-lg max-w-[90%] w-[350px] max-h-[90vh] overflow-y-auto text-left text-[11px] sm:text-xs text-white">
-                    <h2 class="text-lg font-bold text-yellow-400 mb-3 text-center border-b border-gray-600 pb-2" id="lbl_encTitle">ЭНЦИКЛОПЕДИЯ БОНУСОВ</h2>
-                    <ul class="space-y-3">
-                        <li class="flex items-start gap-2"><span class="text-red-500 text-lg leading-none font-bold">♥</span> <span id="enc_life"><b>Жизнь:</b> Дает дополнительную попытку.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-blue-500 text-lg leading-none font-bold">S</span> <span id="enc_shield"><b>Щит:</b> Непробиваемый купол на 10с.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-yellow-500 text-lg leading-none font-bold">★</span> <span id="enc_fire"><b>Оружие:</b> 1: Очередь. 2: Двойная. 3: Лазер.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-green-500 text-lg leading-none font-bold">B</span> <span id="enc_base"><b>Защита:</b> Бетон вокруг базы на 15с.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-sky-500 text-lg leading-none font-bold">A</span> <span id="enc_ally"><b>Союзник:</b> Призывает синий танк-помощник.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-purple-500 text-lg leading-none font-bold">T</span> <span id="enc_turret"><b>Турель:</b> Вышка или боевой дрон.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-gray-400 text-lg leading-none">💣</span> <span id="enc_bomb"><b>Бомба:</b> Огромный урон всем врагам.</span></li>
-                        <li class="flex items-start gap-2"><span class="text-amber-500 text-lg leading-none">⏱</span> <span id="enc_time"><b>Часы:</b> Замораживает врагов на 8с.</span></li>
-                    </ul>
-                    <button id="closeInfoBtn" class="mt-4 w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 rounded">ЗАКРЫТЬ</button>
-                </div>
+                <p class="text-xl mb-6"><span id="lbl_finalScore">Итоговый счет:</span> <span id="finalScore" class="text-yellow-400">0</span></p>
+                <button id="restartBtn" class="bg-white hover:bg-gray-200 text-black font-bold py-3 px-8 rounded border-4 border-gray-400 text-xl transition-colors">
+                    В МЕНЮ ИГРЫ
+                </button>
             </div>
         </div>
 
+        <!-- Управление для мобильных -->
         <div id="mobile-controls" class="w-full mt-2 mb-4 flex justify-between items-center sm:hidden">
             <div class="controls-grid">
                 <div></div><div class="btn" id="btn-up">▲</div><div></div>
@@ -103,64 +115,91 @@
                 <div></div><div class="btn" id="btn-down">▼</div><div></div>
             </div>
             <div class="flex items-center justify-center gap-2">
-                <div class="btn-mine text-center" id="btn-mine"><span id="lbl_mineBtn">МИНА</span></div>
+                <div class="btn-mine text-center" id="btn-mine"><span id="lbl_mineBtn">МИНА<br>(B/И)</span></div>
                 <div class="btn-fire" id="btn-fire"></div>
             </div>
         </div>
     </div>
 
 <script>
-/** КОНСТАНТЫ И ЛОКАЛИЗАЦИЯ */
+/**
+ * КОНСТАНТЫ И ЛОКАЛИЗАЦИЯ
+ */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const TILE_SIZE = 32; 
-let COLS = 15; let ROWS = 15;   
-const EMPTY=0, BRICK=1, STEEL=2, BASE=3, ENEMY_BASE=4, SUBSTATION=5, WATER=6, RADAR=7, BUSH=8, BTN_OFF=9, BTN_ON=10, GATE=11, VOID=12;
-const DIR_UP=0, DIR_RIGHT=1, DIR_DOWN=2, DIR_LEFT=3;
+let COLS = 15; 
+let ROWS = 15;   
 
-function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) { return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2; }
+const EMPTY = 0, BRICK = 1, STEEL = 2, BASE = 3, ENEMY_BASE = 4, SUBSTATION = 5, WATER = 6, RADAR = 7, BUSH = 8, BTN_OFF = 9, BTN_ON = 10, GATE = 11, VOID = 12;
+const DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3;
+
+function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+}
 
 const i18n = {
     ru: {
-        score: "СЧЕТ:", lvl: "УР:", objDefend: "ЦЕЛЬ: ЗАЩИТИТЬ БАЗУ (ВРАГОВ: {n})", objBoss: "ЦЕЛЬ: УНИЧТОЖИТЬ БОССА!",
-        objSub: "ЦЕЛЬ: УНИЧТОЖИТЬ ПОДСТАНЦИЮ!", objMiniBosses: "ЦЕЛЬ: УНИЧТОЖИТЬ {n} СТРАЖЕЙ И ФОРТ!", objFort: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ",
-        objCommand: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ! РАДАРЫ (СВЕТ): ({n}/3)", objStealth: "ЦЕЛЬ: ПРОКРАСТЬСЯ К ФОРТУ! НЕ ШУМЕТЬ!",
-        objStealthSub: "ЦЕЛЬ: РАЗБИТЬ ПОДСТАНЦИЮ ТИХО!", objStealthBtn: "ЦЕЛЬ: НАЖАТЬ КНОПКИ ({n}) ТИХО!",
-        title: "ТАНКИ", campaign: "КАМПАНИЯ", newGame: "НОВАЯ ИГРА", continue: "ПРОДОЛЖИТЬ", pauseTitle: "ПАУЗА", resume: "ПРОДОЛЖИТЬ",
+        score: "СЧЕТ:", lvl: "УР:", 
+        objDefend: "ЦЕЛЬ: ЗАЩИТИТЬ БАЗУ (ВРАГОВ: {n})", 
+        objBoss: "ЦЕЛЬ: УНИЧТОЖИТЬ БОССА!",
+        objSub: "ЦЕЛЬ: УНИЧТОЖИТЬ ПОДСТАНЦИЮ!", 
+        objMiniBosses: "ЦЕЛЬ: УНИЧТОЖИТЬ {n} СТРАЖЕЙ И ФОРТ!", 
+        objFort: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ",
+        objCommand: "ЦЕЛЬ: УНИЧТОЖИТЬ ФОРТ! РАДАРЫ (СВЕТ): ({n}/3)", 
+        objStealth: "ЦЕЛЬ: ПРОКРАСТЬСЯ К ФОРТУ! НЕ ШУМЕТЬ!",
+        objStealthSub: "ЦЕЛЬ: РАЗБИТЬ ПОДСТАНЦИЮ ТИХО!", 
+        objStealthBtn: "ЦЕЛЬ: НАЖАТЬ КНОПКИ ({n}) ТИХО!",
+        title: "ТАНКИ", campaign: "КАМПАНИЯ", 
+        newGame: "НОВАЯ ИГРА", continue: "ПРОДОЛЖИТЬ ИЗ БРАУЗЕРА", 
+        pauseTitle: "ПАУЗА", resume: "ПРОДОЛЖИТЬ",
         cacheTitle: "Локальное сохранение", save: "СОХРАНИТЬ", load: "ЗАГРУЗИТЬ",
         levelCleared: "УРОВЕНЬ ПРОЙДЕН!<br><br><span class='text-white text-xl'>ГОТОВЬТЕСЬ К УРОВНЮ {n}</span>",
-        missionFailed: "МИССИЯ ПРОВАЛЕНА", finalScore: "Счет:", exitBtn: "🏠 Выход", pauseBtn: "Пауза", pauseMenuBtn: "В МЕНЮ ИГРЫ",
-        gameOverMenuBtn: "В МЕНЮ ИГРЫ", mineBtn: "МИНА", baseDestroyed: "БАЗА УНИЧТОЖЕНА!", outOfTanks: "ТАНКИ КОНЧИЛИСЬ!",
+        missionFailed: "МИССИЯ ПРОВАЛЕНА", finalScore: "Счет:", 
+        exitBtn: "🏠 Выход", pauseBtn: "Пауза", pauseMenuBtn: "В МЕНЮ ИГРЫ",
+        gameOverMenuBtn: "В МЕНЮ ИГРЫ", mineBtn: "МИНА<br>(B)", 
+        baseDestroyed: "БАЗА УНИЧТОЖЕНА!", outOfTanks: "ТАНКИ КОНЧИЛИСЬ!",
         attemptsLeft: "<br><br><span class='text-white text-xl'>ОСТАЛОСЬ ПОПЫТОК: {n}</span>",
         lastChance: "<br><br><span class='text-red-500 text-xl font-bold'>ПОСЛЕДНЯЯ ПОПЫТКА!</span>",
-        success: "УСПЕШНО!", loaded: "ЗАГРУЖЕНО!", noSaves: "НЕТ СОХРАНЕНИЙ", saveError: "Ошибка файла!",
-        langToggle: "🌐 EN", encTitle: "БОНУСЫ", encClose: "ЗАКРЫТЬ", encLife: "<b>Жизнь:</b> +1 попытка.", encShield: "<b>Щит:</b> Купол на 10с.",
-        encFire: "<b>Оружие:</b> 1-Очередь, 2-Двойная, 3-Лазер.", encBase: "<b>Защита:</b> Бетон на 15с.", encAlly: "<b>Союзник:</b> Синий танк.",
-        encTurret: "<b>Турель:</b> Вышка или дрон.", encBomb: "<b>Бомба:</b> Урон всем.", encTime: "<b>Часы:</b> Стоп-время на 8с."
+        success: "УСПЕШНО!", loaded: "ЗАГРУЖЕНО!", noSaves: "НЕТ СОХРАНЕНИЙ", 
+        langToggle: "🌐 EN"
     },
     en: {
-        score: "SCORE:", lvl: "LVL:", objDefend: "OBJECTIVE: DEFEND BASE (ENEMIES: {n})", objBoss: "OBJECTIVE: DESTROY BOSS!",
-        objSub: "OBJECTIVE: DESTROY SUBSTATION!", objMiniBosses: "OBJECTIVE: DESTROY {n} GUARDS & FORT!", objFort: "OBJECTIVE: DESTROY FORT",
-        objCommand: "OBJECTIVE: DESTROY FORT! RADARS (LIGHT): ({n}/3)", objStealth: "OBJECTIVE: SNEAK TO FORT! STAY HIDDEN!",
-        objStealthSub: "OBJECTIVE: DESTROY SUBSTATION SILENTLY!", objStealthBtn: "OBJECTIVE: PRESS BUTTONS ({n}) SILENTLY!",
-        title: "BATTLE CITY", campaign: "CAMPAIGN", newGame: "NEW GAME", continue: "CONTINUE", pauseTitle: "PAUSED", resume: "RESUME",
+        score: "SCORE:", lvl: "LVL:", 
+        objDefend: "OBJECTIVE: DEFEND BASE (ENEMIES: {n})", 
+        objBoss: "OBJECTIVE: DESTROY BOSS!",
+        objSub: "OBJECTIVE: DESTROY SUBSTATION!", 
+        objMiniBosses: "OBJECTIVE: DESTROY {n} GUARDS & FORT!", 
+        objFort: "OBJECTIVE: DESTROY FORT",
+        objCommand: "OBJECTIVE: DESTROY FORT! RADARS (LIGHT): ({n}/3)", 
+        objStealth: "OBJECTIVE: SNEAK TO FORT! STAY HIDDEN!",
+        objStealthSub: "OBJECTIVE: DESTROY SUBSTATION SILENTLY!", 
+        objStealthBtn: "OBJECTIVE: PRESS BUTTONS ({n}) SILENTLY!",
+        title: "BATTLE CITY", campaign: "CAMPAIGN", 
+        newGame: "NEW GAME", continue: "CONTINUE FROM BROWSER", 
+        pauseTitle: "PAUSED", resume: "RESUME",
         cacheTitle: "Browser Save", save: "SAVE", load: "LOAD",
         levelCleared: "LEVEL CLEARED!<br><br><span class='text-white text-xl'>READY FOR LEVEL {n}</span>",
-        missionFailed: "MISSION FAILED", finalScore: "Final Score:", exitBtn: "🏠 Exit", pauseBtn: "Pause", pauseMenuBtn: "MAIN MENU",
-        gameOverMenuBtn: "MAIN MENU", mineBtn: "MINE", baseDestroyed: "BASE DESTROYED!", outOfTanks: "OUT OF TANKS!",
+        missionFailed: "MISSION FAILED", finalScore: "Final Score:", 
+        exitBtn: "🏠 Exit", pauseBtn: "Pause", pauseMenuBtn: "MAIN MENU",
+        gameOverMenuBtn: "MAIN MENU", mineBtn: "MINE<br>(B)", 
+        baseDestroyed: "BASE DESTROYED!", outOfTanks: "OUT OF TANKS!",
         attemptsLeft: "<br><br><span class='text-white text-xl'>ATTEMPTS LEFT: {n}</span>",
         lastChance: "<br><br><span class='text-red-500 text-xl font-bold'>FINAL ATTEMPT!</span>",
-        success: "SUCCESS!", loaded: "LOADED!", noSaves: "NO SAVES", saveError: "Error reading save file!",
-        langToggle: "🌐 RU", encTitle: "BONUSES", encClose: "CLOSE", encLife: "<b>Life:</b> +1 attempt.", encShield: "<b>Shield:</b> Invincible for 10s.",
-        encFire: "<b>Weapon:</b> 1-Burst, 2-Twin, 3-Laser.", encBase: "<b>Defend:</b> Steel base for 15s.", encAlly: "<b>Ally:</b> Blue tank.",
-        encTurret: "<b>Turret:</b> Tower or drone.", encBomb: "<b>Bomb:</b> Damage all.", encTime: "<b>Time:</b> Freeze enemies 8s."
+        success: "SUCCESS!", loaded: "LOADED!", noSaves: "NO SAVES", 
+        langToggle: "🌐 RU"
     }
 };
 
 let currentLang = localStorage.getItem('tanksLang') || 'ru';
-const t = (k, p={}) => { let s = i18n[currentLang][k] || k; for(let i in p) s = s.replace(`{${i}}`, p[i]); return s; };
+const t = (k, p = {}) => { 
+    let s = i18n[currentLang][k] || k; 
+    for (let i in p) s = s.replace(`{${i}}`, p[i]); 
+    return s; 
+};
 
-/** УТИЛИТЫ UI И СОХРАНЕНИЯ */
+/** * УТИЛИТЫ И СОХРАНЕНИЯ 
+ */
 function resetToStartScreen() {
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
@@ -188,55 +227,141 @@ function goToGameMenu() {
 }
 
 function saveGame() {
-    const data = { level, score, lives, continues, lastBossLevel, playerWeaponLevel, grid, brickState, savedGrid, savedBrickState, savedLevelType: levelType, savedAssaultMode: assaultMode, savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: enemiesToSpawn, savedEnemyMinesCoords: enemyMines.map(m => ({x: m.x, y: m.y})), savedButtonsLeft: buttonsLeft, enemiesToSpawn, radarsAlive, substationAlive, buttonsLeft, savedCols: COLS, savedRows: ROWS };
+    const data = { 
+        level, score, lives, continues, lastBossLevel, playerWeaponLevel,
+        grid, brickState, savedGrid, savedBrickState, 
+        savedLevelType: levelType, savedAssaultMode: assaultMode, 
+        savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: enemiesToSpawn, 
+        savedEnemyMinesCoords: enemyMines.map(m => ({x: m.x, y: m.y})), 
+        savedButtonsLeft: buttonsLeft, enemiesToSpawn, radarsAlive, substationAlive, 
+        buttonsLeft, savedCols: COLS, savedRows: ROWS 
+    };
     localStorage.setItem('battleCityEvoSave', JSON.stringify(data));
-    let btn = document.getElementById('saveBtn'); if (btn) { let old = btn.innerText; btn.innerText = t('success'); setTimeout(() => { btn.innerText = old; }, 2000); }
+    let btn = document.getElementById('saveBtn'); 
+    if (btn) { 
+        let old = btn.innerText; 
+        btn.innerText = t('success'); 
+        setTimeout(() => { btn.innerText = old; }, 2000); 
+    }
 }
 
 function loadGame(buttonId) {
-    const save = localStorage.getItem('battleCityEvoSave'); let btn = document.getElementById(buttonId); let old = btn ? btn.innerText : '';
+    const save = localStorage.getItem('battleCityEvoSave'); 
+    let btn = document.getElementById(buttonId); 
+    let old = btn ? btn.innerText : '';
+
     if (save) {
-        const data = JSON.parse(save); level = data.level || 1; score = data.score || 0; lives = data.lives || 3; continues = data.continues || 3; lastBossLevel = data.lastBossLevel || 0; playerWeaponLevel = data.playerWeaponLevel || 0;
-        document.getElementById('scoreUI').innerText = score; document.getElementById('livesUI').innerText = lives; document.getElementById('continuesUI').innerText = continues;
+        const data = JSON.parse(save); 
+        level = data.level || 1; 
+        score = data.score || 0; 
+        lives = data.lives || 3; 
+        continues = data.continues || 3; 
+        lastBossLevel = data.lastBossLevel || 0; 
+        playerWeaponLevel = data.playerWeaponLevel || 0;
+        
+        document.getElementById('scoreUI').innerText = score; 
+        document.getElementById('livesUI').innerText = lives; 
+        document.getElementById('continuesUI').innerText = continues;
+        
         if (btn) btn.innerText = t('loaded');
         setTimeout(() => { 
-            if (btn) btn.innerText = old; document.getElementById('pauseScreen').classList.add('hidden'); document.getElementById('startScreen').classList.add('hidden');
-            if (data.grid) { grid = data.grid; brickState = data.brickState; savedGrid = data.savedGrid; savedBrickState = data.savedBrickState; savedLevelType = data.savedLevelType; savedAssaultMode = data.savedAssaultMode; savedEnemyBaseCol = data.savedEnemyBaseCol; savedEnemiesToSpawn = data.savedEnemiesToSpawn; savedEnemyMinesCoords = data.savedEnemyMinesCoords || []; levelType = data.savedLevelType; assaultMode = data.savedAssaultMode; enemyBaseCol = data.savedEnemyBaseCol; enemiesToSpawn = data.enemiesToSpawn; radarsAlive = data.radarsAlive ?? 3; substationAlive = data.substationAlive ?? false; buttonsLeft = data.buttonsLeft ?? 0; savedCols = data.savedCols || 15; savedRows = data.savedRows || 15; initLevel(false, true); } else initLevel(false);
-            if (gameState === 'PAUSED' || gameState === 'START') { gameState = 'PLAYING'; lastTime = performance.now(); }
+            if (btn) btn.innerText = old; 
+            document.getElementById('pauseScreen').classList.add('hidden'); 
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            if (data.grid) { 
+                grid = data.grid; 
+                brickState = data.brickState; 
+                savedGrid = data.savedGrid; 
+                savedBrickState = data.savedBrickState; 
+                savedLevelType = data.savedLevelType; 
+                savedAssaultMode = data.savedAssaultMode; 
+                savedEnemyBaseCol = data.savedEnemyBaseCol; 
+                savedEnemiesToSpawn = data.savedEnemiesToSpawn; 
+                savedEnemyMinesCoords = data.savedEnemyMinesCoords || []; 
+                levelType = data.savedLevelType; 
+                assaultMode = data.savedAssaultMode; 
+                enemyBaseCol = data.savedEnemyBaseCol; 
+                enemiesToSpawn = data.enemiesToSpawn; 
+                radarsAlive = data.radarsAlive ?? 3; 
+                substationAlive = data.substationAlive ?? false; 
+                buttonsLeft = data.buttonsLeft ?? 0; 
+                savedCols = data.savedCols || 15; 
+                savedRows = data.savedRows || 15; 
+                initLevel(false, true); 
+            } else {
+                initLevel(false);
+            }
+
+            if (gameState === 'PAUSED' || gameState === 'START') { 
+                gameState = 'PLAYING'; 
+                lastTime = performance.now(); 
+            }
         }, 500);
-    } else { if (btn) { btn.innerText = t('noSaves'); setTimeout(() => { btn.innerText = old; }, 2000); } }
+    } else { 
+        if (btn) { 
+            btn.innerText = t('noSaves'); 
+            setTimeout(() => { btn.innerText = old; }, 2000); 
+        } 
+    }
 }
 
 function updateObjectiveUI() {
-    const objUI = document.getElementById('objectiveUI'); let actE = enemies ? enemies.filter(e => !e.markForDeletion).length : 0; let cl = "w-full text-center mb-2 font-bold rounded py-1 border text-[11px] sm:text-xs bg-gray-800 ";
-    if (levelType === 'CLASSIC') { objUI.innerText = t('objDefend',{n:enemiesToSpawn+actE}); objUI.className = cl+"text-green-300 border-green-700"; }
-    else if (levelType === 'BOSS') { objUI.innerText = t('objBoss'); objUI.className = cl+"text-yellow-300 border-yellow-700 animate-pulse"; }
-    else if (levelType === 'SHADOWS') { objUI.innerText = t('objCommand',{n:radarsAlive}); objUI.className = cl+"text-cyan-300 border-cyan-700"; }
-    else if (levelType === 'STEALTH') {
-        if(assaultMode==='SUBSTATION'&&substationAlive){ objUI.innerText=t('objStealthSub'); objUI.className=cl+"text-emerald-400 border-emerald-700 animate-pulse"; }
-        else if(assaultMode==='BUTTONS'&&buttonsLeft>0){ objUI.innerText=t('objStealthBtn',{n:buttonsLeft}); objUI.className=cl+"text-red-400 border-red-700 animate-pulse"; }
-        else{ objUI.innerText=t('objStealth'); objUI.className=cl+"text-emerald-300 border-emerald-700"; }
+    const objUI = document.getElementById('objectiveUI'); 
+    let actE = enemies ? enemies.filter(e => !e.markForDeletion).length : 0; 
+    let cl = "w-full text-center mb-2 font-bold rounded py-1 border text-[11px] sm:text-xs bg-gray-800 ";
+    
+    if (levelType === 'CLASSIC') { 
+        objUI.innerText = t('objDefend', {n: enemiesToSpawn + actE}); 
+        objUI.className = cl + "text-green-300 border-green-700"; 
+    } else if (levelType === 'BOSS') { 
+        objUI.innerText = t('objBoss'); 
+        objUI.className = cl + "text-yellow-300 border-yellow-700 animate-pulse"; 
+    } else if (levelType === 'SHADOWS') { 
+        objUI.innerText = t('objCommand', {n: radarsAlive}); 
+        objUI.className = cl + "text-cyan-300 border-cyan-700"; 
+    } else if (levelType === 'STEALTH') {
+        if (assaultMode === 'SUBSTATION' && substationAlive) { 
+            objUI.innerText = t('objStealthSub'); 
+            objUI.className = cl + "text-emerald-400 border-emerald-700 animate-pulse"; 
+        } else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) { 
+            objUI.innerText = t('objStealthBtn', {n: buttonsLeft}); 
+            objUI.className = cl + "text-red-400 border-red-700 animate-pulse"; 
+        } else { 
+            objUI.innerText = t('objStealth'); 
+            objUI.className = cl + "text-emerald-300 border-emerald-700"; 
+        }
     } else {
-        if(assaultMode==='SUBSTATION'&&substationAlive){ objUI.innerText=t('objSub'); objUI.className=cl+"text-blue-300 border-blue-700 animate-pulse"; }
-        else if(assaultMode==='MINIBOSSES'&&countMiniBosses()>0){ objUI.innerText=t('objMiniBosses',{n:countMiniBosses()}); objUI.className=cl+"text-orange-400 border-orange-700 animate-pulse"; }
-        else{ objUI.innerText=t('objFort'); objUI.className=cl+"text-red-300 border-red-700"; }
+        if (assaultMode === 'SUBSTATION' && substationAlive) { 
+            objUI.innerText = t('objSub'); 
+            objUI.className = cl + "text-blue-300 border-blue-700 animate-pulse"; 
+        } else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) { 
+            objUI.innerText = t('objMiniBosses', {n: countMiniBosses()}); 
+            objUI.className = cl + "text-orange-400 border-orange-700 animate-pulse"; 
+        } else { 
+            objUI.innerText = t('objFort'); 
+            objUI.className = cl + "text-red-300 border-red-700"; 
+        }
     }
 }
 
 function updateStaticUI() {
     document.documentElement.lang = currentLang;
-    ['score','lvl','title','campaign','encTitle','encLife','encShield','encFire','encBase','encAlly','encTurret','encBomb','encTime','deviceTitle','cacheTitle'].forEach(id=>{
-        let el=document.getElementById(id?'lbl_'+id:id); if(el) el.innerHTML=t(id);
-    });
-    document.getElementById('startBtn').innerHTML=t('newGame'); document.getElementById('startLoadBtn').innerHTML=t('continue');
-    document.getElementById('lbl_pauseTitle').innerHTML=t('pauseTitle'); document.getElementById('resumeBtn').innerHTML=t('resume'); document.getElementById('saveBtn').innerHTML=t('save');
-    document.getElementById('pauseLoadBtn').innerHTML=t('load'); document.getElementById('lbl_gameOverTitle').innerHTML=t('missionFailed');
-    document.getElementById('lbl_finalScore').innerHTML=t('finalScore'); document.getElementById('lbl_mineBtn').innerHTML=t('mineBtn');
-    document.getElementById('langToggleBtn').innerHTML=t('langToggle'); document.getElementById('lbl_exitBtn').innerHTML=t('exitBtn');
-    document.getElementById('lbl_pauseBtn').innerHTML=t('pauseBtn'); document.getElementById('pauseToMenuBtn').innerHTML=t('pauseMenuBtn');
-    document.getElementById('restartBtn').innerHTML=t('gameOverMenuBtn'); 
-    let cb=document.getElementById('closeInfoBtn'); if(cb) cb.innerHTML=t('encClose');
-    let mb=document.getElementById('muteBtnHeader'); if(mb) mb.innerText=sfx.isMuted?'🔇':'🔊';
+    
+    const setHTML = (id, key) => { let el = document.getElementById(id); if (el) el.innerHTML = t(key); };
+    
+    setHTML('lbl_score', 'score'); setHTML('lbl_lvl', 'lvl'); setHTML('lbl_title', 'title'); setHTML('lbl_campaign', 'campaign');
+    setHTML('startBtn', 'newGame'); setHTML('startLoadBtn', 'continue');
+    setHTML('lbl_pauseTitle', 'pauseTitle'); setHTML('resumeBtn', 'resume'); setHTML('lbl_cacheTitle', 'cacheTitle');
+    setHTML('saveBtn', 'save'); setHTML('pauseLoadBtn', 'load');
+    setHTML('lbl_gameOverTitle', 'missionFailed'); setHTML('lbl_finalScore', 'finalScore');
+    setHTML('lbl_mineBtn', 'mineBtn'); setHTML('langToggleBtn', 'langToggle');
+    setHTML('lbl_exitBtn', 'exitBtn'); setHTML('lbl_pauseBtn', 'pauseBtn');
+    setHTML('pauseToMenuBtn', 'pauseMenuBtn'); setHTML('restartBtn', 'gameOverMenuBtn');
+    
+    let mb = document.getElementById('muteBtnHeader'); 
+    if (mb) mb.innerText = sfx.isMuted ? '🔇' : '🔊';
+    
     updateObjectiveUI();
 }
 
@@ -246,293 +371,867 @@ document.getElementById('langToggleBtn').addEventListener('click', () => {
     updateStaticUI();
 });
 
-/** АУДИО */
+/** * АУДИО ДВИЖОК 
+ */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const sfx = {
     isMuted: false, noiseBuffer: null, engineOsc: null, engineGain: null,
-    init(){ if(audioCtx.state==='suspended') audioCtx.resume(); },
-    createNoise(){ const b=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; return b; },
-    playShoot(isP=true){ if(this.isMuted||audioCtx.state==='suspended')return; let o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type='square'; o.frequency.setValueAtTime(isP?400:300,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(100,audioCtx.currentTime+0.1); g.gain.setValueAtTime(isP?0.05:0.02,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.1); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.1); },
-    playLaser(){ if(this.isMuted||audioCtx.state==='suspended')return; let o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(600,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(100,audioCtx.currentTime+0.3); g.gain.setValueAtTime(0.06,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.3); },
-    playExplosion(isB=false){ if(this.isMuted||audioCtx.state==='suspended')return; if(!this.noiseBuffer)this.noiseBuffer=this.createNoise(); let n=audioCtx.createBufferSource(); n.buffer=this.noiseBuffer; let f=audioCtx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=isB?800:2000; let g=audioCtx.createGain(); let d=isB?0.5:0.15; g.gain.setValueAtTime(isB?0.3:0.1,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+d); n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(); n.stop(audioCtx.currentTime+d); },
-    playArmorHit(){ if(this.isMuted||audioCtx.state==='suspended')return; let o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(600,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(800,audioCtx.currentTime+0.05); g.gain.setValueAtTime(0.05,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.05); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.05); },
-    playBonus(){ this.playMelody([[600,0.1],[800,0.2]]); },
-    startEngine(){ if(this.isMuted||this.engineOsc||audioCtx.state==='suspended')return; this.engineOsc=audioCtx.createOscillator(); this.engineGain=audioCtx.createGain(); this.engineOsc.type='square'; this.engineOsc.frequency.value=55; this.engineGain.gain.setValueAtTime(0.02,audioCtx.currentTime); this.engineOsc.connect(this.engineGain); this.engineGain.connect(audioCtx.destination); this.engineOsc.start(); },
-    stopEngine(){ if(this.engineOsc){ this.engineGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.1); this.engineOsc.stop(audioCtx.currentTime+0.1); this.engineOsc=null; } },
-    playMelody(n,t='square'){ if(this.isMuted||audioCtx.state==='suspended')return; let tm=audioCtx.currentTime; n.forEach(([f,d])=>{ if(f>0){ let o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t; o.frequency.value=f; g.gain.setValueAtTime(0.05,tm); g.gain.linearRampToValueAtTime(0,tm+d*0.9); o.connect(g); g.connect(audioCtx.destination); o.start(tm); o.stop(tm+d); } tm+=d; }); },
-    playStart(){ this.playMelody([[330,0.15],[330,0.15],[330,0.15],[261,0.15],[330,0.15],[392,0.3]]); },
-    playWin(){ this.playMelody([[261,0.1],[330,0.1],[392,0.1],[523,0.4]]); }, playLose(){ this.playMelody([[392,0.2],[370,0.2],[349,0.2],[330,0.8]],'sawtooth'); }
+    init() { if (audioCtx.state === 'suspended') audioCtx.resume(); },
+    createNoise() { 
+        const b = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate); 
+        const d = b.getChannelData(0); 
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; 
+        return b; 
+    },
+    playShoot(isP = true) { 
+        if (this.isMuted || audioCtx.state === 'suspended') return; 
+        let o = audioCtx.createOscillator(), g = audioCtx.createGain(); 
+        o.type = 'square'; o.frequency.setValueAtTime(isP ? 400 : 300, audioCtx.currentTime); 
+        o.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1); 
+        g.gain.setValueAtTime(isP ? 0.05 : 0.02, audioCtx.currentTime); 
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1); 
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.1); 
+    },
+    playLaser() { 
+        if (this.isMuted || audioCtx.state === 'suspended') return; 
+        let o = audioCtx.createOscillator(), g = audioCtx.createGain(); 
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(600, audioCtx.currentTime); 
+        o.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3); 
+        g.gain.setValueAtTime(0.06, audioCtx.currentTime); 
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3); 
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.3); 
+    },
+    playExplosion(isB = false) { 
+        if (this.isMuted || audioCtx.state === 'suspended') return; 
+        if (!this.noiseBuffer) this.noiseBuffer = this.createNoise(); 
+        let n = audioCtx.createBufferSource(); n.buffer = this.noiseBuffer; 
+        let f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = isB ? 800 : 2000; 
+        let g = audioCtx.createGain(); let d = isB ? 0.5 : 0.15; 
+        g.gain.setValueAtTime(isB ? 0.3 : 0.1, audioCtx.currentTime); 
+        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d); 
+        n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(); n.stop(audioCtx.currentTime + d); 
+    },
+    playArmorHit() { 
+        if (this.isMuted || audioCtx.state === 'suspended') return; 
+        let o = audioCtx.createOscillator(), g = audioCtx.createGain(); 
+        o.type = 'triangle'; o.frequency.setValueAtTime(600, audioCtx.currentTime); 
+        o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.05); 
+        g.gain.setValueAtTime(0.05, audioCtx.currentTime); 
+        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); 
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.05); 
+    },
+    playBonus() { this.playMelody([[600, 0.1], [800, 0.2]]); },
+    playSiren(vol) {
+        if (this.isMuted || audioCtx.state === 'suspended') return;
+        let o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(800, audioCtx.currentTime);
+        o.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+        o.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.6);
+        g.gain.setValueAtTime(vol, audioCtx.currentTime);
+        g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.6);
+    },
+    startEngine() { 
+        if (this.isMuted || this.engineOsc || audioCtx.state === 'suspended') return; 
+        this.engineOsc = audioCtx.createOscillator(); this.engineGain = audioCtx.createGain(); 
+        this.engineOsc.type = 'square'; this.engineOsc.frequency.value = 55; 
+        this.engineGain.gain.setValueAtTime(0.02, audioCtx.currentTime); 
+        this.engineOsc.connect(this.engineGain); this.engineGain.connect(audioCtx.destination); 
+        this.engineOsc.start(); 
+    },
+    stopEngine() { 
+        if (this.engineOsc) { 
+            this.engineGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1); 
+            this.engineOsc.stop(audioCtx.currentTime + 0.1); 
+            this.engineOsc = null; 
+        } 
+    },
+    playMelody(n, t = 'square') { 
+        if (this.isMuted || audioCtx.state === 'suspended') return; 
+        let tm = audioCtx.currentTime; 
+        n.forEach(([f, d]) => { 
+            if (f > 0) { 
+                let o = audioCtx.createOscillator(), g = audioCtx.createGain(); 
+                o.type = t; o.frequency.value = f; 
+                g.gain.setValueAtTime(0.05, tm); g.gain.linearRampToValueAtTime(0, tm + d * 0.9); 
+                o.connect(g); g.connect(audioCtx.destination); o.start(tm); o.stop(tm + d); 
+            } 
+            tm += d; 
+        }); 
+    },
+    playStart() { this.playMelody([[330, 0.15], [330, 0.15], [330, 0.15], [261, 0.15], [330, 0.15], [392, 0.3]]); },
+    playWin() { this.playMelody([[261, 0.1], [330, 0.1], [392, 0.1], [523, 0.4]]); },
+    playLose() { this.playMelody([[392, 0.2], [370, 0.2], [349, 0.2], [330, 0.8]], 'sawtooth'); }
 };
 
-/** ИГРОВОЕ СОСТОЯНИЕ */
-let grid=[], brickState=[], player=null, enemies=[], allies=[], turrets=[], bullets=[], lasers=[], particles=[], bonuses=[], placedMines=[], enemyMines=[], currentEnemySpawns=[];
-let score=0, lives=3, continues=3, minesCount=3, level=1, levelType='CLASSIC', assaultMode='NORMAL', gameState='START', baseAlive=true, substationAlive=false, radarsAlive=3, buttonsLeft=0;
-let exposureTimer=0, spottedTimer=0, wasSpottedLastFrame=false;
-let enemiesToSpawn=0, enemySpawnTimer=0, MAX_ENEMIES_ON_SCREEN=3, camera={x:0,y:0}, enemyBaseCol=7, baseDefTimer=0, mineCooldown=0, timeStopTimer=0, playerWeaponLevel=0, lastBossLevel=0;
-let savedGrid=[], savedBrickState=[], savedLevelType='CLASSIC', savedAssaultMode='NORMAL', savedEnemyBaseCol=7, savedEnemiesToSpawn=0, savedEnemyMinesCoords=[], savedButtonsLeft=0, savedCols=15, savedRows=15, lastTime=0, animationId;
-const ENEMY_SPAWN_RATE = 2500;
-const keys={ArrowUp:false,ArrowDown:false,ArrowLeft:false,ArrowRight:false,w:false,a:false,s:false,d:false,W:false,A:false,S:false,D:false,'ц':false,'ф':false,'ы':false,'в':false,'Ц':false,'Ф':false,'Ы':false,'В':false,' ':false,'b':false,'B':false,'и':false,'И':false};
-let touchDirs={up:false,down:false,left:false,right:false}, touchFire=false, touchMine=false;
+/** * ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ИГРЫ 
+ */
+let grid = [], brickState = [], player = null, enemies = [], allies = [], turrets = [];
+let bullets = [], lasers = [], particles = [], bonuses = [], placedMines = [], enemyMines = [], currentEnemySpawns = [];
 
-/** КЛАССЫ */
+let score = 0, lives = 3, continues = 3, minesCount = 3, level = 1, levelType = 'CLASSIC';
+let assaultMode = 'NORMAL', gameState = 'START', baseAlive = true, substationAlive = false;
+let radarsAlive = 3, buttonsLeft = 0;
+let exposureTimer = 0, spottedTimer = 0, wasSpottedLastFrame = false;
+
+let enemiesToSpawn = 0, enemySpawnTimer = 0, MAX_ENEMIES_ON_SCREEN = 3;
+let camera = { x: 0, y: 0 }, enemyBaseCol = 7, baseDefTimer = 0, mineCooldown = 0;
+let timeStopTimer = 0, playerWeaponLevel = 0, lastBossLevel = 0;
+
+let savedGrid = [], savedBrickState = [], savedLevelType = 'CLASSIC', savedAssaultMode = 'NORMAL';
+let savedEnemyBaseCol = 7, savedEnemiesToSpawn = 0, savedEnemyMinesCoords = [];
+let savedButtonsLeft = 0, savedCols = 15, savedRows = 15;
+
+let lastTime = 0, animationId;
+const ENEMY_SPAWN_RATE = 2500;
+
+const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, W: false, A: false, S: false, D: false, 'ц': false, 'ф': false, 'ы': false, 'в': false, 'Ц': false, 'Ф': false, 'Ы': false, 'В': false, ' ': false, 'b': false, 'B': false, 'и': false, 'И': false };
+let touchDirs = { up: false, down: false, left: false, right: false }, touchFire = false, touchMine = false;
+
+/** * СУЩНОСТИ 
+ */
 class Particle {
-    constructor(x,y,c){this.x=x;this.y=y;this.color=c;let a=Math.random()*Math.PI*2;let s=Math.random()*80+30;this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s;this.life=1;this.decay=Math.random()*2+1;}
-    update(dt){this.x+=this.vx*(dt/1000);this.y+=this.vy*(dt/1000);this.life-=this.decay*(dt/1000);}
-    draw(ctx){ctx.globalAlpha=this.life;ctx.fillStyle=this.color;ctx.fillRect(this.x,this.y,4,4);ctx.globalAlpha=1;}
+    constructor(x, y, color) { 
+        this.x = x; this.y = y; this.color = color; 
+        const a = Math.random() * Math.PI * 2; 
+        const s = Math.random() * 80 + 30; 
+        this.vx = Math.cos(a) * s; 
+        this.vy = Math.sin(a) * s; 
+        this.life = 1.0; 
+        this.decay = Math.random() * 2 + 1; 
+    }
+    update(dt) { 
+        this.x += this.vx * (dt / 1000); 
+        this.y += this.vy * (dt / 1000); 
+        this.life -= this.decay * (dt / 1000); 
+    }
+    draw(ctx) { 
+        ctx.globalAlpha = this.life; 
+        ctx.fillStyle = this.color; 
+        ctx.fillRect(this.x, this.y, 4, 4); 
+        ctx.globalAlpha = 1.0; 
+    }
 }
-function createExplosion(x,y,c,n){for(let i=0;i<n;i++)particles.push(new Particle(x,y,c));}
+
+function createExplosion(x, y, color, count) { 
+    for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color)); 
+}
 
 class Bullet {
-    constructor(x,y,dx,dy,isP,ow,isD=false){this.x=x;this.y=y;this.dx=dx;this.dy=dy;this.speed=(isP&&ow.weaponLevel>=1&&!isD)?450:350;this.isPlayer=isP;this.ownerId=ow;this.isDrone=isD;this.radius=4;this.markForDeletion=false;}
-    update(dt){
-        this.x+=this.dx*this.speed*(dt/1000);this.y+=this.dy*this.speed*(dt/1000);
-        if(this.x<0||this.x>COLS*TILE_SIZE||this.y<0||this.y>ROWS*TILE_SIZE){this.markForDeletion=true;createExplosion(this.x,this.y,'#aaa',5);sfx.playArmorHit();return;}
-        let isFS=this.isDrone||(this.ownerId&&(this.ownerId.isAllyAI||this.ownerId.constructor.name==='Turret'));
-        let checkFS=(r,c)=>{for(let br=Math.max(0,r-2);br<=Math.min(ROWS-1,r+2);br++){for(let bc=Math.max(0,c-2);bc<=Math.min(COLS-1,c+2);bc++){if(grid[br][bc]===BASE||grid[br][bc]===RADAR)return true;}}return false;};
-        let col=Math.floor(this.x/TILE_SIZE),row=Math.floor(this.y/TILE_SIZE);
-        if(row>=0&&row<ROWS&&col>=0&&col<COLS){
-            let c=grid[row][col];
-            if(c===VOID){this.markForDeletion=true;createExplosion(this.x,this.y,'#444',5);return;}
-            if(c!==EMPTY&&c!==WATER&&c!==BUSH&&c!==BTN_OFF&&c!==BTN_ON){
-                if(c===BRICK){
-                    if(isFS&&checkFS(row,col)){this.markForDeletion=true;createExplosion(this.x,this.y,'#f90',5);return;}
-                    let st=brickState[row][col],px=col*TILE_SIZE,py=row*TILE_SIZE,hit=false,nst=st;
-                    let bx=this.x-4,by=this.y-4,bw=8,bh=8; if(this.dy<0){by-=8;bh+=8;bx-=4;bw+=8;}else if(this.dy>0){bh+=8;bx-=4;bw+=8;}else if(this.dx<0){bx-=8;bw+=8;by-=4;bh+=8;}else if(this.dx>0){bw+=8;by-=4;bh+=8;}
-                    [{b:1,x:px,y:py},{b:2,x:px+16,y:py},{b:4,x:px,y:py+16},{b:8,x:px+16,y:py+16}].forEach(q=>{if((st&q.b)&&rectIntersect(bx,by,bw,bh,q.x,q.y,16,16)){hit=true;nst&=~q.b;}});
-                    if(hit){this.markForDeletion=true;createExplosion(this.x,this.y,'#f90',10);sfx.playExplosion(false);brickState[row][col]=nst;if(nst===0)grid[row][col]=EMPTY;return;}
-                }else{
-                    this.markForDeletion=true;createExplosion(this.x,this.y,'#f90',10);
-                    if(c===STEEL||c===GATE)sfx.playArmorHit();
-                    else if(c===BASE){baseAlive=false;createExplosion(this.x,this.y,'#f00',40);sfx.playExplosion(true);levelFailed(t('baseDestroyed'));}
-                    else if(c===SUBSTATION&&this.isPlayer){grid[row][col]=EMPTY;substationAlive=false;createExplosion(this.x,this.y,'#0ea5e9',50);sfx.playExplosion(true);sfx.playBonus();updateObjectiveUI();}
-                    else if(c===RADAR){grid[row][col]=EMPTY;radarsAlive--;createExplosion(this.x,this.y,'#0ea5e9',40);sfx.playExplosion(true);updateObjectiveUI();}
-                    else if(c===ENEMY_BASE&&this.isPlayer){
-                        if(assaultMode==='SUBSTATION'&&substationAlive){sfx.playArmorHit();createExplosion(this.x,this.y,'#3b82f6',15);}
-                        else if(assaultMode==='MINIBOSSES'&&countMiniBosses()>0){sfx.playArmorHit();createExplosion(this.x,this.y,'#f59e0b',15);}
-                        else if(assaultMode==='BUTTONS'&&buttonsLeft>0){sfx.playArmorHit();createExplosion(this.x,this.y,'#ef4444',15);}
-                        else{grid[row][col]=EMPTY;createExplosion(this.x,this.y,'#f0f',50);sfx.playExplosion(true);winLevel();}
-                    } return;
+    constructor(x, y, dx, dy, isP, ow, isD = false) { 
+        this.x = x; this.y = y; this.dx = dx; this.dy = dy; 
+        this.speed = (isP && ow.weaponLevel >= 1 && !isD) ? 450 : 350; 
+        this.isPlayer = isP; this.ownerId = ow; this.isDrone = isD; 
+        this.radius = 4; this.markForDeletion = false; 
+    }
+    update(dt) {
+        this.x += this.dx * this.speed * (dt / 1000); 
+        this.y += this.dy * this.speed * (dt / 1000);
+        
+        if (this.x < 0 || this.x > COLS * TILE_SIZE || this.y < 0 || this.y > ROWS * TILE_SIZE) { 
+            this.markForDeletion = true; 
+            createExplosion(this.x, this.y, '#aaa', 5); 
+            sfx.playArmorHit(); 
+            return; 
+        }
+
+        let isFS = this.isDrone || (this.ownerId && (this.ownerId.isAllyAI || this.ownerId.constructor.name === 'Turret'));
+        let checkFS = (r, c) => { 
+            for (let br = Math.max(0, r - 2); br <= Math.min(ROWS - 1, r + 2); br++) { 
+                for (let bc = Math.max(0, c - 2); bc <= Math.min(COLS - 1, c + 2); bc++) { 
+                    if (grid[br][bc] === BASE || grid[br][bc] === RADAR) return true; 
+                } 
+            } 
+            return false; 
+        };
+
+        let col = Math.floor(this.x / TILE_SIZE); let row = Math.floor(this.y / TILE_SIZE);
+        if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+            let c = grid[row][col];
+            if (c === VOID) { 
+                this.markForDeletion = true; 
+                createExplosion(this.x, this.y, '#444', 5); 
+                return; 
+            }
+            if (c !== EMPTY && c !== WATER && c !== BUSH && c !== BTN_OFF && c !== BTN_ON) {
+                if (c === BRICK) {
+                    if (isFS && checkFS(row, col)) { 
+                        this.markForDeletion = true; 
+                        createExplosion(this.x, this.y, '#ff9900', 5); 
+                        return; 
+                    }
+                    let st = brickState[row][col], px = col * TILE_SIZE, py = row * TILE_SIZE, hit = false, nst = st;
+                    let bx = this.x - this.radius, by = this.y - this.radius, bw = this.radius * 2, bh = this.radius * 2;
+                    
+                    if (this.dy < 0) { by -= 8; bh += 8; bx -= 4; bw += 8; } 
+                    else if (this.dy > 0) { bh += 8; bx -= 4; bw += 8; } 
+                    else if (this.dx < 0) { bx -= 8; bw += 8; by -= 4; bh += 8; } 
+                    else if (this.dx > 0) { bw += 8; by -= 4; bh += 8; }
+                    
+                    [{ b: 1, x: px, y: py }, { b: 2, x: px + 16, y: py }, { b: 4, x: px, y: py + 16 }, { b: 8, x: px + 16, y: py + 16 }].forEach(q => { 
+                        if ((st & q.b) && rectIntersect(bx, by, bw, bh, q.x, q.y, 16, 16)) { hit = true; nst &= ~q.b; } 
+                    });
+                    
+                    if (hit) { 
+                        this.markForDeletion = true; 
+                        createExplosion(this.x, this.y, '#ff9900', 10); 
+                        sfx.playExplosion(false); 
+                        brickState[row][col] = nst; 
+                        if (nst === 0) grid[row][col] = EMPTY; 
+                        return; 
+                    }
+                } else {
+                    if (isFS && (c === BASE || c === RADAR)) { 
+                        this.markForDeletion = true; 
+                        createExplosion(this.x, this.y, '#ffaa00', 5); 
+                        return; 
+                    }
+                    this.markForDeletion = true; createExplosion(this.x, this.y, '#ff9900', 10);
+                    
+                    if (c === STEEL || c === GATE) { sfx.playArmorHit(); }
+                    else if (c === BASE) { 
+                        baseAlive = false; 
+                        createExplosion(this.x, this.y, '#ff0000', 40); 
+                        sfx.playExplosion(true); 
+                        levelFailed(t('baseDestroyed')); 
+                        return; 
+                    }
+                    else if (c === SUBSTATION && this.isPlayer) { 
+                        grid[row][col] = EMPTY; substationAlive = false; 
+                        createExplosion(this.x, this.y, '#0ea5e9', 50); 
+                        sfx.playExplosion(true); sfx.playBonus(); 
+                        updateObjectiveUI(); 
+                    }
+                    else if (c === RADAR) { 
+                        grid[row][col] = EMPTY; radarsAlive--; 
+                        createExplosion(this.x, this.y, '#0ea5e9', 40); 
+                        sfx.playExplosion(true); 
+                        updateObjectiveUI(); 
+                        return; 
+                    }
+                    else if (c === ENEMY_BASE && this.isPlayer) {
+                        if (assaultMode === 'SUBSTATION' && substationAlive) { 
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#3b82f6', 15); 
+                        }
+                        else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) { 
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#f59e0b', 15); 
+                        }
+                        else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) { 
+                            sfx.playArmorHit(); createExplosion(this.x, this.y, '#ef4444', 15); 
+                        }
+                        else { 
+                            grid[row][col] = EMPTY; 
+                            createExplosion(this.x, this.y, '#ff00ff', 50); 
+                            sfx.playExplosion(true); winLevel(); 
+                        }
+                    } 
+                    return;
                 }
             }
         }
-        for(let o of bullets)if(o!==this&&!o.markForDeletion&&this.ownerId!==o.ownerId&&Math.hypot(this.x-o.x,this.y-o.y)<8){this.markForDeletion=true;o.markForDeletion=true;createExplosion((this.x+o.x)/2,(this.y+o.y)/2,'#fff',6);return;}
-        if(this.isPlayer){
-            for(let e of enemies){
-                if(!e.markForDeletion&&this.x>e.x&&this.x<e.x+e.w&&this.y>e.y&&this.y<e.y+e.h){
-                    this.markForDeletion=true;e.hp--;
-                    if(e.hp<=0){
-                        e.markForDeletion=true;score+=(e.isBoss?1000:(e.isMiniBoss?500:(e.eType==='NORMAL'?100:300)));
-                        document.getElementById('scoreUI').innerText=score;createExplosion(e.x+e.w/2,e.y+e.h/2,'#f40',e.isBoss?80:25);sfx.playExplosion(true);updateObjectiveUI();
-                        if(Math.random()<0.2){let bt;let r=Math.random();if(r<0.05)bt='BOMB';else if(r<0.15)bt='TIME';else if(r<0.35)bt=Math.random()<0.5?'ALLY':'TURRET';else bt=['LIFE','SHIELD','FIRE','BASE'][Math.floor(Math.random()*4)];bonuses.push(new Bonus(e.x+10,e.y+10,bt));}
-                    }else{createExplosion(this.x,this.y,'#fff',8);sfx.playArmorHit();if(e.isBoss&&Math.random()<0.05)bonuses.push(new Bonus(this.x,this.y,['FIRE','LIFE','ALLY','TURRET','SHIELD','TIME'][Math.floor(Math.random()*6)]));}
+        
+        for (let o of bullets) {
+            if (o !== this && !o.markForDeletion && this.ownerId !== o.ownerId && Math.hypot(this.x - o.x, this.y - o.y) < 8) { 
+                this.markForDeletion = true; o.markForDeletion = true; 
+                createExplosion((this.x + o.x) / 2, (this.y + o.y) / 2, '#fff', 6); 
+                return; 
+            }
+        }
+        
+        if (this.isPlayer) {
+            for (let enemy of enemies) {
+                if (!enemy.markForDeletion && this.x > enemy.x && this.x < enemy.x + enemy.w && this.y > enemy.y && this.y < enemy.y + enemy.h) {
+                    this.markForDeletion = true; enemy.hp--;
+                    if (enemy.hp <= 0) {
+                        enemy.markForDeletion = true; 
+                        score += (enemy.isBoss ? 1000 : (enemy.isMiniBoss ? 500 : (enemy.eType === 'NORMAL' ? 100 : 300))); 
+                        document.getElementById('scoreUI').innerText = score;
+                        createExplosion(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, '#ff4400', enemy.isBoss ? 80 : 25); 
+                        sfx.playExplosion(true); 
+                        updateObjectiveUI();
+                        if (Math.random() < 0.20) { 
+                            bonuses.push(new Bonus(enemy.x + 10, enemy.y + 10, ['BOMB', 'TIME', 'ALLY', 'TURRET', 'LIFE', 'SHIELD', 'FIRE', 'BASE'][Math.floor(Math.random() * 8)])); 
+                        }
+                    } else { 
+                        createExplosion(this.x, this.y, '#fff', 8); 
+                        sfx.playArmorHit(); 
+                        if (enemy.isBoss && Math.random() < 0.05) bonuses.push(new Bonus(this.x, this.y, ['FIRE', 'LIFE', 'ALLY', 'TURRET', 'SHIELD', 'TIME'][Math.floor(Math.random() * 6)])); 
+                    }
                     break;
                 }
             }
-        }else{
-            if(player&&!player.markForDeletion&&this.x>player.x&&this.x<player.x+player.w&&this.y>player.y&&this.y<player.y+player.h){
-                this.markForDeletion=true;if(player.shieldTimer>0){createExplosion(this.x,this.y,'#3b82f6',10);sfx.playArmorHit();}else playerDeath();
+        } else {
+            if (player && !player.markForDeletion && this.x > player.x && this.x < player.x + player.w && this.y > player.y && this.y < player.y + player.h) { 
+                this.markForDeletion = true; 
+                if (player.shieldTimer > 0) { createExplosion(this.x, this.y, '#3b82f6', 10); sfx.playArmorHit(); } 
+                else playerDeath(); 
             }
-            for(let a of allies)if(!a.markForDeletion&&this.x>a.x&&this.x<a.x+a.w&&this.y>a.y&&this.y<a.y+a.h){this.markForDeletion=true;if(a.shieldTimer>0){createExplosion(this.x,this.y,'#3b82f6',10);sfx.playArmorHit();}else{a.hp--;if(a.hp<=0){a.markForDeletion=true;createExplosion(a.x+a.w/2,a.y+a.h/2,'#0ea5e9',25);sfx.playExplosion(true);}else{createExplosion(this.x,this.y,'#fff',8);sfx.playArmorHit();}}break;}
-            for(let t of turrets)if(!t.markForDeletion&&this.x>t.x&&this.x<t.x+32&&this.y>t.y&&this.y<t.y+32){this.markForDeletion=true;t.hp--;if(t.hp<=0){t.markForDeletion=true;createExplosion(t.x+16,t.y+16,'#a855f7',30);sfx.playExplosion(true);}else{createExplosion(this.x,this.y,'#fff',8);sfx.playArmorHit();}break;}
+            for (let a of allies) {
+                if (!a.markForDeletion && this.x > a.x && this.x < a.x + a.w && this.y > a.y && this.y < a.y + a.h) { 
+                    this.markForDeletion = true; 
+                    if (a.shieldTimer > 0) { createExplosion(this.x, this.y, '#3b82f6', 10); sfx.playArmorHit(); } 
+                    else { 
+                        a.hp--; 
+                        if (a.hp <= 0) { a.markForDeletion = true; createExplosion(a.x + a.w / 2, a.y + a.h / 2, '#0ea5e9', 25); sfx.playExplosion(true); } 
+                        else { createExplosion(this.x, this.y, '#fff', 8); sfx.playArmorHit(); } 
+                    } 
+                    break; 
+                }
+            }
+            for (let t of turrets) {
+                if (!t.markForDeletion && this.x > t.x && this.x < t.x + 32 && this.y > t.y && this.y < t.y + 32) { 
+                    this.markForDeletion = true; 
+                    t.hp--; 
+                    if (t.hp <= 0) { t.markForDeletion = true; createExplosion(t.x + 16, t.y + 16, '#a855f7', 30); sfx.playExplosion(true); } 
+                    else { createExplosion(this.x, this.y, '#fff', 8); sfx.playArmorHit(); } 
+                    break; 
+                }
+            }
         }
     }
-    draw(ctx){ctx.fillStyle=this.isPlayer?'#fff':'#fca5a5';ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);ctx.fill();}
+    draw(ctx) { ctx.fillStyle = this.isPlayer ? '#fff' : '#fca5a5'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); }
 }
 
 class LaserBeam {
-    constructor(sx,sy,ex,ey){this.sx=sx;this.sy=sy;this.ex=ex;this.ey=ey;this.lifeTime=200;this.maxLife=200;this.markForDeletion=false;}
-    update(dt){this.lifeTime-=dt;if(this.lifeTime<=0)this.markForDeletion=true;}
-    draw(ctx){ctx.save();ctx.globalAlpha=this.lifeTime/this.maxLife;ctx.strokeStyle='#ef4444';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(this.sx,this.sy);ctx.lineTo(this.ex,this.ey);ctx.stroke();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();ctx.restore();}
+    constructor(sx, sy, ex, ey) { 
+        this.sx = sx; this.sy = sy; this.ex = ex; this.ey = ey; 
+        this.lifeTime = 200; this.maxLife = 200; this.markForDeletion = false; 
+    }
+    update(dt) { this.lifeTime -= dt; if (this.lifeTime <= 0) this.markForDeletion = true; }
+    draw(ctx) { 
+        ctx.save(); ctx.globalAlpha = this.lifeTime / this.maxLife; 
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 8; 
+        ctx.beginPath(); ctx.moveTo(this.sx, this.sy); ctx.lineTo(this.ex, this.ey); ctx.stroke(); 
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore(); 
+    }
 }
 
 class Mine {
-    constructor(x,y,isE=false){this.x=x;this.y=y;this.r=6;this.isEnemy=isE;this.markForDeletion=false;}
-    update(dt){
-        if(this.isEnemy){
-            let tgts=[]; if(player&&!player.markForDeletion)tgts.push(player); tgts=tgts.concat(allies);
-            for(let t of tgts)if(Math.hypot(t.x+t.w/2-this.x,t.y+t.h/2-this.y)<18){this.markForDeletion=true;createExplosion(this.x,this.y,'#f00',30);sfx.playExplosion(true);if(t.shieldTimer>0){sfx.playArmorHit();createExplosion(this.x,this.y,'#3b82f6',10);}else{if(t===player)playerDeath();else{t.hp=0;t.markForDeletion=true;}}}
-        }else{
-            for(let e of enemies)if(!e.markForDeletion&&Math.hypot(e.x+e.w/2-this.x,e.y+e.h/2-this.y)<18){this.markForDeletion=true;e.hp-=10;if(e.hp<=0){e.markForDeletion=true;createExplosion(this.x,this.y,'#f00',30);sfx.playExplosion(true);score+=(e.isBoss?1000:(e.isMiniBoss?500:(e.eType==='NORMAL'?100:300)));document.getElementById('scoreUI').innerText=score;updateObjectiveUI();}else{createExplosion(this.x,this.y,'#f90',15);sfx.playArmorHit();}}
+    constructor(x, y, isE = false) { this.x = x; this.y = y; this.r = 6; this.isEnemy = isE; this.markForDeletion = false; }
+    update(dt) {
+        if (this.isEnemy) {
+            let tgts = []; if (player && !player.markForDeletion) tgts.push(player); tgts = tgts.concat(allies);
+            for (let t of tgts) {
+                if (Math.hypot(t.x + t.w / 2 - this.x, t.y + t.h / 2 - this.y) < 18) { 
+                    this.markForDeletion = true; createExplosion(this.x, this.y, '#ff0000', 30); sfx.playExplosion(true); 
+                    if (t.shieldTimer > 0) { sfx.playArmorHit(); createExplosion(this.x, this.y, '#3b82f6', 10); } 
+                    else { if (t === player) playerDeath(); else { t.hp = 0; t.markForDeletion = true; } } 
+                }
+            }
+        } else {
+            for (let e of enemies) {
+                if (!e.markForDeletion && Math.hypot(e.x + e.w / 2 - this.x, e.y + e.h / 2 - this.y) < 18) { 
+                    this.markForDeletion = true; e.hp -= 10; 
+                    if (e.hp <= 0) { 
+                        e.markForDeletion = true; createExplosion(this.x, this.y, '#ff0000', 30); sfx.playExplosion(true); 
+                        score += (e.isBoss ? 1000 : (e.isMiniBoss ? 500 : (e.eType === 'NORMAL' ? 100 : 300))); 
+                        document.getElementById('scoreUI').innerText = score; updateObjectiveUI(); 
+                    } else { createExplosion(this.x, this.y, '#ff9900', 15); sfx.playArmorHit(); } 
+                }
+            }
         }
     }
-    draw(ctx){if(levelType==='SHADOWS'&&this.isEnemy&&player&&!player.markForDeletion&&Math.hypot(this.x-(player.x+player.w/2),this.y-(player.y+player.h/2))>(radarsAlive===3?9999:(radarsAlive===2?250:(radarsAlive===1?150:80))))return;ctx.fillStyle=this.isEnemy?'#374151':'#ef4444';ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();if(Math.floor(Date.now()/250)%2===0){ctx.fillStyle=this.isEnemy?'#ef4444':'#fff';ctx.beginPath();ctx.arc(this.x,this.y,2,0,Math.PI*2);ctx.fill();}}
+    draw(ctx) { 
+        if (levelType === 'SHADOWS' && this.isEnemy && player && !player.markForDeletion && Math.hypot(this.x - (player.x + player.w / 2), this.y - (player.y + player.h / 2)) > (radarsAlive === 3 ? 9999 : (radarsAlive === 2 ? 250 : (radarsAlive === 1 ? 150 : 80)))) return; 
+        ctx.fillStyle = this.isEnemy ? '#374151' : '#ef4444'; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill(); 
+        if (Math.floor(Date.now() / 250) % 2 === 0) { ctx.fillStyle = this.isEnemy ? '#ef4444' : '#fff'; ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI * 2); ctx.fill(); } 
+    }
 }
 
 class Bonus {
-    constructor(x,y,t){this.x=x;this.y=y;this.w=20;this.h=20;this.type=t;this.blinkTimer=0;this.markForDeletion=false;this.lifeTime=15000;}
-    update(dt){this.lifeTime-=dt;if(this.lifeTime<=0)this.markForDeletion=true;this.blinkTimer+=dt;}
-    draw(ctx){if(this.blinkTimer%400<200&&this.lifeTime>3000)return;if(this.blinkTimer%200<100&&this.lifeTime<=3000)return;ctx.fillStyle='#fff';ctx.fillRect(this.x,this.y,this.w,this.h);ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.textBaseline='middle';let ch='';let cl={'LIFE':'#ef4444','SHIELD':'#3b82f6','FIRE':'#eab308','BASE':'#22c55e','ALLY':'#0ea5e9','TURRET':'#a855f7','BOMB':'#111827','TIME':'#f59e0b'};let t={'LIFE':'♥','SHIELD':'S','FIRE':'★','BASE':'B','ALLY':'A','TURRET':'T','BOMB':'💣','TIME':'⏱'};ctx.fillStyle=cl[this.type];ch=t[this.type];if(this.type==='FIRE')ctx.font='18px sans-serif';if(this.type==='BOMB'||this.type==='TIME')ctx.font='12px sans-serif';ctx.fillRect(this.x+2,this.y+2,this.w-4,this.h-4);ctx.fillStyle='#fff';ctx.fillText(ch,this.x+this.w/2,this.y+this.h/2+((this.type==='BOMB'||this.type==='TIME')?1:2));}
+    constructor(x, y, t) { this.x = x; this.y = y; this.w = 20; this.h = 20; this.type = t; this.blinkTimer = 0; this.markForDeletion = false; this.lifeTime = 15000; }
+    update(dt) { this.lifeTime -= dt; if (this.lifeTime <= 0) this.markForDeletion = true; this.blinkTimer += dt; }
+    draw(ctx) { 
+        if (this.blinkTimer % 400 < 200 && this.lifeTime > 3000) return; 
+        if (this.blinkTimer % 200 < 100 && this.lifeTime <= 3000) return; 
+        ctx.fillStyle = '#fff'; ctx.fillRect(this.x, this.y, this.w, this.h); ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; 
+        let ch = ''; let cl = { 'LIFE': '#ef4444', 'SHIELD': '#3b82f6', 'FIRE': '#eab308', 'BASE': '#22c55e', 'ALLY': '#0ea5e9', 'TURRET': '#a855f7', 'BOMB': '#111827', 'TIME': '#f59e0b' }; 
+        let t = { 'LIFE': '♥', 'SHIELD': 'S', 'FIRE': '★', 'BASE': 'B', 'ALLY': 'A', 'TURRET': 'T', 'BOMB': '💣', 'TIME': '⏱' }; 
+        ctx.fillStyle = cl[this.type]; ch = t[this.type]; 
+        if (this.type === 'FIRE') ctx.font = '18px sans-serif'; 
+        if (this.type === 'BOMB' || this.type === 'TIME') ctx.font = '12px sans-serif'; 
+        ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4); ctx.fillStyle = '#fff'; ctx.fillText(ch, this.x + this.w / 2, this.y + this.h / 2 + ((this.type === 'BOMB' || this.type === 'TIME') ? 1 : 2)); 
+    }
 }
 
 class Turret {
-    constructor(c,r){this.x=c*TILE_SIZE;this.y=r*TILE_SIZE;this.hp=5;this.lifeTime=25000;this.cooldown=0;this.dir=DIR_UP;this.markForDeletion=false;}
-    update(dt){this.lifeTime-=dt;if(this.lifeTime<=0){this.markForDeletion=true;createExplosion(this.x+16,this.y+16,'#a855f7',20);return;}this.cooldown-=dt;if(this.cooldown<=0&&enemies.length>0){let c=enemies[0];let md=Infinity;for(let e of enemies){let d=Math.hypot(e.x-this.x,e.y-this.y);if(d<md){md=d;c=e;}}let dx=c.x-this.x,dy=c.y-this.y;this.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?DIR_RIGHT:DIR_LEFT):(dy>0?DIR_DOWN:DIR_UP);let bx=this.x+16,by=this.y+16,bdx=0,bdy=0;if(this.dir===DIR_UP){bdy=-1;by-=12;}if(this.dir===DIR_DOWN){bdy=1;by+=12;}if(this.dir===DIR_LEFT){bdx=-1;bx-=12;}if(this.dir===DIR_RIGHT){bdx=1;bx+=12;}bullets.push(new Bullet(bx,by,bdx,bdy,true,this));sfx.playShoot(true);this.cooldown=600;}}
-    draw(ctx){ctx.save();ctx.translate(this.x+16,this.y+16);ctx.fillStyle=(this.lifeTime<3000&&Math.floor(Date.now()/150)%2===0)?'#ffaaaa':'#6b7280';ctx.fillRect(-12,-12,24,24);ctx.fillStyle='#4b5563';ctx.fillRect(-8,-8,16,16);ctx.beginPath();ctx.arc(0,0,6,0,Math.PI*2);ctx.fill();if(this.dir===DIR_RIGHT)ctx.rotate(Math.PI/2);else if(this.dir===DIR_DOWN)ctx.rotate(Math.PI);else if(this.dir===DIR_LEFT)ctx.rotate(-Math.PI/2);ctx.fillStyle='#a855f7';ctx.fillRect(-3,-16,6,16);ctx.restore();ctx.fillStyle='#ef4444';ctx.fillRect(this.x+2,this.y-6,28,4);ctx.fillStyle='#22c55e';ctx.fillRect(this.x+2,this.y-6,28*(this.hp/5),4);}
+    constructor(c, r) { this.x = c * TILE_SIZE; this.y = r * TILE_SIZE; this.hp = 5; this.lifeTime = 25000; this.cooldown = 0; this.dir = DIR_UP; this.markForDeletion = false; }
+    update(dt) { 
+        this.lifeTime -= dt; 
+        if (this.lifeTime <= 0) { this.markForDeletion = true; createExplosion(this.x + 16, this.y + 16, '#a855f7', 20); return; } 
+        this.cooldown -= dt; 
+        if (this.cooldown <= 0 && enemies.length > 0) { 
+            let c = enemies[0]; let md = Infinity; 
+            for (let e of enemies) { let d = Math.hypot(e.x - this.x, e.y - this.y); if (d < md) { md = d; c = e; } } 
+            let dx = c.x - this.x, dy = c.y - this.y; this.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? DIR_RIGHT : DIR_LEFT) : (dy > 0 ? DIR_DOWN : DIR_UP); 
+            let bx = this.x + 16, by = this.y + 16, bdx = 0, bdy = 0; 
+            if (this.dir === DIR_UP) { bdy = -1; by -= 12; } if (this.dir === DIR_DOWN) { bdy = 1; by += 12; } if (this.dir === DIR_LEFT) { bdx = -1; bx -= 12; } if (this.dir === DIR_RIGHT) { bdx = 1; bx += 12; } 
+            bullets.push(new Bullet(bx, by, bdx, bdy, true, this)); sfx.playShoot(true); this.cooldown = 600; 
+        } 
+    }
+    draw(ctx) { 
+        ctx.save(); ctx.translate(this.x + 16, this.y + 16); 
+        ctx.fillStyle = (this.lifeTime < 3000 && Math.floor(Date.now() / 150) % 2 === 0) ? '#ffaaaa' : '#6b7280'; ctx.fillRect(-12, -12, 24, 24); 
+        ctx.fillStyle = '#4b5563'; ctx.fillRect(-8, -8, 16, 16); ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill(); 
+        if (this.dir === DIR_RIGHT) ctx.rotate(Math.PI / 2); else if (this.dir === DIR_DOWN) ctx.rotate(Math.PI); else if (this.dir === DIR_LEFT) ctx.rotate(-Math.PI / 2); 
+        ctx.fillStyle = '#a855f7'; ctx.fillRect(-3, -16, 6, 16); ctx.restore(); 
+        ctx.fillStyle = '#ef4444'; ctx.fillRect(this.x + 2, this.y - 6, 28, 4); ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x + 2, this.y - 6, 28 * (this.hp / 5), 4); 
+    }
 }
 
 class Tank {
-    constructor(x,y,isP,eType='NORMAL',isAlly=false){this.eType=eType;this.isBoss=eType==='BOSS';this.isMiniBoss=eType==='MINIBOSS';this.w=this.isBoss?48:28;this.h=this.isBoss?48:28;this.x=x*TILE_SIZE+(TILE_SIZE-this.w)/2;this.y=y*TILE_SIZE+(TILE_SIZE-this.h)/2;this.isPlayer=isP;this.isAllyAI=isAlly;this.dir=DIR_UP;this.speed=this.isBoss?60:(this.isMiniBoss?70:(isP&&!isAlly?120:(isAlly?100:80)));this.cooldown=0;this.markForDeletion=false;this.hp=isAlly?3:(this.isBoss?30:(this.isMiniBoss?15:1));this.maxHp=this.hp;this.shieldTimer=(isP&&!isAlly)?3000:(isAlly?2000:0);this.weaponLevel=(isP&&!isAlly)?playerWeaponLevel:0;this.droneTimer=0;this.droneCooldown=0;this.droneDir=DIR_UP;this.revealedTimer=0;this.isHidden=false;if(!isP||isAlly){this.dir=isAlly?DIR_UP:DIR_DOWN;this.aiTimer=0;this.blockedTimer=0;if(eType==='FAST')this.speed=140;if(eType==='ARMORED')this.hp=3;if(eType==='RAPID')this.speed=70;}}
-    update(dt){
-        if(this.cooldown>0)this.cooldown-=dt; if(this.shieldTimer>0)this.shieldTimer-=dt; if(this.revealedTimer>0)this.revealedTimer-=dt;
-        if(this.isPlayer&&!this.isAllyAI){
-            let pr=Math.floor((this.y+this.h/2)/TILE_SIZE),pc=Math.floor((this.x+this.w/2)/TILE_SIZE);
-            this.isHidden=(pr>=0&&pr<ROWS&&pc>=0&&pc<COLS&&grid[pr][pc]===BUSH)&&this.revealedTimer<=0;
-            if(pr>=0&&pr<ROWS&&pc>=0&&pc<COLS&&grid[pr][pc]===BTN_OFF){grid[pr][pc]=BTN_ON;sfx.playBonus();buttonsLeft--;updateObjectiveUI();if(buttonsLeft<=0){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===GATE)grid[r][c]=EMPTY;sfx.playExplosion(true);}}
+    constructor(x, y, isP, eType = 'NORMAL', isAlly = false) { 
+        this.eType = eType; this.isBoss = eType === 'BOSS'; this.isMiniBoss = eType === 'MINIBOSS'; 
+        this.w = this.isBoss ? 48 : 28; this.h = this.isBoss ? 48 : 28; 
+        this.x = x * TILE_SIZE + (TILE_SIZE - this.w) / 2; this.y = y * TILE_SIZE + (TILE_SIZE - this.h) / 2; 
+        this.isPlayer = isP; this.isAllyAI = isAlly; this.dir = DIR_UP; 
+        this.speed = this.isBoss ? 60 : (this.isMiniBoss ? 70 : (isP && !isAlly ? 120 : (isAlly ? 100 : 80))); 
+        this.cooldown = 0; this.markForDeletion = false; 
+        this.hp = isAlly ? 3 : (this.isBoss ? 30 : (this.isMiniBoss ? 15 : 1)); this.maxHp = this.hp; 
+        this.shieldTimer = (isP && !isAlly) ? 3000 : (isAlly ? 2000 : 0); 
+        this.weaponLevel = (isP && !isAlly) ? playerWeaponLevel : 0; 
+        this.droneTimer = 0; this.droneCooldown = 0; this.droneDir = DIR_UP; 
+        this.revealedTimer = 0; this.isHidden = false; 
+        if (!isP || isAlly) { 
+            this.dir = isAlly ? DIR_UP : DIR_DOWN; this.aiTimer = 0; this.blockedTimer = 0; 
+            if (eType === 'FAST') this.speed = 140; if (eType === 'ARMORED') this.hp = 3; if (eType === 'RAPID') this.speed = 70; 
+        } 
+    }
+    update(dt) {
+        if (this.cooldown > 0) this.cooldown -= dt; 
+        if (this.shieldTimer > 0) this.shieldTimer -= dt; 
+        if (this.revealedTimer > 0) this.revealedTimer -= dt;
+        
+        if (this.isPlayer && !this.isAllyAI) {
+            let pr = Math.floor((this.y + this.h / 2) / TILE_SIZE), pc = Math.floor((this.x + this.w / 2) / TILE_SIZE);
+            this.isHidden = (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS && grid[pr][pc] === BUSH) && this.revealedTimer <= 0;
+            if (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS && grid[pr][pc] === BTN_OFF) { 
+                grid[pr][pc] = BTN_ON; sfx.playBonus(); buttonsLeft--; updateObjectiveUI(); 
+                if (buttonsLeft <= 0) { 
+                    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === GATE) grid[r][c] = EMPTY; 
+                    sfx.playExplosion(true); 
+                } 
+            }
         }
-        if(!this.isPlayer&&!this.isAllyAI&&timeStopTimer>0)return;
-        let dx=0,dy=0,moving=false;
-        if(this.isPlayer&&!this.isAllyAI){
-            if(keys.ArrowUp||keys.w||keys.W||keys['ц']||keys['Ц']||touchDirs.up){dy=-1;this.dir=DIR_UP;moving=true;}else if(keys.ArrowDown||keys.s||keys.S||keys['ы']||keys['Ы']||touchDirs.down){dy=1;this.dir=DIR_DOWN;moving=true;}else if(keys.ArrowLeft||keys.a||keys.A||keys['ф']||keys['Ф']||touchDirs.left){dx=-1;this.dir=DIR_LEFT;moving=true;}else if(keys.ArrowRight||keys.d||keys.D||keys['в']||keys['В']||touchDirs.right){dx=1;this.dir=DIR_RIGHT;moving=true;}
-            if((keys[' ']||touchFire)&&this.cooldown<=0)this.shoot();
-            if(this.droneTimer>0){
-                this.droneTimer-=dt;this.droneCooldown-=dt;
-                if(this.droneCooldown<=0&&enemies.length>0){
-                    let cl=enemies[0],md=Infinity;for(let e of enemies){let d=Math.hypot(e.x-this.x,e.y-this.y);if(d<md){md=d;cl=e;} }
-                    let ddx=cl.x-this.x,ddy=cl.y-this.y;this.droneDir=Math.abs(ddx)>Math.abs(ddy)?(ddx>0?DIR_RIGHT:DIR_LEFT):(ddy>0?DIR_DOWN:DIR_UP);
-                    let bx=this.x+this.w/2,by=this.y+this.h/2,bbx=0,bby=0,o=14;if(this.droneDir===DIR_UP){bby=-1;by-=o;}if(this.droneDir===DIR_DOWN){bby=1;by+=o;}if(this.droneDir===DIR_LEFT){bbx=-1;bx-=o;}if(this.droneDir===DIR_RIGHT){bbx=1;bx+=o;}
-                    bullets.push(new Bullet(bx,by,bbx,bby,true,this,true));sfx.playShoot(true);this.revealedTimer=2000;this.droneCooldown=600;
+        
+        if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) return;
+        
+        let dx = 0, dy = 0, moving = false;
+        if (this.isPlayer && !this.isAllyAI) {
+            if (keys.ArrowUp || keys.w || keys.W || keys['ц'] || keys['Ц'] || touchDirs.up) { dy = -1; this.dir = DIR_UP; moving = true; } 
+            else if (keys.ArrowDown || keys.s || keys.S || keys['ы'] || keys['Ы'] || touchDirs.down) { dy = 1; this.dir = DIR_DOWN; moving = true; } 
+            else if (keys.ArrowLeft || keys.a || keys.A || keys['ф'] || keys['Ф'] || touchDirs.left) { dx = -1; this.dir = DIR_LEFT; moving = true; } 
+            else if (keys.ArrowRight || keys.d || keys.D || keys['в'] || keys['В'] || touchDirs.right) { dx = 1; this.dir = DIR_RIGHT; moving = true; }
+            
+            if ((keys[' '] || touchFire) && this.cooldown <= 0) this.shoot();
+            
+            if (this.droneTimer > 0) {
+                this.droneTimer -= dt; this.droneCooldown -= dt;
+                if (this.droneCooldown <= 0 && enemies.length > 0) {
+                    let cl = enemies[0], md = Infinity; 
+                    for (let e of enemies) { let d = Math.hypot(e.x - this.x, e.y - this.y); if (d < md) { md = d; cl = e; } }
+                    let ddx = cl.x - this.x, ddy = cl.y - this.y; 
+                    this.droneDir = Math.abs(ddx) > Math.abs(ddy) ? (ddx > 0 ? DIR_RIGHT : DIR_LEFT) : (ddy > 0 ? DIR_DOWN : DIR_UP);
+                    let bx = this.x + this.w / 2, by = this.y + this.h / 2, bbx = 0, bby = 0, o = 14; 
+                    if (this.droneDir === DIR_UP) { bby = -1; by -= o; } if (this.droneDir === DIR_DOWN) { bby = 1; by += o; } if (this.droneDir === DIR_LEFT) { bbx = -1; bx -= o; } if (this.droneDir === DIR_RIGHT) { bbx = 1; bx += o; }
+                    bullets.push(new Bullet(bx, by, bbx, bby, true, this, true)); sfx.playShoot(true); this.revealedTimer = 2000; this.droneCooldown = 600;
                 }
             }
-            if(moving&&gameState==='PLAYING')sfx.startEngine();else sfx.stopEngine();
-        }else{
-            moving=true;this.aiTimer-=dt;let isA=(levelType==='STEALTH'&&spottedTimer>0),isP=(levelType==='STEALTH'&&spottedTimer<=0);
-            if(this.aiTimer<=0){
-                this.aiTimer=500+Math.random()*800;
-                if(this.isAllyAI){if(enemies.length>0){let t=enemies[Math.floor(Math.random()*enemies.length)],dx=t.x-this.x,dy=t.y-this.y;if(Math.random()<0.8)this.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?DIR_RIGHT:DIR_LEFT):(dy>0?DIR_DOWN:DIR_UP);else this.dir=Math.floor(Math.random()*4);}else this.dir=Math.floor(Math.random()*4);}
-                else{let tx=(player&&!player.isHidden)?player.x:null,ty=(player&&!player.isHidden)?player.y:null;if((levelType==='CLASSIC'||isA)&&baseAlive&&Math.random()<0.4){let br=14,bc=7;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){br=r;bc=c;}tx=bc*TILE_SIZE;ty=br*TILE_SIZE;}if(isP)this.aiTimer=1000;else if(tx!==null&&ty!==null&&Math.random()<0.7){let dx=tx-this.x,dy=ty-this.y;this.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?DIR_RIGHT:DIR_LEFT):(dy>0?DIR_DOWN:DIR_UP);}else this.dir=Math.floor(Math.random()*4);}
-            }
-            if(this.dir===DIR_UP)dy=-1;if(this.dir===DIR_DOWN)dy=1;if(this.dir===DIR_LEFT)dx=-1;if(this.dir===DIR_RIGHT)dx=1;
-            if(Math.random()<(isP?0.01:(this.isBoss?0.08:0.05))&&this.cooldown<=0)this.shoot();
-        }
-        if(moving){
-            let px=this.x+dx*this.speed*(dt/1000),py=this.y+dy*this.speed*(dt/1000),nx=px,ny=py;
-            if(this.isPlayer&&!this.isAllyAI){
-                let as=this.speed*1.5*(dt/1000);
-                if(dy!==0){
-                    let idealX=Math.round((this.x-2)/16)*16+2,diffX=idealX-this.x;
-                    if(Math.abs(diffX)>0.1&&Math.abs(diffX)<=12){let slide=Math.sign(diffX)*Math.min(Math.abs(diffX),as);if(!this.checkCol(this.x+slide,this.y))nx=this.x+slide;}
-                }else if(dx!==0){
-                    let idealY=Math.round((this.y-2)/16)*16+2,diffY=idealY-this.y;
-                    if(Math.abs(diffY)>0.1&&Math.abs(diffY)<=12){let slide=Math.sign(diffY)*Math.min(Math.abs(diffY),as);if(!this.checkCol(this.x,this.y+slide))ny=this.y+slide;}
+            if (moving && gameState === 'PLAYING') sfx.startEngine(); else sfx.stopEngine();
+        } else {
+            moving = true; this.aiTimer -= dt; 
+            let isA = (levelType === 'STEALTH' && spottedTimer > 0), isP = (levelType === 'STEALTH' && spottedTimer <= 0);
+            if (this.aiTimer <= 0) {
+                this.aiTimer = 500 + Math.random() * 800;
+                if (this.isAllyAI) { 
+                    if (enemies.length > 0) { 
+                        let t = enemies[Math.floor(Math.random() * enemies.length)], mdx = t.x - this.x, mdy = t.y - this.y; 
+                        if (Math.random() < 0.8) this.dir = Math.abs(mdx) > Math.abs(mdy) ? (mdx > 0 ? DIR_RIGHT : DIR_LEFT) : (mdy > 0 ? DIR_DOWN : DIR_UP); 
+                        else this.dir = Math.floor(Math.random() * 4); 
+                    } else this.dir = Math.floor(Math.random() * 4); 
+                }
+                else { 
+                    let tx = (player && !player.isHidden) ? player.x : null, ty = (player && !player.isHidden) ? player.y : null; 
+                    
+                    if (baseAlive && Math.random() < 0.20) { 
+                        let br = 14, bc = 7; 
+                        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === BASE) { br = r; bc = c; } 
+                        tx = bc * TILE_SIZE; ty = br * TILE_SIZE; 
+                    } 
+                    
+                    if (isP) this.aiTimer = 1000; 
+                    else if (tx !== null && ty !== null && Math.random() < 0.80) { 
+                        let mdx = tx - this.x, mdy = ty - this.y; 
+                        if (Math.random() < 0.8) {
+                            this.dir = Math.abs(mdx) > Math.abs(mdy) ? (mdx > 0 ? DIR_RIGHT : DIR_LEFT) : (mdy > 0 ? DIR_DOWN : DIR_UP); 
+                        } else {
+                            this.dir = Math.abs(mdx) > Math.abs(mdy) ? (mdy > 0 ? DIR_DOWN : DIR_UP) : (mdx > 0 ? DIR_RIGHT : DIR_LEFT); 
+                        }
+                    } else this.dir = Math.floor(Math.random() * 4); 
                 }
             }
-            if(nx<0)nx=0;if(ny<0)ny=0;if(nx+this.w>COLS*TILE_SIZE)nx=COLS*TILE_SIZE-this.w;if(ny+this.h>ROWS*TILE_SIZE)ny=ROWS*TILE_SIZE-this.h;if(px<0)px=0;if(py<0)py=0;if(px+this.w>COLS*TILE_SIZE)px=COLS*TILE_SIZE-this.w;if(py+this.h>ROWS*TILE_SIZE)py=ROWS*TILE_SIZE-this.h;
-            if(!this.checkCol(nx,ny)){this.x=nx;this.y=ny;if(!this.isPlayer||this.isAllyAI)this.blockedTimer=0;}else if(!this.checkCol(px,py)){this.x=px;this.y=py;if(!this.isPlayer||this.isAllyAI)this.blockedTimer=0;}else if(this.isPlayer&&!this.isAllyAI){if(nx!==px&&!this.checkCol(nx,this.y))this.x=nx;else if(ny!==py&&!this.checkCol(this.x,ny))this.y=ny;}
-            if((!this.isPlayer||this.isAllyAI)&&this.checkCol(px,py)){this.blockedTimer+=dt;if(this.blockedTimer>200){let pd=[0,1,2,3].filter(d=>d!==this.dir);this.dir=pd[Math.floor(Math.random()*pd.length)];this.aiTimer=600;this.blockedTimer=0;}}
+            if (this.dir === DIR_UP) dy = -1; if (this.dir === DIR_DOWN) dy = 1; if (this.dir === DIR_LEFT) dx = -1; if (this.dir === DIR_RIGHT) dx = 1;
+            if (Math.random() < (isP ? 0.01 : (this.isBoss ? 0.08 : 0.04)) && this.cooldown <= 0) this.shoot();
+        }
+        if (moving) {
+            let px = this.x + dx * this.speed * (dt / 1000), py = this.y + dy * this.speed * (dt / 1000), nx = px, ny = py;
+            if (this.isPlayer && !this.isAllyAI) {
+                let as = this.speed * 1.5 * (dt / 1000);
+                if (dy !== 0) {
+                    let idealX = Math.round((this.x - 2) / 16) * 16 + 2; let diffX = idealX - this.x;
+                    if (Math.abs(diffX) > 0.1 && Math.abs(diffX) <= 12) { let slide = Math.sign(diffX) * Math.min(Math.abs(diffX), as); if (!this.checkCol(this.x + slide, this.y)) nx = this.x + slide; }
+                } else if (dx !== 0) {
+                    let idealY = Math.round((this.y - 2) / 16) * 16 + 2; let diffY = idealY - this.y;
+                    if (Math.abs(diffY) > 0.1 && Math.abs(diffY) <= 12) { let slide = Math.sign(diffY) * Math.min(Math.abs(diffY), as); if (!this.checkCol(this.x, this.y + slide)) ny = this.y + slide; }
+                }
+            }
+            if (nx < 0) nx = 0; if (ny < 0) ny = 0; if (nx + this.w > COLS * TILE_SIZE) nx = COLS * TILE_SIZE - this.w; if (ny + this.h > ROWS * TILE_SIZE) ny = ROWS * TILE_SIZE - this.h; 
+            if (px < 0) px = 0; if (py < 0) py = 0; if (px + this.w > COLS * TILE_SIZE) px = COLS * TILE_SIZE - this.w; if (py + this.h > ROWS * TILE_SIZE) py = ROWS * TILE_SIZE - this.h;
+            
+            if (!this.checkCol(nx, ny)) { this.x = nx; this.y = ny; if (!this.isPlayer || this.isAllyAI) this.blockedTimer = 0; } 
+            else if (!this.checkCol(px, py)) { this.x = px; this.y = py; if (!this.isPlayer || this.isAllyAI) this.blockedTimer = 0; } 
+            else if (this.isPlayer && !this.isAllyAI) { if (nx !== px && !this.checkCol(nx, this.y)) this.x = nx; else if (ny !== py && !this.checkCol(this.x, ny)) this.y = ny; }
+            
+            if ((!this.isPlayer || this.isAllyAI) && this.checkCol(px, py)) { 
+                this.blockedTimer += dt; 
+                if (this.blockedTimer > 150) { 
+                    let pd = [0, 1, 2, 3].filter(d => d !== this.dir); 
+                    let reverseDir = (this.dir + 2) % 4;
+                    if (Math.random() < 0.6) pd = pd.filter(d => d !== reverseDir);
+                    if (pd.length === 0) pd = [reverseDir];
+                    this.dir = pd[Math.floor(Math.random() * pd.length)]; 
+                    this.aiTimer = 800 + Math.random() * 600; 
+                    this.blockedTimer = 0; 
+                } 
+            }
         }
     }
     checkCol(nx, ny) {
-        let lc=Math.floor(nx/32),rc=Math.floor((nx+this.w-0.1)/32),tr=Math.floor(ny/32),br=Math.floor((ny+this.h-0.1)/32);
-        for(let r=tr;r<=br;r++)for(let c=lc;c<=rc;c++){if(r>=0&&r<ROWS&&c>=0&&c<COLS){let cl=grid[r][c];if(cl===VOID)return true;if(cl!==EMPTY&&cl!==BUSH&&cl!==BTN_OFF&&cl!==BTN_ON){if(this.isBoss&&cl===BRICK){grid[r][c]=EMPTY;brickState[r][c]=0;createExplosion(c*32+16,r*32+16,'#f90',5);continue;}if(cl===BRICK){let s=brickState[r][c],px=c*32,py=r*32;if((s&1&&rectIntersect(nx,ny,this.w,this.h,px,py,16,16))||(s&2&&rectIntersect(nx,ny,this.w,this.h,px+16,py,16,16))||(s&4&&rectIntersect(nx,ny,this.w,this.h,px,py+16,16,16))||(s&8&&rectIntersect(nx,ny,this.w,this.h,px+16,py+16,16,16)))return true;}else return true;}}}
-        for(let o of [player,...enemies,...allies].filter(t=>t&&t!==this))if(nx<o.x+o.w&&nx+this.w>o.x&&ny<o.y+o.h&&ny+this.h>o.y)return true;
-        for(let t of turrets)if(nx<t.x+32&&nx+this.w>t.x&&ny<t.y+32&&ny+this.h>t.y)return true; return false;
+        let lc = Math.floor(nx / 32), rc = Math.floor((nx + this.w - 0.1) / 32), tr = Math.floor(ny / 32), br = Math.floor((ny + this.h - 0.1) / 32);
+        for (let r = tr; r <= br; r++) {
+            for (let c = lc; c <= rc; c++) {
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS) { 
+                    let cl = grid[r][c]; 
+                    if (cl === VOID) return true; 
+                    if (cl !== EMPTY && cl !== BUSH && cl !== BTN_OFF && cl !== BTN_ON) { 
+                        if (this.isBoss && cl === BRICK) { grid[r][c] = EMPTY; brickState[r][c] = 0; createExplosion(c * 32 + 16, r * 32 + 16, '#f90', 5); continue; } 
+                        if (cl === BRICK) { 
+                            let s = brickState[r][c], px = c * 32, py = r * 32; 
+                            if ((s & 1 && rectIntersect(nx, ny, this.w, this.h, px, py, 16, 16)) || (s & 2 && rectIntersect(nx, ny, this.w, this.h, px + 16, py, 16, 16)) || (s & 4 && rectIntersect(nx, ny, this.w, this.h, px, py + 16, 16, 16)) || (s & 8 && rectIntersect(nx, ny, this.w, this.h, px + 16, py + 16, 16, 16))) return true; 
+                        } else return true; 
+                    } 
+                }
+            }
+        }
+        for (let o of [player, ...enemies, ...allies].filter(t => t && t !== this)) if (nx < o.x + o.w && nx + this.w > o.x && ny < o.y + o.h && ny + this.h > o.y) return true;
+        for (let t of turrets) if (nx < t.x + 32 && nx + this.w > t.x && ny < t.y + 32 && ny + this.h > t.y) return true; 
+        return false;
     }
     shoot() {
-        if(this.isPlayer&&!this.isAllyAI){this.revealedTimer=2000;if(levelType==='STEALTH'){exposureTimer=1500;spottedTimer=3000;}}
-        if(this.isPlayer&&!this.isAllyAI&&this.weaponLevel>=3){
-            let bx=this.x+this.w/2,by=this.y+this.h/2,sx=0,sy=0;if(this.dir===DIR_UP)sy=-4;if(this.dir===DIR_DOWN)sy=4;if(this.dir===DIR_LEFT)sx=-4;if(this.dir===DIR_RIGHT)sx=4;let cx=bx,cy=by,hw=false;
-            while(!hw){
-                cx+=sx;cy+=sy;if(cx<0||cy<0||cx>COLS*TILE_SIZE||cy>ROWS*TILE_SIZE)break;let cc=Math.floor(cx/TILE_SIZE),cr=Math.floor(cy/TILE_SIZE);
-                if(cr>=0&&cr<ROWS&&cc>=0&&cc<COLS){
-                    let c=grid[cr][cc];if(c===VOID){hw=true;break;}if(c===STEEL||c===BASE||c===SUBSTATION||c===RADAR||c===GATE||(c===ENEMY_BASE&&this.isPlayer)){
-                        hw=true;if(c===BASE){baseAlive=false;levelFailed(t('baseDestroyed'));}if(c===ENEMY_BASE){if(assaultMode==='SUBSTATION'&&substationAlive){sfx.playArmorHit();createExplosion(cx,cy,'#3b82f6',15);}else if(assaultMode==='MINIBOSSES'&&countMiniBosses()>0){sfx.playArmorHit();createExplosion(cx,cy,'#f59e0b',15);}else if(assaultMode==='BUTTONS'&&buttonsLeft>0){sfx.playArmorHit();createExplosion(cx,cy,'#ef4444',15);}else{grid[cr][cc]=EMPTY;createExplosion(cx,cy,'#f0f',50);sfx.playExplosion(true);winLevel();}}if(c===SUBSTATION){grid[cr][cc]=EMPTY;substationAlive=false;updateObjectiveUI();}if(c===RADAR){grid[cr][cc]=EMPTY;radarsAlive--;updateObjectiveUI();createExplosion(cx,cy,'#0ea5e9',40);}if(c!==ENEMY_BASE&&c!==RADAR&&c!==GATE)createExplosion(cx,cy,'#fa0',10);if(c===GATE){sfx.playArmorHit();createExplosion(cx,cy,'#f00',10);}break;
-                    }else if(c===BRICK){grid[cr][cc]=EMPTY;brickState[cr][cc]=0;createExplosion(cc*32+16,cr*32+16,'#f90',5);}
+        if (this.isPlayer && !this.isAllyAI) { this.revealedTimer = 2000; if (levelType === 'STEALTH') { exposureTimer = 1500; spottedTimer = 3000; } }
+        if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 3) {
+            let bx = this.x + this.w / 2, by = this.y + this.h / 2, sx = 0, sy = 0; if (this.dir === DIR_UP) sy = -4; if (this.dir === DIR_DOWN) sy = 4; if (this.dir === DIR_LEFT) sx = -4; if (this.dir === DIR_RIGHT) sx = 4; let cx = bx, cy = by, hw = false;
+            while (!hw) {
+                cx += sx; cy += sy; if (cx < 0 || cy < 0 || cx > COLS * TILE_SIZE || cy > ROWS * TILE_SIZE) break; let cc = Math.floor(cx / TILE_SIZE), cr = Math.floor(cy / TILE_SIZE);
+                if (cr >= 0 && cr < ROWS && cc >= 0 && cc < COLS) {
+                    let c = grid[cr][cc]; if (c === VOID) { hw = true; break; } 
+                    if (c === STEEL || c === BASE || c === SUBSTATION || c === RADAR || c === GATE || (c === ENEMY_BASE && this.isPlayer)) {
+                        hw = true; 
+                        if (c === BASE) { baseAlive = false; levelFailed(t('baseDestroyed')); } 
+                        if (c === ENEMY_BASE) { 
+                            if (assaultMode === 'SUBSTATION' && substationAlive) { sfx.playArmorHit(); createExplosion(cx, cy, '#3b82f6', 15); } 
+                            else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) { sfx.playArmorHit(); createExplosion(cx, cy, '#f59e0b', 15); } 
+                            else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) { sfx.playArmorHit(); createExplosion(cx, cy, '#ef4444', 15); } 
+                            else { grid[cr][cc] = EMPTY; createExplosion(cx, cy, '#ff00ff', 50); sfx.playExplosion(true); winLevel(); } 
+                        } 
+                        if (c === SUBSTATION) { grid[cr][cc] = EMPTY; substationAlive = false; updateObjectiveUI(); } 
+                        if (c === RADAR) { grid[cr][cc] = EMPTY; radarsAlive--; updateObjectiveUI(); createExplosion(cx, cy, '#0ea5e9', 40); } 
+                        if (c !== ENEMY_BASE && c !== RADAR && c !== GATE) createExplosion(cx, cy, '#fa0', 10); 
+                        if (c === GATE) { sfx.playArmorHit(); createExplosion(cx, cy, '#f00', 10); } 
+                        break;
+                    } else if (c === BRICK) { grid[cr][cc] = EMPTY; brickState[cr][cc] = 0; createExplosion(cc * 32 + 16, cr * 32 + 16, '#f90', 5); }
                 }
-                for(let e of enemies){if(!e.markForDeletion&&cx>=e.x&&cx<=e.x+e.w&&cy>=e.y&&cy<=e.y+e.h){if(e.isBoss)e.hp-=5;else e.hp=0;if(e.hp<=0){e.markForDeletion=true;score+=(e.isBoss?1000:(e.isMiniBoss?500:(e.eType==='NORMAL'?100:300)));document.getElementById('scoreUI').innerText=score;createExplosion(e.x+e.w/2,e.y+e.h/2,'#f40',e.isBoss?80:30);updateObjectiveUI();if(Math.random()<0.20)bonuses.push(new Bonus(e.x+10,e.y+10,['BOMB','TIME','ALLY','TURRET','LIFE','SHIELD','FIRE','BASE'][Math.floor(Math.random()*8)]));}else{createExplosion(cx,cy,'#fff',10);sfx.playArmorHit();}}}
-            } lasers.push(new LaserBeam(bx,by,cx,cy)); sfx.playLaser(); this.cooldown=450; return;
+                for (let e of enemies) { 
+                    if (!e.markForDeletion && cx >= e.x && cx <= e.x + e.w && cy >= e.y && cy <= e.y + e.h) { 
+                        if (e.isBoss) e.hp -= 5; else e.hp = 0; 
+                        if (e.hp <= 0) { 
+                            e.markForDeletion = true; score += (e.isBoss ? 1000 : (e.isMiniBoss ? 500 : (e.eType === 'NORMAL' ? 100 : 300))); document.getElementById('scoreUI').innerText = score; createExplosion(e.x + e.w / 2, e.y + e.h / 2, '#f40', e.isBoss ? 80 : 30); updateObjectiveUI(); 
+                            if (Math.random() < 0.20) bonuses.push(new Bonus(e.x + 10, e.y + 10, ['BOMB', 'TIME', 'ALLY', 'TURRET', 'LIFE', 'SHIELD', 'FIRE', 'BASE'][Math.floor(Math.random() * 8)])); 
+                        } else { createExplosion(cx, cy, '#fff', 10); sfx.playArmorHit(); } 
+                    } 
+                }
+            } lasers.push(new LaserBeam(bx, by, cx, cy)); sfx.playLaser(); this.cooldown = 450; return;
         }
-        let ab=bullets.filter(b=>b.ownerId===this),mb=(this.isPlayer&&!this.isAllyAI)?(this.weaponLevel===2?6:(this.weaponLevel>=1?3:1)):(this.eType==='RAPID'?2:(this.isBoss?4:(this.isMiniBoss?2:1)));if(ab.length>=mb)return;
-        if(this.isPlayer&&!this.isAllyAI&&this.weaponLevel===2){
-            let b1x=this.x+this.w/2,b1y=this.y+this.h/2,d1x=0,d1y=0,b2x=b1x,b2y=b1y,d2x=0,d2y=0,o=6;
-            if(this.dir===DIR_UP){d1y=-1;b1y-=4;d2y=-1;b2y-=4;b1x-=o;b2x+=o;}if(this.dir===DIR_DOWN){d1y=1;b1y+=4;d2y=1;b2y+=4;b1x-=o;b2x+=o;}if(this.dir===DIR_LEFT){d1x=-1;b1x-=4;d2x=-1;b2x-=4;b1y-=o;b2y+=o;}if(this.dir===DIR_RIGHT){d1x=1;b1x+=4;d2x=1;b2x+=4;b1y-=o;b2y+=o;}
-            bullets.push(new Bullet(b1x,b1y,d1x,d1y,true,this));bullets.push(new Bullet(b2x,b2y,d2x,d2y,true,this));sfx.playShoot(true);this.cooldown=150;return;
+        let ab = bullets.filter(b => b.ownerId === this), mb = (this.isPlayer && !this.isAllyAI) ? (this.weaponLevel === 2 ? 6 : (this.weaponLevel >= 1 ? 3 : 1)) : (this.eType === 'RAPID' ? 2 : (this.isBoss ? 4 : (this.isMiniBoss ? 2 : 1))); if (ab.length >= mb) return;
+        if (this.isPlayer && !this.isAllyAI && this.weaponLevel === 2) {
+            let b1x = this.x + this.w / 2, b1y = this.y + this.h / 2, d1x = 0, d1y = 0, b2x = b1x, b2y = b1y, d2x = 0, d2y = 0, o = 6;
+            if (this.dir === DIR_UP) { d1y = -1; b1y -= 4; d2y = -1; b2y -= 4; b1x -= o; b2x += o; } if (this.dir === DIR_DOWN) { d1y = 1; b1y += 4; d2y = 1; b2y += 4; b1x -= o; b2x += o; } if (this.dir === DIR_LEFT) { d1x = -1; b1x -= 4; d2x = -1; b2x -= 4; b1y -= o; b2y += o; } if (this.dir === DIR_RIGHT) { d1x = 1; b1x += 4; d2x = 1; b2x += 4; b1y -= o; b2y += o; }
+            bullets.push(new Bullet(b1x, b1y, d1x, d1y, true, this)); bullets.push(new Bullet(b2x, b2y, d2x, d2y, true, this)); sfx.playShoot(true); this.cooldown = 150; return;
         }
-        if(this.isBoss){
-            let b1x=this.x+24,b1y=this.y+24,d1x=0,d1y=0,b2x=b1x,b2y=b1y,d2x=0,d2y=0,o=12;
-            if(this.dir===DIR_UP){d1y=-1;b1y-=20;d2y=-1;b2y-=20;b1x-=o;b2x+=o;}if(this.dir===DIR_DOWN){d1y=1;b1y+=20;d2y=1;b2y+=20;b1x-=o;b2x+=o;}if(this.dir===DIR_LEFT){d1x=-1;b1x-=20;d2x=-1;b2x-=20;b1y-=o;b2y+=o;}if(this.dir===DIR_RIGHT){d1x=1;b1x+=20;d2x=1;b2x+=20;b1y-=o;b2y+=o;}
-            bullets.push(new Bullet(b1x,b1y,d1x,d1y,false,this));bullets.push(new Bullet(b2x,b2y,d2x,d2y,false,this));sfx.playShoot(false);this.cooldown=800; 
-        }else{
-            let bx=this.x+this.w/2,by=this.y+this.h/2,bdx=0,bdy=0;if(this.dir===DIR_UP){bdy=-1;by=this.y-4;}if(this.dir===DIR_DOWN){bdy=1;by=this.y+this.h+4;}if(this.dir===DIR_LEFT){bdx=-1;bx=this.x-4;}if(this.dir===DIR_RIGHT){bdx=1;bx=this.x+this.w+4;}
-            bullets.push(new Bullet(bx,by,bdx,bdy,this.isPlayer,this));sfx.playShoot(this.isPlayer&&!this.isAllyAI);
-            if(this.isPlayer&&!this.isAllyAI)this.cooldown=this.weaponLevel>=1?150:400;else this.cooldown=(this.eType==='RAPID'||this.isMiniBoss)?200:500;
+        if (this.isBoss) {
+            let b1x = this.x + 24, b1y = this.y + 24, d1x = 0, d1y = 0, b2x = b1x, b2y = b1y, d2x = 0, d2y = 0, o = 12;
+            if (this.dir === DIR_UP) { d1y = -1; b1y -= 20; d2y = -1; b2y -= 20; b1x -= o; b2x += o; } if (this.dir === DIR_DOWN) { d1y = 1; b1y += 20; d2y = 1; b2y += 20; b1x -= o; b2x += o; } if (this.dir === DIR_LEFT) { d1x = -1; b1x -= 20; d2x = -1; b2x -= 20; b1y -= o; b2y += o; } if (this.dir === DIR_RIGHT) { d1x = 1; b1x += 20; d2x = 1; b2x += 20; b1y -= o; b2y += o; }
+            bullets.push(new Bullet(b1x, b1y, d1x, d1y, false, this)); bullets.push(new Bullet(b2x, b2y, d2x, d2y, false, this)); sfx.playShoot(false); this.cooldown = 800; 
+        } else {
+            let bx = this.x + this.w / 2, by = this.y + this.h / 2, bdx = 0, bdy = 0; if (this.dir === DIR_UP) { bdy = -1; by = this.y - 4; } if (this.dir === DIR_DOWN) { bdy = 1; by = this.y + this.h + 4; } if (this.dir === DIR_LEFT) { bdx = -1; bx = this.x - 4; } if (this.dir === DIR_RIGHT) { bdx = 1; bx = this.x + this.w + 4; }
+            bullets.push(new Bullet(bx, by, bdx, bdy, this.isPlayer, this)); sfx.playShoot(this.isPlayer && !this.isAllyAI);
+            if (this.isPlayer && !this.isAllyAI) this.cooldown = this.weaponLevel >= 1 ? 150 : 400; else this.cooldown = (this.eType === 'RAPID' || this.isMiniBoss) ? 200 : 500;
         }
     }
     draw(ctx) {
-        if(levelType==='SHADOWS'&&radarsAlive<3&&!this.isPlayer&&!this.isAllyAI&&player&&!player.markForDeletion&&Math.hypot(this.x-player.x,this.y-player.y)>(radarsAlive===2?250:(radarsAlive===1?150:80)))return;
-        ctx.save();ctx.translate(this.x+this.w/2,this.y+this.h/2);
-        if(this.isPlayer&&this.isHidden)ctx.globalAlpha=0.5;if(!this.isPlayer&&!this.isAllyAI&&timeStopTimer>0){ctx.globalAlpha=0.8;ctx.fillStyle='#60a5fa';ctx.fillRect(-this.w/2-2,-this.h/2-2,this.w+4,this.h+4);ctx.globalAlpha=1;}
-        if(this.dir===DIR_RIGHT)ctx.rotate(Math.PI/2);else if(this.dir===DIR_DOWN)ctx.rotate(Math.PI);else if(this.dir===DIR_LEFT)ctx.rotate(-Math.PI/2);
-        if(this.isBoss){ctx.fillStyle='#7f1d1d';ctx.fillRect(-24,-24,48,48);ctx.fillStyle='#111';ctx.fillRect(-24,-24,12,48);ctx.fillRect(12,-24,12,48);ctx.fillStyle='#b91c1c';ctx.fillRect(-16,-38,8,28);ctx.fillRect(8,-38,8,28);ctx.fillStyle='#991b1b';ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();}
-        else{ctx.fillStyle=this.isPlayer&&!this.isAllyAI?'#eab308':(this.isAllyAI?'#0ea5e9':(this.isMiniBoss?'#ea580c':(this.eType==='FAST'?'#f472b6':(this.eType==='ARMORED'?'#14532d':(this.eType==='RAPID'?'#f97316':'#cbd5e1')))));ctx.fillRect(-14,-14,28,28);ctx.fillStyle='#222';ctx.fillRect(-14,-14,6,28);ctx.fillRect(8,-14,6,28);ctx.fillStyle=this.isPlayer?((this.weaponLevel>=3&&!this.isAllyAI)?'#ef4444':'#16a34a'):'#ef4444';if(this.isPlayer&&!this.isAllyAI&&this.weaponLevel===2){ctx.fillRect(-7,-22,4,18);ctx.fillRect(3,-22,4,18);}else if(this.isPlayer&&!this.isAllyAI&&this.weaponLevel>=3)ctx.fillRect(-4,-24,8,20);else ctx.fillRect(-3,-22,6,18);ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();}
-        if(this.droneTimer>0){ctx.restore();ctx.save();ctx.translate(this.x+this.w/2,this.y+this.h/2);if(this.droneDir===DIR_RIGHT)ctx.rotate(Math.PI/2);else if(this.droneDir===DIR_DOWN)ctx.rotate(Math.PI);else if(this.droneDir===DIR_LEFT)ctx.rotate(-Math.PI/2);ctx.fillStyle=(this.droneTimer<3000&&Math.floor(Date.now()/150)%2===0)?'#ffaaaa':'#a855f7';ctx.fillRect(-6,-6,12,12);ctx.fillStyle='#4b5563';ctx.fillRect(-4,-4,8,8);ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#a855f7';ctx.fillRect(-1.5,-10,3,10);}
+        if (levelType === 'SHADOWS' && radarsAlive < 3 && !this.isPlayer && !this.isAllyAI && player && !player.markForDeletion && Math.hypot(this.x - player.x, this.y - player.y) > (radarsAlive === 2 ? 250 : (radarsAlive === 1 ? 150 : 80))) return;
+        ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
+        if (this.isPlayer && this.isHidden) ctx.globalAlpha = 0.5; if (!this.isPlayer && !this.isAllyAI && timeStopTimer > 0) { ctx.globalAlpha = 0.8; ctx.fillStyle = '#60a5fa'; ctx.fillRect(-this.w / 2 - 2, -this.h / 2 - 2, this.w + 4, this.h + 4); ctx.globalAlpha = 1.0; }
+        if (this.dir === DIR_RIGHT) ctx.rotate(Math.PI / 2); else if (this.dir === DIR_DOWN) ctx.rotate(Math.PI); else if (this.dir === DIR_LEFT) ctx.rotate(-Math.PI / 2);
+        if (this.isBoss) { ctx.fillStyle = '#7f1d1d'; ctx.fillRect(-24, -24, 48, 48); ctx.fillStyle = '#111'; ctx.fillRect(-24, -24, 12, 48); ctx.fillRect(12, -24, 12, 48); ctx.fillStyle = '#b91c1c'; ctx.fillRect(-16, -38, 8, 28); ctx.fillRect(8, -38, 8, 28); ctx.fillStyle = '#991b1b'; ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill(); }
+        else { ctx.fillStyle = this.isPlayer && !this.isAllyAI ? '#eab308' : (this.isAllyAI ? '#0ea5e9' : (this.isMiniBoss ? '#ea580c' : (this.eType === 'FAST' ? '#f472b6' : (this.eType === 'ARMORED' ? '#14532d' : (this.eType === 'RAPID' ? '#f97316' : '#cbd5e1'))))); ctx.fillRect(-14, -14, 28, 28); ctx.fillStyle = '#222'; ctx.fillRect(-14, -14, 6, 28); ctx.fillRect(8, -14, 6, 28); ctx.fillStyle = this.isPlayer ? ((this.weaponLevel >= 3 && !this.isAllyAI) ? '#ef4444' : '#16a34a') : '#ef4444'; if (this.isPlayer && !this.isAllyAI && this.weaponLevel === 2) { ctx.fillRect(-7, -22, 4, 18); ctx.fillRect(3, -22, 4, 18); } else if (this.isPlayer && !this.isAllyAI && this.weaponLevel >= 3) ctx.fillRect(-4, -24, 8, 20); else ctx.fillRect(-3, -22, 6, 18); ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); }
+        if (this.droneTimer > 0) { ctx.restore(); ctx.save(); ctx.translate(this.x + this.w / 2, this.y + this.h / 2); if (this.droneDir === DIR_RIGHT) ctx.rotate(Math.PI / 2); else if (this.droneDir === DIR_DOWN) ctx.rotate(Math.PI); else if (this.droneDir === DIR_LEFT) ctx.rotate(-Math.PI / 2); ctx.fillStyle = (this.droneTimer < 3000 && Math.floor(Date.now() / 150) % 2 === 0) ? '#ffaaaa' : '#a855f7'; ctx.fillRect(-6, -6, 12, 12); ctx.fillStyle = '#4b5563'; ctx.fillRect(-4, -4, 8, 8); ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#a855f7'; ctx.fillRect(-1.5, -10, 3, 10); }
         ctx.restore();
-        if(this.isBoss||this.isMiniBoss){ctx.fillStyle='#ef4444';ctx.fillRect(this.x,this.y-8,this.w,4);ctx.fillStyle='#22c55e';ctx.fillRect(this.x,this.y-8,this.w*(this.hp/this.maxHp),4);}
-        if(this.shieldTimer>0){ctx.strokeStyle='#3b82f6';ctx.lineWidth=3;ctx.beginPath();ctx.arc(this.x+this.w/2,this.y+this.h/2,this.w/2+6,0,Math.PI*2);ctx.stroke();}
+        if (this.isBoss || this.isMiniBoss) { ctx.fillStyle = '#ef4444'; ctx.fillRect(this.x, this.y - 8, this.w, 4); ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x, this.y - 8, this.w * (this.hp / this.maxHp), 4); }
+        if (this.shieldTimer > 0) { ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2 + 6, 0, Math.PI * 2); ctx.stroke(); }
     }
 }
 
-/** ЛОГИКА ГЕНЕРАЦИИ */
+/** ЛОГИКА ГЕНЕРАЦИИ УРОВНЕЙ */
 function checkLevelPlayability() {
-    let visited=Array.from({length:ROWS},()=>Array(COLS).fill(false)), startR=-1, startC=-1;
-    for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){if(grid[r][c]===BASE){startR=r-1;startC=c;break;}}if(startR!==-1)break;}
-    if(startR===-1)return false; let queue=[{r:startR,c:startC}]; if(startR>=0&&startC>=0)visited[startR][startC]=true;
-    let tr=-1, tc=-1;
-    if(levelType!=='CLASSIC'&&levelType!=='BOSS'){for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){if(grid[r][c]===SUBSTATION||grid[r][c]===ENEMY_BASE){tr=r+1;tc=c;break;}}if(tr!==-1)break;}}
-    while(queue.length>0){let curr=queue.shift();for(let d of [[-1,0],[1,0],[0,-1],[0,1]]){let nr=curr.r+d[0],nc=curr.c+d[1];if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS){let isP=(grid[nr][nc]!==VOID&&grid[nr][nc]!==STEEL&&grid[nr][nc]!==WATER);if(grid[nr][nc]===GATE)isP=true;if(!visited[nr][nc]&&isP){visited[nr][nc]=true;queue.push({r:nr,c:nc});}}}}
-    if(assaultMode==='BUTTONS'){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if((grid[r][c]===BTN_OFF||grid[r][c]===BTN_ON)&&!visited[r][c])return false;}
-    if(levelType==='CLASSIC'||levelType==='BOSS'){if(!visited[0][7])return false;}else{if(tr!==-1&&!visited[tr][tc])return false;} return true;
+    let visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    let startR = -1, startC = -1;
+    
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c] === BASE) {
+                startR = r - 1; 
+                startC = c;
+                break;
+            }
+        }
+        if (startR !== -1) break;
+    }
+    
+    if (startR < 0 || startC < 0 || startR >= ROWS || startC >= COLS) return false;
+    
+    let queue = [{ r: startR, c: startC }]; 
+    let qIdx = 0;
+    visited[startR][startC] = true;
+    
+    let targetR = -1, targetC = -1;
+    if (levelType !== 'CLASSIC' && levelType !== 'BOSS') {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c] === SUBSTATION || grid[r][c] === ENEMY_BASE) {
+                    targetR = r + 1;
+                    targetC = c;
+                    break;
+                }
+            }
+            if (targetR !== -1) break;
+        }
+    }
+    
+    while (qIdx < queue.length) {
+        let curr = queue[qIdx++];
+        for (let d of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            let nr = curr.r + d[0], nc = curr.c + d[1];
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                let isPassable = (grid[nr][nc] !== VOID && grid[nr][nc] !== STEEL && grid[nr][nc] !== WATER);
+                if (grid[nr][nc] === GATE) isPassable = true;
+                if (!visited[nr][nc] && isPassable) {
+                    visited[nr][nc] = true;
+                    queue.push({ r: nr, c: nc });
+                }
+            }
+        }
+    }
+
+    if (assaultMode === 'BUTTONS') {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if ((grid[r][c] === BTN_OFF || grid[r][c] === BTN_ON) && !visited[r][c]) return false;
+            }
+        }
+    }
+
+    if (levelType === 'CLASSIC' || levelType === 'BOSS') {
+        // Должны быть доступны спавны врагов на 0-й строке
+        if (!visited[0][7]) return false;
+    } else {
+        if (targetR !== -1 && !visited[targetR][targetC]) return false;
+    } 
+    return true;
 }
 
-function spawnEnemy(){
-    if(enemies.length>=MAX_ENEMIES_ON_SCREEN||enemiesToSpawn<=0)return;
-    let eType='NORMAL';if(level>=3&&Math.random()<Math.min(0.1+level*0.05,0.5))eType=['FAST','ARMORED','RAPID'][Math.floor(Math.random()*3)];
-    let vs=currentEnemySpawns.filter(pt=>{let px=pt.c*32,py=pt.r*32;for(let e of enemies)if(Math.abs(e.x-px)<32&&Math.abs(e.y-py)<32)return false;if(player&&Math.abs(player.x-px)<32&&Math.abs(player.y-py)<32)return false;return true;});
-    if(vs.length>0){let sp=vs[Math.floor(Math.random()*vs.length)];enemies.push(new Tank(sp.c,sp.r,false,eType));enemiesToSpawn--;updateObjectiveUI();}
+function spawnEnemy() {
+    if (enemies.length >= MAX_ENEMIES_ON_SCREEN || enemiesToSpawn <= 0) return;
+    let eType = 'NORMAL'; 
+    if (level >= 3 && Math.random() < Math.min(0.1 + level * 0.05, 0.5)) eType = ['FAST', 'ARMORED', 'RAPID'][Math.floor(Math.random() * 3)];
+    let vs = currentEnemySpawns.filter(pt => {
+        let px = pt.c * 32, py = pt.r * 32;
+        for (let e of enemies) if (Math.abs(e.x - px) < 32 && Math.abs(e.y - py) < 32) return false;
+        if (player && Math.abs(player.x - px) < 32 && Math.abs(player.y - py) < 32) return false;
+        return true;
+    });
+    if (vs.length > 0) {
+        let sp = vs[Math.floor(Math.random() * vs.length)];
+        enemies.push(new Tank(sp.c, sp.r, false, eType));
+        enemiesToSpawn--; 
+        updateObjectiveUI();
+    }
 }
 
 function generateLevel() {
-    let validLevel=false, genAttempts=0;
-    if(level>=8&&(level-lastBossLevel)>=8&&Math.random()<0.4){levelType='BOSS';lastBossLevel=level;}else{let modes=['CLASSIC','ASSAULT','SHADOWS','STEALTH'];if(level<3)levelType=level===1?'CLASSIC':'ASSAULT';else levelType=modes[Math.floor(Math.random()*modes.length)];}
-    if(levelType==='CLASSIC'){enemiesToSpawn=Math.min(4+level*2,15);MAX_ENEMIES_ON_SCREEN=Math.min(3+Math.floor(level/3),6);}else if(levelType==='BOSS'){enemiesToSpawn=0;MAX_ENEMIES_ON_SCREEN=1;}else{enemiesToSpawn=Math.min(4+level*2,25);MAX_ENEMIES_ON_SCREEN=Math.min(3+Math.floor(level/3),8);}
-    baseAlive=true; baseDefTimer=0; substationAlive=false; radarsAlive=3; buttonsLeft=0;
-    assaultMode='NORMAL'; timeStopTimer=0; spottedTimer=0; exposureTimer=0; wasSpottedLastFrame=false; enemyMines=[]; 
-    let hasMines=(levelType==='ASSAULT'||levelType==='SHADOWS'||levelType==='STEALTH')&&level>=2&&Math.random()<0.4;
-    if(levelType==='ASSAULT'&&level>=2){let roll=Math.random();if(roll<0.33)assaultMode='SUBSTATION';else if(roll<0.66)assaultMode='MINIBOSSES';}else if(levelType==='STEALTH'&&level>=2){let roll=Math.random();if(roll<0.4)assaultMode='BUTTONS';else if(roll<0.8)assaultMode='SUBSTATION';}
+    let validLevel = false, genAttempts = 0;
+    
+    if (level >= 8 && (level - lastBossLevel) >= 8 && Math.random() < 0.4) {
+        levelType = 'BOSS'; lastBossLevel = level;
+    } else {
+        let modes = ['CLASSIC', 'ASSAULT', 'SHADOWS', 'STEALTH'];
+        if (level < 3) levelType = level === 1 ? 'CLASSIC' : 'ASSAULT';
+        else levelType = modes[Math.floor(Math.random() * modes.length)];
+    }
+    
+    if (levelType === 'CLASSIC') { enemiesToSpawn = Math.min(4 + level * 2, 15); MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 6); } 
+    else if (levelType === 'BOSS') { enemiesToSpawn = 0; MAX_ENEMIES_ON_SCREEN = 1; } 
+    else { enemiesToSpawn = Math.min(4 + level * 2, 25); MAX_ENEMIES_ON_SCREEN = Math.min(3 + Math.floor(level / 3), 8); }
+    
+    baseAlive = true; baseDefTimer = 0; substationAlive = false; radarsAlive = 3; buttonsLeft = 0;
+    assaultMode = 'NORMAL'; timeStopTimer = 0; spottedTimer = 0; exposureTimer = 0; wasSpottedLastFrame = false; enemyMines = []; 
+    
+    let hasMines = (levelType === 'ASSAULT' || levelType === 'SHADOWS' || levelType === 'STEALTH') && level >= 2 && Math.random() < 0.4;
+    if (levelType === 'ASSAULT' && level >= 2) { let roll = Math.random(); if (roll < 0.33) assaultMode = 'SUBSTATION'; else if (roll < 0.66) assaultMode = 'MINIBOSSES'; } 
+    else if (levelType === 'STEALTH' && level >= 2) { let roll = Math.random(); if (roll < 0.4) assaultMode = 'BUTTONS'; else if (roll < 0.8) assaultMode = 'SUBSTATION'; }
+    
     updateObjectiveUI();
 
-    while(!validLevel&&genAttempts<100){
-        genAttempts++; let layouts=[];
-        if(levelType==='CLASSIC')layouts=[[{x:0,y:0}]]; else if(levelType==='BOSS')layouts=[[{x:0,y:0},{x:0,y:1}]]; else layouts=[[{x:0,y:0},{x:0,y:1}],[{x:0,y:0},{x:1,y:0}],[{x:0,y:0},{x:0,y:1},{x:1,y:1}],[{x:1,y:0},{x:1,y:1},{x:0,y:1}],[{x:1,y:0},{x:1,y:1},{x:0,y:1},{x:0,y:2}],[{x:0,y:0},{x:0,y:1},{x:1,y:1},{x:1,y:2}],[{x:0,y:0},{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:2,y:0}]];
-        let layout=layouts[Math.floor(Math.random()*layouts.length)],maxX=0,maxY=0; layout.forEach(ch=>{if(ch.x>maxX)maxX=ch.x;if(ch.y>maxY)maxY=ch.y;}); COLS=(maxX+1)*15;ROWS=(maxY+1)*15;
-        grid=Array.from({length:ROWS},()=>Array(COLS).fill(VOID)); brickState=Array.from({length:ROWS},()=>Array(COLS).fill(15)); enemyMines=[]; let spawnZones=[]; currentEnemySpawns=[];
+    while (!validLevel && genAttempts < 100) {
+        genAttempts++; 
+        let layouts = [];
+        if (levelType === 'CLASSIC') layouts = [[{ x: 0, y: 0 }]]; 
+        else if (levelType === 'BOSS') layouts = [[{ x: 0, y: 0 }, { x: 0, y: 1 }]]; 
+        else layouts = [
+            [{ x: 0, y: 0 }, { x: 0, y: 1 }], 
+            [{ x: 0, y: 0 }, { x: 1, y: 0 }], 
+            [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }], 
+            [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], 
+            [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: 2 }], 
+            [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 2 }], 
+            [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 0 }]
+        ];
         
-        layout.forEach(ch=>{for(let r=ch.y*15;r<(ch.y+1)*15;r++)for(let c=ch.x*15;c<(ch.x+1)*15;c++)grid[r][c]=EMPTY;});
+        let layout = layouts[Math.floor(Math.random() * layouts.length)];
+        let maxX = 0, maxY = 0; 
+        layout.forEach(ch => { if (ch.x > maxX) maxX = ch.x; if (ch.y > maxY) maxY = ch.y; }); 
+        COLS = (maxX + 1) * 15; ROWS = (maxY + 1) * 15;
         
-        let brdT=Math.random()<0.5?WATER:STEEL;
-        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c]===VOID){let isB=false;for(let dr of [-1,0,1])for(let dc of [-1,0,1]){if(r+dr>=0&&r+dr<ROWS&&c+dc>=0&&c+dc<COLS&&grid[r+dr][c+dc]!==VOID)isB=true;}if(isB)grid[r][c]=brdT;}}
+        grid = Array.from({ length: ROWS }, () => Array(COLS).fill(VOID)); 
+        brickState = Array.from({ length: ROWS }, () => Array(COLS).fill(15)); 
+        enemyMines = []; 
+        let spawnZones = []; currentEnemySpawns = [];
+        
+        layout.forEach(ch => {
+            for (let r = ch.y * 15; r < (ch.y + 1) * 15; r++) {
+                for (let c = ch.x * 15; c < (ch.x + 1) * 15; c++) {
+                    grid[r][c] = EMPTY;
+                }
+            }
+        });
+        
+        // Заливка рамок из воды или стали
+        let brdT = Math.random() < 0.5 ? WATER : STEEL;
+        let newGrid = grid.map(r => [...r]);
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c] === VOID) {
+                    let isB = false;
+                    for (let dr of [-1, 0, 1]) {
+                        for (let dc of [-1, 0, 1]) {
+                            if (r + dr >= 0 && r + dr < ROWS && c + dc >= 0 && c + dc < COLS && grid[r + dr][c + dc] !== VOID) {
+                                isB = true;
+                            }
+                        }
+                    }
+                    if (isB) newGrid[r][c] = brdT;
+                }
+            }
+        }
+        grid = newGrid;
 
-        let pChunk=layout.reduce((prev,curr)=>(curr.y>prev.y||(curr.y===prev.y&&curr.x<prev.x))?curr:prev), eChunk=layout.reduce((prev,curr)=>(curr.y<prev.y||(curr.y===prev.y&&curr.x>prev.x))?curr:prev);
-        let playerBaseR=pChunk.y*15+14,playerBaseC=pChunk.x*15+7; enemyBaseCol=eChunk.x*15+7;let enemyBaseR=eChunk.y*15+1;
+        let pChunk = layout.reduce((prev, curr) => (curr.y > prev.y || (curr.y === prev.y && curr.x < prev.x)) ? curr : prev);
+        let eChunk = layout.reduce((prev, curr) => (curr.y < prev.y || (curr.y === prev.y && curr.x > prev.x)) ? curr : prev);
         
-        spawnZones.push({r:playerBaseR,c:playerBaseC},{r:playerBaseR,c:playerBaseC-3});
-        currentEnemySpawns=[{c:eChunk.x*15+0,r:eChunk.y*15+0},{c:eChunk.x*15+7,r:eChunk.y*15+0},{c:eChunk.x*15+14,r:eChunk.y*15+0}]; currentEnemySpawns.forEach(sp=>spawnZones.push({r:sp.r,c:sp.c}));
+        let playerBaseR = pChunk.y * 15 + 14, playerBaseC = pChunk.x * 15 + 7; 
+        enemyBaseCol = eChunk.x * 15 + 7; let enemyBaseR = eChunk.y * 15 + 1;
         
-        if(levelType==='BOSS'){for(let r=4;r<ROWS-2;r+=3){grid[r][3]=STEEL;grid[r][11]=STEEL;grid[r][4]=BRICK;grid[r][10]=BRICK;}}
+        spawnZones.push({ r: playerBaseR, c: playerBaseC }, { r: playerBaseR, c: playerBaseC - 3 });
+        currentEnemySpawns = [
+            { c: eChunk.x * 15 + 0, r: eChunk.y * 15 + 0 },
+            { c: eChunk.x * 15 + 7, r: eChunk.y * 15 + 0 },
+            { c: eChunk.x * 15 + 14, r: eChunk.y * 15 + 0 }
+        ]; 
+        currentEnemySpawns.forEach(sp => spawnZones.push({ r: sp.r, c: sp.c }));
+        
+        if (levelType === 'BOSS') {
+            for (let r = 4; r < ROWS - 2; r += 3) {
+                grid[r][3] = STEEL; grid[r][11] = STEEL;
+                grid[r][4] = BRICK; grid[r][10] = BRICK;
+            }
+        }
 
-        for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){if(grid[r][c]===EMPTY){let isS=spawnZones.some(sp=>Math.abs(r-sp.r)<=2&&Math.abs(c-sp.c)<=2);if(!isS&&levelType!=='BOSS'){let rnd=Math.random();if(levelType==='STEALTH'){if(rnd<0.12)grid[r][c]=BUSH;else if(rnd<0.20)grid[r][c]=BRICK;else if(rnd<0.23)grid[r][c]=WATER;else if(rnd<0.25)grid[r][c]=STEEL;}else{if(rnd<0.15)grid[r][c]=BRICK;else if(rnd<0.22)grid[r][c]=BUSH;else if(rnd<0.25)grid[r][c]=WATER;else if(rnd<0.27)grid[r][c]=STEEL;}}}}}
+        // Заполнение случайными блоками
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c] === EMPTY) {
+                    let isSafe = spawnZones.some(sp => Math.abs(r - sp.r) <= 2 && Math.abs(c - sp.c) <= 2);
+                    if (!isSafe && levelType !== 'BOSS') {
+                        let rnd = Math.random();
+                        if (levelType === 'STEALTH') {
+                            if (rnd < 0.12) grid[r][c] = BUSH;
+                            else if (rnd < 0.20) grid[r][c] = BRICK;
+                            else if (rnd < 0.23) grid[r][c] = WATER;
+                            else if (rnd < 0.25) grid[r][c] = STEEL; 
+                        } else {
+                            if (rnd < 0.15) grid[r][c] = BRICK;
+                            else if (rnd < 0.22) grid[r][c] = BUSH;
+                            else if (rnd < 0.25) grid[r][c] = WATER;
+                            else if (rnd < 0.27) grid[r][c] = STEEL; 
+                        }
+                    }
+                }
+            }
+        }
         
-        spawnZones.forEach(sz=>{for(let r=sz.r-1;r<=sz.r+1;r++)for(let c=sz.c-1;c<=sz.c+1;c++)if(r>=0&&r<ROWS&&c>=0&&c<COLS&&grid[r][c]!==VOID)grid[r][c]=EMPTY;});
+        // Жесткая очистка зон появления от препятствий
+        spawnZones.forEach(sz => {
+            for (let r = sz.r - 1; r <= sz.r + 1; r++) {
+                for (let c = sz.c - 1; c <= sz.c + 1; c++) {
+                    if (r >= 0 && r < ROWS && c >= 0 && c < COLS && grid[r][c] !== VOID) {
+                        grid[r][c] = EMPTY;
+                    }
+                }
+            }
+        });
         
-        grid[playerBaseR][playerBaseC]=BASE;if(playerBaseR>=0&&playerBaseC-1>=0){grid[playerBaseR][playerBaseC-1]=BRICK;brickState[playerBaseR][playerBaseC-1]=15;}if(playerBaseR>=0&&playerBaseC+1<COLS){grid[playerBaseR][playerBaseC+1]=BRICK;brickState[playerBaseR][playerBaseC+1]=15;}if(playerBaseR-1>=0){if(playerBaseC-1>=0){grid[playerBaseR-1][playerBaseC-1]=BRICK;brickState[playerBaseR-1][playerBaseC-1]=15;}grid[playerBaseR-1][playerBaseC]=BRICK;brickState[playerBaseR-1][playerBaseC]=15;if(playerBaseC+1<COLS){grid[playerBaseR-1][playerBaseC+1]=BRICK;brickState[playerBaseR-1][playerBaseC+1]=15;}}
-        
+        // База игрока
+        grid[playerBaseR][playerBaseC] = BASE;
+        if (playerBaseR >= 0 && playerBaseC - 1 >= 0) { grid[playerBaseR][playerBaseC - 1] = BRICK; brickState[playerBaseR][playerBaseC - 1] = 15; }
+        if (playerBaseR >= 0 && playerBaseC + 1 < COLS) { grid[playerBaseR][playerBaseC + 1] = BRICK; brickState[playerBaseR][playerBaseC + 1] = 15; }
+        if (playerBaseR - 1 >= 0) {
+            if (playerBaseC - 1 >= 0) { grid[playerBaseR - 1][playerBaseC - 1] = BRICK; brickState[playerBaseR - 1][playerBaseC - 1] = 15; }
+            grid[playerBaseR - 1][playerBaseC] = BRICK; brickState[playerBaseR - 1][playerBaseC] = 15;
+            if (playerBaseC + 1 < COLS) { grid[playerBaseR - 1][playerBaseC + 1] = BRICK; brickState[playerBaseR - 1][playerBaseC + 1] = 15; }
+        }
+
+        // Стальной "зонтик" для защиты базы
         if (levelType !== 'BOSS') {
-            let shieldR = playerBaseR - 4;
+            let shieldR = playerBaseR - 3;
             if (shieldR >= 0) {
                 if (playerBaseC - 1 >= 0) grid[shieldR][playerBaseC - 1] = STEEL;
                 if (playerBaseC + 1 < COLS) grid[shieldR][playerBaseC + 1] = STEEL;
                 if (shieldR - 1 >= 0) grid[shieldR - 1][playerBaseC] = STEEL;
+                
                 let numBlocks = 3 + Math.floor(Math.random() * 3);
-                for(let i=0; i<numBlocks; i++) {
+                for (let i = 0; i < numBlocks; i++) {
                     let rr = playerBaseR - 2 - Math.floor(Math.random() * 5);
                     let cc = playerBaseC - 4 + Math.floor(Math.random() * 9);
                     if (rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && grid[rr][cc] === EMPTY) grid[rr][cc] = STEEL;
@@ -540,102 +1239,498 @@ function generateLevel() {
             }
         }
 
-        if(levelType!=='CLASSIC'&&levelType!=='BOSS'){
-            grid[enemyBaseR][enemyBaseCol]=ENEMY_BASE;
-            if(assaultMode==='BUTTONS'){for(let c=enemyBaseCol-2;c<=enemyBaseCol+2;c++)if(c>=0&&c<COLS)grid[enemyBaseR+1][c]=GATE;buttonsLeft=2;let btnChunk=layout.find(ch=>ch!==eChunk)||pChunk,br=btnChunk.y*15+7;grid[br][btnChunk.x*15+2]=BTN_OFF;grid[br][btnChunk.x*15+12]=BTN_OFF;}
-            else{for(let dc of [-2,-1,1,2])if(enemyBaseCol+dc>=0&&enemyBaseCol+dc<COLS)grid[enemyBaseR+1][enemyBaseCol+dc]=STEEL;if(enemyBaseCol-2>=0)grid[enemyBaseR][enemyBaseCol-2]=STEEL;if(enemyBaseCol+2<COLS)grid[enemyBaseR][enemyBaseCol+2]=STEEL;}
+        // Объекты врага
+        if (levelType !== 'CLASSIC' && levelType !== 'BOSS') {
+            grid[enemyBaseR][enemyBaseCol] = ENEMY_BASE;
+            if (assaultMode === 'BUTTONS') {
+                for (let c = enemyBaseCol - 2; c <= enemyBaseCol + 2; c++) if (c >= 0 && c < COLS) grid[enemyBaseR + 1][c] = GATE;
+                buttonsLeft = 2;
+                let btnChunk = layout.find(ch => ch !== eChunk) || pChunk;
+                let br = btnChunk.y * 15 + 7;
+                grid[br][btnChunk.x * 15 + 2] = BTN_OFF;
+                grid[br][btnChunk.x * 15 + 12] = BTN_OFF;
+            } else {
+                for (let dc of [-2, -1, 1, 2]) if (enemyBaseCol + dc >= 0 && enemyBaseCol + dc < COLS) grid[enemyBaseR + 1][enemyBaseCol + dc] = STEEL;
+                if (enemyBaseCol - 2 >= 0) grid[enemyBaseR][enemyBaseCol - 2] = STEEL;
+                if (enemyBaseCol + 2 < COLS) grid[enemyBaseR][enemyBaseCol + 2] = STEEL;
+            }
         }
-        if(levelType==='SHADOWS'){let rP=[{r:playerBaseR-3,c:pChunk.x*15+3},{r:playerBaseR-3,c:pChunk.x*15+11},{r:playerBaseR-6,c:pChunk.x*15+7}];for(let pos of rP)if(pos.r>=0&&pos.c>=0&&pos.c<COLS){grid[pos.r][pos.c]=RADAR;grid[pos.r-1][pos.c]=BRICK;grid[pos.r][pos.c-1]=BRICK;grid[pos.r][pos.c+1]=BRICK;brickState[pos.r-1][pos.c]=15;brickState[pos.r][pos.c-1]=15;brickState[pos.r][pos.c+1]=15;}}
-        if(assaultMode==='SUBSTATION'){let mChunk=layout.find(ch=>ch!==pChunk&&ch!==eChunk)||pChunk,sr=mChunk.y*15+7,sc=mChunk.x*15+7;grid[sr][sc]=SUBSTATION;grid[sr+1][sc-1]=STEEL;grid[sr+1][sc+1]=STEEL;grid[sr-1][sc]=STEEL;substationAlive=true;}
         
-        if(hasMines){let mn=Math.floor(Math.random()*4)+3,att=0;while(enemyMines.length<mn&&att<50){att++;let r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);if(grid[r][c]===EMPTY&&!spawnZones.some(sz=>Math.abs(r-sz.r)<=3&&Math.abs(c-sz.c)<=3))enemyMines.push(new Mine(c*32+16,r*32+16,true));}}
+        if (levelType === 'SHADOWS') {
+            let rP = [{ r: playerBaseR - 3, c: pChunk.x * 15 + 3 }, { r: playerBaseR - 3, c: pChunk.x * 15 + 11 }, { r: playerBaseR - 6, c: pChunk.x * 15 + 7 }];
+            for (let pos of rP) {
+                if (pos.r >= 0 && pos.c >= 0 && pos.c < COLS) {
+                    grid[pos.r][pos.c] = RADAR;
+                    grid[pos.r - 1][pos.c] = BRICK; grid[pos.r][pos.c - 1] = BRICK; grid[pos.r][pos.c + 1] = BRICK;
+                    brickState[pos.r - 1][pos.c] = 15; brickState[pos.r][pos.c - 1] = 15; brickState[pos.r][pos.c + 1] = 15;
+                }
+            }
+        }
         
-        validLevel=checkLevelPlayability();
-        if(!validLevel&&genAttempts>=99){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===WATER||grid[r][c]===STEEL)grid[r][c]=EMPTY;validLevel=true;}
+        if (assaultMode === 'SUBSTATION') {
+            let mChunk = layout.find(ch => ch !== pChunk && ch !== eChunk) || pChunk;
+            let sr = mChunk.y * 15 + 7, sc = mChunk.x * 15 + 7;
+            grid[sr][sc] = SUBSTATION;
+            grid[sr + 1][sc - 1] = STEEL; grid[sr + 1][sc + 1] = STEEL; grid[sr - 1][sc] = STEEL;
+            substationAlive = true;
+        }
+        
+        if (hasMines) {
+            let mn = Math.floor(Math.random() * 4) + 3, att = 0;
+            while (enemyMines.length < mn && att < 50) {
+                att++;
+                let r = Math.floor(Math.random() * ROWS), c = Math.floor(Math.random() * COLS);
+                if (grid[r][c] === EMPTY && !spawnZones.some(sz => Math.abs(r - sz.r) <= 3 && Math.abs(c - sz.c) <= 3)) {
+                    enemyMines.push(new Mine(c * 32 + 16, r * 32 + 16, true));
+                }
+            }
+        }
+        
+        validLevel = checkLevelPlayability();
+        
+        // Фолбэк для предотвращения зависания генератора
+        if (!validLevel && genAttempts >= 99) {
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c] === WATER || grid[r][c] === STEEL) grid[r][c] = EMPTY;
+                }
+            }
+            validLevel = true;
+        }
     }
-    savedGrid=grid.map(r=>[...r]);savedBrickState=brickState.map(r=>[...r]);savedLevelType=levelType;savedAssaultMode=assaultMode;savedEnemyBaseCol=enemyBaseCol;savedEnemiesToSpawn=enemiesToSpawn;savedEnemyMinesCoords=enemyMines.map(m=>({x:m.x,y:m.y}));savedButtonsLeft=buttonsLeft;savedCols=COLS;savedRows=ROWS;
+    
+    savedGrid = grid.map(r => [...r]); 
+    savedBrickState = brickState.map(r => [...r]);
+    savedLevelType = levelType; savedAssaultMode = assaultMode; 
+    savedEnemyBaseCol = enemyBaseCol; savedEnemiesToSpawn = enemiesToSpawn; 
+    savedEnemyMinesCoords = enemyMines.map(m => ({ x: m.x, y: m.y }));
+    savedButtonsLeft = buttonsLeft; savedCols = COLS; savedRows = ROWS;
 }
 
 /** ИГРОВОЙ ЦИКЛ И ЛОГИКА */
-function initGame(){sfx.init();score=0;lives=3;continues=3;level=1;lastBossLevel=0;playerWeaponLevel=0;document.getElementById('scoreUI').innerText=score;document.getElementById('livesUI').innerText=lives;document.getElementById('continuesUI').innerText=continues;initLevel(false);}
-function initLevel(retry=false,ls=false){
-    bullets=[];lasers=[];particles=[];enemies=[];bonuses=[];allies=[];turrets=[];placedMines=[];enemyMines=[];
-    document.getElementById('levelUI').innerText=level;minesCount=3;document.getElementById('minesUI').innerText=minesCount;mineCooldown=0;timeStopTimer=0;
-    if(ls){COLS=savedCols||15;ROWS=savedRows||15;baseAlive=false;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE)baseAlive=true;baseDefTimer=0;enemyMines=savedEnemyMinesCoords.map(c=>new Mine(c.x,c.y,true));updateObjectiveUI();}
-    else if(!retry)generateLevel();
-    else{COLS=savedCols||15;ROWS=savedRows||15;grid=savedGrid.map(r=>[...r]);brickState=savedBrickState.map(r=>[...r]);levelType=savedLevelType;assaultMode=savedAssaultMode;enemyBaseCol=savedEnemyBaseCol;enemiesToSpawn=savedEnemiesToSpawn;baseAlive=true;baseDefTimer=0;substationAlive=false;radarsAlive=0;buttonsLeft=savedButtonsLeft||0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c]===SUBSTATION)substationAlive=true;if(grid[r][c]===RADAR)radarsAlive++;}enemyMines=savedEnemyMinesCoords.map(c=>new Mine(c.x,c.y,true));updateObjectiveUI();}
-    let br=ROWS-1,bc=7;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){br=r;bc=c;break;}
-    player=new Tank(bc-3,br,true);
-    if(levelType==='BOSS')enemies.push(new Tank(7,2,false,'BOSS'));
-    if(levelType==='ASSAULT'&&assaultMode==='MINIBOSSES'){let ebr=1,ebc=enemyBaseCol;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===ENEMY_BASE){ebr=r;ebc=c;break;}enemies.push(new Tank(Math.max(1,ebc-6),ebr+1,false,'MINIBOSS'));enemies.push(new Tank(Math.min(COLS-2,ebc+6),ebr+1,false,'MINIBOSS'));}
-    player.weaponLevel=playerWeaponLevel;
-    camera.x=player.x-canvas.width/2+player.w/2; camera.y=player.y-canvas.height/2+player.h/2;
-    gameState='PLAYING';spottedTimer=0;exposureTimer=0;wasSpottedLastFrame=false;
-    ['startScreen','gameOverScreen','transitionScreen','pauseScreen'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById('headerPauseBtn').classList.remove('hidden');
-    sfx.playStart();if(animationId)cancelAnimationFrame(animationId);lastTime=performance.now();animationId=requestAnimationFrame(gameLoop);
+function initGame() {
+    sfx.init();
+    score = 0; lives = 3; continues = 3; level = 1; lastBossLevel = 0; playerWeaponLevel = 0;
+    document.getElementById('scoreUI').innerText = score;
+    document.getElementById('livesUI').innerText = lives;
+    document.getElementById('continuesUI').innerText = continues;
+    initLevel(false);
 }
 
-function update(dt){
-    if(['GAMEOVER','LEVEL_TRANSITION','DYING'].includes(gameState)){particles.forEach(p=>p.update(dt));particles=particles.filter(p=>p.life>0);return;}
-    if(['CLASSIC','STEALTH'].includes(levelType)&&enemiesToSpawn<=0&&enemies.length===0){winLevel();return;}
-    if(levelType==='BOSS'&&enemies.length===0){winLevel();return;}
-    if(timeStopTimer>0)timeStopTimer-=dt;
-    enemySpawnTimer-=dt;if(enemySpawnTimer<=0){spawnEnemy();enemySpawnTimer=ENEMY_SPAWN_RATE;}
-    if(baseDefTimer>0){baseDefTimer-=dt;if(baseDefTimer<=0)for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){[[r,c-1],[r,c+1],[r-1,c-1],[r-1,c],[r-1,c+1]].forEach(p=>{if(p[0]>=0&&p[0]<ROWS&&p[1]>=0&&p[1]<COLS&&grid[p[0]][p[1]]===STEEL){grid[p[0]][p[1]]=BRICK;brickState[p[0]][p[1]]=15;}});}}
-    if(mineCooldown>0)mineCooldown-=dt;
-    if(player&&!player.markForDeletion){
-        player.update(dt);
-        if(levelType==='STEALTH'){let pr=Math.floor((player.y+player.h/2)/32),pc=Math.floor((player.x+player.w/2)/32);if(pr>=0&&pr<ROWS&&pc>=0&&pc<COLS){if(grid[pr][pc]!==BUSH){exposureTimer+=dt;if(exposureTimer>=1500){exposureTimer=1500;spottedTimer=3000;}}else{exposureTimer-=dt*2;if(exposureTimer<0)exposureTimer=0;}}}
-        if(spottedTimer>0)spottedTimer-=dt; let cS=spottedTimer>0;if(!wasSpottedLastFrame&&cS&&levelType==='STEALTH')sfx.playMelody([[800,0.1],[1000,0.1]],'sawtooth'); wasSpottedLastFrame=cS;
-        if((keys['b']||keys['B']||keys['и']||keys['И']||touchMine)&&mineCooldown<=0&&minesCount>0){placedMines.push(new Mine(player.x+player.w/2,player.y+player.h/2));minesCount--;document.getElementById('minesUI').innerText=minesCount;mineCooldown=500;player.revealedTimer=2000;if(levelType==='STEALTH'){exposureTimer=1500;spottedTimer=3000;}sfx.playArmorHit();}
-        for(let b of bonuses){if(!b.markForDeletion&&player.x<b.x+b.w&&player.x+player.w>b.x&&player.y<b.y+b.h&&player.y+player.h>b.y){b.markForDeletion=true;score+=500;document.getElementById('scoreUI').innerText=score;sfx.playBonus();if(b.type==='LIFE'){if(lives<6)lives++;document.getElementById('livesUI').innerText=lives;}else if(b.type==='SHIELD')player.shieldTimer=10000;else if(b.type==='FIRE'){if(playerWeaponLevel<3)playerWeaponLevel++;player.weaponLevel=playerWeaponLevel;}else if(b.type==='BASE'){baseDefTimer=15000;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){[[r,c-1],[r,c+1],[r-1,c-1],[r-1,c],[r-1,c+1]].forEach(p=>{if(p[0]>=0&&p[0]<ROWS&&p[1]>=0&&p[1]<COLS&&grid[p[0]][p[1]]!==VOID)grid[p[0]][p[1]]=STEEL;});}}else if(b.type==='ALLY'){let br=ROWS-1,bc=7;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){br=r;bc=c;break;}allies.push(new Tank(bc,br,true,'NORMAL',true));}else if(b.type==='TURRET'){let spd=false;if(Math.random()<0.3){let pr=Math.floor(player.y/32),pc=Math.floor(player.x/32);for(let off of [[0,-1],[0,1],[-1,0],[1,0],[-1,-1],[1,-1],[-1,1],[1,1]]){let tr=pr+off[0],tc=pc+off[1];if(tr>=0&&tr<ROWS&&tc>=0&&tc<COLS&&(grid[tr][tc]===EMPTY||grid[tr][tc]===BUSH)){grid[tr][tc]=EMPTY;brickState[tr][tc]=0;turrets.push(new Turret(tc,tr));spd=true;break;}}}if(!spd){player.droneTimer=25000;player.droneCooldown=0;player.droneDir=DIR_UP;}}else if(b.type==='BOMB'){sfx.playExplosion(true);enemies.forEach(e=>{if(e.isBoss)e.hp-=15;else e.hp=0;if(e.hp<=0){e.markForDeletion=true;createExplosion(e.x+e.w/2,e.y+e.h/2,'#f40',e.isBoss?80:30);score+=(e.isBoss?1000:(e.isMiniBoss?500:(e.eType==='NORMAL'?100:300)));}});document.getElementById('scoreUI').innerText=score;updateObjectiveUI();}else if(b.type==='TIME')timeStopTimer=8000;}}
-        let tcx=player.x-canvas.width/2+player.w/2,tcy=player.y-canvas.height/2+player.h/2;
-        camera.x+=(tcx-camera.x)*0.1;camera.y+=(tcy-camera.y)*0.1;
-        if(camera.x<0)camera.x=0;if(camera.x>COLS*32-canvas.width)camera.x=Math.max(0,COLS*32-canvas.width);
-        if(camera.y<0)camera.y=0;if(camera.y>ROWS*32-canvas.height)camera.y=Math.max(0,ROWS*32-canvas.height);
+function initLevel(retry = false, ls = false) {
+    bullets = []; lasers = []; particles = []; enemies = []; bonuses = []; allies = []; turrets = []; placedMines = []; enemyMines = [];
+    document.getElementById('levelUI').innerText = level;
+    minesCount = 3; document.getElementById('minesUI').innerText = minesCount;
+    mineCooldown = 0; timeStopTimer = 0;
+    
+    if (ls) {
+        baseAlive = false;
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === BASE) baseAlive = true;
+        baseDefTimer = 0;
+        enemyMines = savedEnemyMinesCoords.map(c => new Mine(c.x, c.y, true));
+        updateObjectiveUI();
     }
-    enemies.forEach(e=>e.update(dt)); allies.forEach(a=>a.update(dt)); turrets.forEach(t=>t.update(dt)); bullets.forEach(b=>b.update(dt)); lasers.forEach(l=>l.update(dt)); particles.forEach(p=>p.update(dt)); bonuses.forEach(b=>b.update(dt)); placedMines.forEach(m=>m.update(dt)); enemyMines.forEach(m=>m.update(dt));
-    enemies=enemies.filter(e=>!e.markForDeletion); allies=allies.filter(a=>!a.markForDeletion); turrets=turrets.filter(t=>!t.markForDeletion); bullets=bullets.filter(b=>!b.markForDeletion); lasers=lasers.filter(l=>!l.markForDeletion); particles=particles.filter(p=>p.life>0); bonuses=bonuses.filter(b=>!b.markForDeletion); placedMines=placedMines.filter(m=>!m.markForDeletion); enemyMines=enemyMines.filter(m=>!m.markForDeletion); if(player&&player.markForDeletion)player=null;
+    else if (!retry) generateLevel();
+    else {
+        grid = savedGrid.map(r => [...r]); brickState = savedBrickState.map(r => [...r]);
+        levelType = savedLevelType; enemiesToSpawn = savedEnemiesToSpawn;
+        baseAlive = true; baseDefTimer = 0; 
+        updateObjectiveUI();
+    }
+    
+    let br = ROWS - 1, bc = 7;
+    for(let r=0; r<ROWS; r++) {
+        for(let c=0; c<COLS; c++) {
+            if(grid[r][c] === BASE){ br = r; bc = c; break; }
+        }
+    }
+    player = new Tank(bc - 3, br, true);
+    
+    if (levelType === 'BOSS') enemies.push(new Tank(7, 2, false, 'BOSS'));
+    
+    player.weaponLevel = playerWeaponLevel;
+    camera.x = player.x - canvas.width/2 + player.w/2; 
+    camera.y = player.y - canvas.height/2 + player.h/2;
+    
+    gameState = 'PLAYING'; 
+    spottedTimer = 0; exposureTimer = 0; wasSpottedLastFrame = false; window.sirenTick = 600;
+    
+    ['startScreen','gameOverScreen','transitionScreen','pauseScreen'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    document.getElementById('headerPauseBtn').classList.remove('hidden');
+    
+    sfx.playStart();
+    if(animationId) cancelAnimationFrame(animationId);
+    lastTime = performance.now();
+    animationId = requestAnimationFrame(gameLoop);
 }
 
-function draw(){
-    ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height); ctx.save();ctx.translate(-camera.x,-camera.y);
-    let sr=Math.max(0,Math.floor(camera.y/32)),er=Math.min(ROWS-1,Math.floor((camera.y+canvas.height)/32)+1),sc=Math.max(0,Math.floor(camera.x/32)),ec=Math.min(COLS-1,Math.floor((camera.x+canvas.width)/32)+1);
-    for(let r=sr;r<=er;r++)for(let c=sc;c<=ec;c++){let cl=grid[r][c],px=c*32,py=r*32;if(cl===EMPTY){ctx.fillStyle='#111';ctx.fillRect(px,py,32,32);}else if(cl===VOID){ctx.fillStyle='#000';ctx.fillRect(px,py,32,32);}else if(cl===BRICK){ctx.fillStyle='#111';ctx.fillRect(px,py,32,32);let st=brickState[r][c];ctx.fillStyle='#b94022';ctx.strokeStyle='#e67357';ctx.lineWidth=1;let dq=(qx,qy)=>{ctx.fillRect(px+qx,py+qy,16,16);ctx.beginPath();ctx.moveTo(px+qx,py+qy+8);ctx.lineTo(px+qx+16,py+qy+8);ctx.moveTo(px+qx+8,py+qy);ctx.lineTo(px+qx+8,py+qy+16);ctx.stroke();};if(st&1)dq(0,0);if(st&2)dq(16,0);if(st&4)dq(0,16);if(st&8)dq(16,16);}else if(cl===STEEL){ctx.fillStyle='#ccc';ctx.fillRect(px,py,32,32);ctx.fillStyle='#fff';ctx.fillRect(px+4,py+4,24,24);ctx.fillStyle='#999';ctx.fillRect(px+8,py+8,16,16);}else if(cl===WATER){ctx.fillStyle='#0284c7';ctx.fillRect(px,py,32,32);ctx.fillStyle='#38bdf8';let o=Math.sin(Date.now()/200+px)*2;ctx.fillRect(px+4,py+8+o,24,2);ctx.fillRect(px+4,py+24-o,24,2);}else if(cl===GATE){ctx.fillStyle='#374151';ctx.fillRect(px,py,32,32);ctx.fillStyle='#ef4444';ctx.fillRect(px+6,py,4,32);ctx.fillRect(px+22,py,4,32);ctx.fillStyle='rgba(239, 68, 68, 0.4)';ctx.fillRect(px,py,32,32);}else if(cl===BTN_OFF){ctx.fillStyle='#333';ctx.fillRect(px,py,32,32);ctx.fillStyle='#7f1d1d';ctx.beginPath();ctx.arc(px+16,py+16,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();}else if(cl===BTN_ON){ctx.fillStyle='#333';ctx.fillRect(px,py,32,32);ctx.fillStyle='#22c55e';ctx.beginPath();ctx.arc(px+16,py+16,10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#86efac';ctx.beginPath();ctx.arc(px+16,py+16,4,0,Math.PI*2);ctx.fill();}else if(cl===BASE){ctx.fillStyle='#111';ctx.fillRect(px,py,32,32);if(baseAlive){ctx.fillStyle='#16a34a';ctx.fillRect(px,py,32,32);ctx.fillStyle='#15803d';ctx.beginPath();ctx.arc(px+16,py+16,12,0,Math.PI*2);ctx.fill();}else{ctx.fillStyle='#555';ctx.fillRect(px,py,32,32);}}else if(cl===SUBSTATION){ctx.fillStyle='#0284c7';ctx.fillRect(px,py,32,32);ctx.fillStyle='#0ea5e9';ctx.beginPath();ctx.arc(px+16,py+16,8,0,Math.PI*2);ctx.fill();ctx.fillStyle=(Math.floor(Date.now()/200)%2===0)?'#fff':'#7dd3fc';ctx.beginPath();ctx.arc(px+16,py+16,4,0,Math.PI*2);ctx.fill();}else if(cl===RADAR){ctx.fillStyle='#1f2937';ctx.fillRect(px,py,32,32);ctx.strokeStyle='#0ea5e9';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px+16,py+16,10,0,Math.PI*2);ctx.stroke();ctx.save();ctx.translate(px+16,py+16);ctx.rotate((Date.now()%2000)/2000*Math.PI*2);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-10);ctx.stroke();ctx.restore();ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(px+16,py+16,2,0,Math.PI*2);ctx.fill();}else if(cl===ENEMY_BASE){ctx.fillStyle='#111';ctx.fillRect(px,py,32,32);ctx.fillStyle='#b91c1c';ctx.fillRect(px,py,32,32);ctx.fillStyle='#7f1d1d';ctx.beginPath();ctx.moveTo(px+16,py+4);ctx.lineTo(px+28,py+28);ctx.lineTo(px+4,py+28);ctx.fill();if(assaultMode==='SUBSTATION'&&substationAlive){ctx.strokeStyle='#3b82f6';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px+16,py+16,18,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(59,130,246,0.3)';ctx.fill();}else if(assaultMode==='MINIBOSSES'&&countMiniBosses()>0){ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px+16,py+16,18,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(245,158,11,0.3)';ctx.fill();}else if(assaultMode==='BUTTONS'&&buttonsLeft>0){ctx.strokeStyle='#ef4444';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px+16,py+16,18,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(239,68,68,0.3)';ctx.fill();}}}
-    placedMines.forEach(m=>m.draw(ctx));enemyMines.forEach(m=>m.draw(ctx));bonuses.forEach(b=>b.draw(ctx));turrets.forEach(t=>t.draw(ctx));if(player&&!player.markForDeletion)player.draw(ctx);allies.forEach(a=>a.draw(ctx));enemies.forEach(e=>e.draw(ctx));bullets.forEach(b=>b.draw(ctx));lasers.forEach(l=>l.draw(ctx));particles.forEach(p=>p.draw(ctx));
-    ctx.globalAlpha=0.75;for(let r=sr;r<=er;r++)for(let c=sc;c<=ec;c++){if(grid[r][c]===BUSH){let px=c*32,py=r*32;ctx.fillStyle='#14532d';ctx.fillRect(px,py,32,32);ctx.fillStyle='#22c55e';let l=[[2,2,6],[14,4,8],[24,2,6],[4,16,8],[18,20,8]];l.forEach(i=>ctx.fillRect(px+i[0],py+i[1],i[2],i[2]));ctx.fillStyle='#16a34a';let l2=[[8,10,8],[20,12,6],[2,24,6]];l2.forEach(i=>ctx.fillRect(px+i[0],py+i[1],i[2],i[2]));}}ctx.globalAlpha=1;
+function update(dt) {
+    if (['GAMEOVER','LEVEL_TRANSITION','DYING'].includes(gameState)) {
+        particles.forEach(p => p.update(dt));
+        particles = particles.filter(p => p.life > 0);
+        return;
+    }
+    if (levelType === 'CLASSIC' && enemiesToSpawn <= 0 && enemies.length === 0) { winLevel(); return; }
+    if (levelType === 'BOSS' && enemies.length === 0) { winLevel(); return; }
+    if (timeStopTimer > 0) timeStopTimer -= dt;
+    
+    enemySpawnTimer -= dt;
+    if (enemySpawnTimer <= 0) { spawnEnemy(); enemySpawnTimer = ENEMY_SPAWN_RATE; }
+    
+    if (baseDefTimer > 0) {
+        baseDefTimer -= dt;
+        if (baseDefTimer <= 0) {
+            for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) if (grid[r][c] === BASE) {
+                [[r,c-1],[r,c+1],[r-1,c-1],[r-1,c],[r-1,c+1]].forEach(p => {
+                    if (p[0]>=0 && p[0]<ROWS && p[1]>=0 && p[1]<COLS && grid[p[0]][p[1]] === STEEL) {
+                        grid[p[0]][p[1]] = BRICK; brickState[p[0]][p[1]] = 15;
+                    }
+                });
+            }
+        }
+    }
+    
+    if (mineCooldown > 0) mineCooldown -= dt;
+    
+    if (player && !player.markForDeletion) {
+        player.update(dt);
+        
+        if (levelType === 'STEALTH') {
+            let pr = Math.floor((player.y + player.h/2) / 32);
+            let pc = Math.floor((player.x + player.w/2) / 32);
+            if (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS) {
+                if (grid[pr][pc] !== BUSH) {
+                    exposureTimer += dt;
+                    if (exposureTimer >= 1500) { exposureTimer = 1500; spottedTimer = 3000; }
+                } else {
+                    exposureTimer -= dt * 2; if (exposureTimer < 0) exposureTimer = 0;
+                }
+            }
+        }
+        
+        if (spottedTimer > 0) {
+            spottedTimer -= dt;
+            if (levelType === 'STEALTH') {
+                if (typeof window.sirenTick === 'undefined') window.sirenTick = 600;
+                window.sirenTick += dt;
+                if (window.sirenTick > 600) {
+                    window.sirenTick = 0;
+                    let vol = Math.max(0.005, (spottedTimer / 3000) * 0.05);
+                    sfx.playSiren(vol);
+                }
+            }
+        } else {
+            window.sirenTick = 600;
+        }
+        
+        if ((keys['b'] || keys['B'] || keys['и'] || keys['И'] || touchMine) && mineCooldown <= 0 && minesCount > 0) {
+            placedMines.push(new Mine(player.x + player.w/2, player.y + player.h/2));
+            minesCount--; document.getElementById('minesUI').innerText = minesCount;
+            mineCooldown = 500; player.revealedTimer = 2000;
+            if (levelType === 'STEALTH') { exposureTimer = 1500; spottedTimer = 3000; }
+            sfx.playArmorHit();
+        }
+        
+        for (let b of bonuses) {
+            if (!b.markForDeletion && player.x < b.x + b.w && player.x + player.w > b.x && player.y < b.y + b.h && player.y + player.h > b.y) {
+                b.markForDeletion = true; score += 500; document.getElementById('scoreUI').innerText = score; sfx.playBonus();
+                if (b.type === 'LIFE') { if(lives < 6) lives++; document.getElementById('livesUI').innerText = lives; }
+                else if (b.type === 'SHIELD') player.shieldTimer = 10000;
+                else if (b.type === 'FIRE') { if(playerWeaponLevel < 3) playerWeaponLevel++; player.weaponLevel = playerWeaponLevel; }
+                else if (b.type === 'BASE') {
+                    baseDefTimer = 15000;
+                    for (let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c] === BASE) {
+                        [[r,c-1],[r,c+1],[r-1,c-1],[r-1,c],[r-1,c+1]].forEach(p => {
+                            if (p[0]>=0 && p[0]<ROWS && p[1]>=0 && p[1]<COLS && grid[p[0]][p[1]] !== VOID) grid[p[0]][p[1]] = STEEL;
+                        });
+                    }
+                }
+                else if (b.type === 'ALLY') {
+                    let br = ROWS-1, bc = 7;
+                    for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c] === BASE) { br=r; bc=c; break; }
+                    let spawnC = Math.min(COLS - 2, bc + 3);
+                    allies.push(new Tank(spawnC, br, true, 'NORMAL', true));
+                }
+                else if (b.type === 'TURRET') {
+                    let spd = false;
+                    if (Math.random() < 0.3) {
+                        let pr = Math.floor(player.y/32), pc = Math.floor(player.x/32);
+                        for (let off of [[0,-1],[0,1],[-1,0],[1,0],[-1,-1],[1,-1],[-1,1],[1,1]]) {
+                            let tr = pr + off[0], tc = pc + off[1];
+                            if (tr>=0 && tr<ROWS && tc>=0 && tc<COLS && (grid[tr][tc] === EMPTY || grid[tr][tc] === BUSH)) {
+                                grid[tr][tc] = EMPTY; brickState[tr][tc] = 0; turrets.push(new Turret(tc,tr)); spd = true; break;
+                            }
+                        }
+                    }
+                    if (!spd) { player.droneTimer = 25000; player.droneCooldown = 0; player.droneDir = DIR_UP; }
+                }
+                else if (b.type === 'BOMB') {
+                    sfx.playExplosion(true);
+                    enemies.forEach(e => {
+                        if (e.isBoss) e.hp -= 15; else e.hp = 0;
+                        if (e.hp <= 0) {
+                            e.markForDeletion = true; createExplosion(e.x + e.w/2, e.y + e.h/2, '#f40', e.isBoss ? 80 : 30);
+                            score += (e.isBoss ? 1000 : 100);
+                        }
+                    });
+                    document.getElementById('scoreUI').innerText = score; updateObjectiveUI();
+                }
+                else if (b.type === 'TIME') timeStopTimer = 8000;
+            }
+        }
+        
+        let tcx = player.x - canvas.width/2 + player.w/2, tcy = player.y - canvas.height/2 + player.h/2;
+        camera.x += (tcx - camera.x) * 0.1; camera.y += (tcy - camera.y) * 0.1;
+        if (camera.x < 0) camera.x = 0; if (camera.x > COLS * 32 - canvas.width) camera.x = Math.max(0, COLS * 32 - canvas.width);
+        if (camera.y < 0) camera.y = 0; if (camera.y > ROWS * 32 - canvas.height) camera.y = Math.max(0, ROWS * 32 - canvas.height);
+    }
+    
+    enemies.forEach(e => e.update(dt)); allies.forEach(a => a.update(dt)); turrets.forEach(t => t.update(dt)); 
+    bullets.forEach(b => b.update(dt)); lasers.forEach(l => l.update(dt)); particles.forEach(p => p.update(dt)); 
+    bonuses.forEach(b => b.update(dt)); placedMines.forEach(m => m.update(dt)); enemyMines.forEach(m => m.update(dt));
+
+    enemies = enemies.filter(e => !e.markForDeletion); allies = allies.filter(a => !a.markForDeletion); 
+    turrets = turrets.filter(t => !t.markForDeletion); bullets = bullets.filter(b => !b.markForDeletion); 
+    lasers = lasers.filter(l => !l.markForDeletion); particles = particles.filter(p => p.life > 0); 
+    bonuses = bonuses.filter(b => !b.markForDeletion); placedMines = placedMines.filter(m => !m.markForDeletion); 
+    enemyMines = enemyMines.filter(m => !m.markForDeletion); 
+    if (player && player.markForDeletion) player = null;
+}
+
+function draw() {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.save(); ctx.translate(-camera.x, -camera.y);
+    let sr = Math.max(0, Math.floor(camera.y / 32)), er = Math.min(ROWS - 1, Math.floor((camera.y + canvas.height) / 32) + 1);
+    let sc = Math.max(0, Math.floor(camera.x / 32)), ec = Math.min(COLS - 1, Math.floor((camera.x + canvas.width) / 32) + 1);
+    
+    for (let r = sr; r <= er; r++) {
+        for (let c = sc; c <= ec; c++) {
+            let cl = grid[r][c], px = c * 32, py = r * 32;
+            if (cl === EMPTY) { ctx.fillStyle = '#111'; ctx.fillRect(px, py, 32, 32); }
+            else if (cl === VOID) { ctx.fillStyle = '#000'; ctx.fillRect(px, py, 32, 32); }
+            else if (cl === BRICK) {
+                ctx.fillStyle = '#111'; ctx.fillRect(px, py, 32, 32); let st = brickState[r][c];
+                ctx.fillStyle = '#b94022'; ctx.strokeStyle = '#e67357'; ctx.lineWidth = 1;
+                let dq = (qx, qy) => { ctx.fillRect(px + qx, py + qy, 16, 16); ctx.beginPath(); ctx.moveTo(px + qx, py + qy + 8); ctx.lineTo(px + qx + 16, py + qy + 8); ctx.moveTo(px + qx + 8, py + qy); ctx.lineTo(px + qx + 8, py + qy + 16); ctx.stroke(); };
+                if (st & 1) dq(0, 0); if (st & 2) dq(16, 0); if (st & 4) dq(0, 16); if (st & 8) dq(16, 16);
+            }
+            else if (cl === STEEL) { ctx.fillStyle = '#ccc'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#fff'; ctx.fillRect(px + 4, py + 4, 24, 24); ctx.fillStyle = '#999'; ctx.fillRect(px + 8, py + 8, 16, 16); }
+            else if (cl === WATER) { ctx.fillStyle = '#0284c7'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#38bdf8'; let o = Math.sin(Date.now() / 200 + px) * 2; ctx.fillRect(px + 4, py + 8 + o, 24, 2); ctx.fillRect(px + 4, py + 24 - o, 24, 2); }
+            else if (cl === GATE) { ctx.fillStyle = '#374151'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#ef4444'; ctx.fillRect(px + 6, py, 4, 32); ctx.fillRect(px + 22, py, 4, 32); ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; ctx.fillRect(px, py, 32, 32); }
+            else if (cl === BTN_OFF) { ctx.fillStyle = '#333'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#7f1d1d'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 10, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); }
+            else if (cl === BTN_ON) { ctx.fillStyle = '#333'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#22c55e'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#86efac'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 4, 0, Math.PI * 2); ctx.fill(); }
+            else if (cl === SUBSTATION) { ctx.fillStyle = '#0284c7'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#0ea5e9'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 8, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = (Math.floor(Date.now() / 200) % 2 === 0) ? '#fff' : '#7dd3fc'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 4, 0, Math.PI * 2); ctx.fill(); }
+            else if (cl === RADAR) { ctx.fillStyle = '#1f2937'; ctx.fillRect(px, py, 32, 32); ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px + 16, py + 16, 10, 0, Math.PI * 2); ctx.stroke(); ctx.save(); ctx.translate(px + 16, py + 16); ctx.rotate((Date.now() % 2000) / 2000 * Math.PI * 2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -10); ctx.stroke(); ctx.restore(); ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 2, 0, Math.PI * 2); ctx.fill(); }
+            else if (cl === BASE) {
+                ctx.fillStyle = '#111'; ctx.fillRect(px, py, 32, 32);
+                if (baseAlive) { ctx.fillStyle = '#16a34a'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#15803d'; ctx.beginPath(); ctx.arc(px + 16, py + 16, 12, 0, Math.PI * 2); ctx.fill(); }
+                else { ctx.fillStyle = '#555'; ctx.fillRect(px, py, 32, 32); }
+            }
+            else if (cl === ENEMY_BASE) {
+                ctx.fillStyle = '#111'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#b91c1c'; ctx.fillRect(px, py, 32, 32); ctx.fillStyle = '#7f1d1d'; ctx.beginPath(); ctx.moveTo(px + 16, py + 4); ctx.lineTo(px + 28, py + 28); ctx.lineTo(px + 4, py + 28); ctx.fill();
+                if (assaultMode === 'SUBSTATION' && substationAlive) { ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px + 16, py + 16, 18, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; ctx.fill(); }
+                else if (assaultMode === 'MINIBOSSES' && countMiniBosses() > 0) { ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px + 16, py + 16, 18, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(245, 158, 11, 0.3)'; ctx.fill(); }
+                else if (assaultMode === 'BUTTONS' && buttonsLeft > 0) { ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px + 16, py + 16, 18, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(239, 68, 68, 0.3)'; ctx.fill(); }
+            }
+        }
+    }
+
+    placedMines.forEach(m => m.draw(ctx)); enemyMines.forEach(m => m.draw(ctx));
+    bonuses.forEach(b => b.draw(ctx)); turrets.forEach(t => t.draw(ctx));
+    if (player && !player.markForDeletion) player.draw(ctx);
+    allies.forEach(a => a.draw(ctx)); enemies.forEach(e => e.draw(ctx));
+    bullets.forEach(b => b.draw(ctx)); lasers.forEach(l => l.draw(ctx));
+    particles.forEach(p => p.draw(ctx));
+
+    ctx.globalAlpha = 0.75; 
+    for (let r = sr; r <= er; r++) {
+        for (let c = sc; c <= ec; c++) {
+            if (grid[r][c] === BUSH) {
+                let px = c * 32, py = r * 32;
+                ctx.fillStyle = '#14532d'; ctx.fillRect(px, py, 32, 32);
+                ctx.fillStyle = '#22c55e';
+                let l = [[2, 2, 6], [14, 4, 8], [24, 2, 6], [4, 16, 8], [18, 20, 8]];
+                l.forEach(i => ctx.fillRect(px + i[0], py + i[1], i[2], i[2]));
+                ctx.fillStyle = '#16a34a';
+                let l2 = [[8, 10, 8], [20, 12, 6], [2, 24, 6]];
+                l2.forEach(i => ctx.fillRect(px + i[0], py + i[1], i[2], i[2]));
+            }
+        }
+    }
+    ctx.globalAlpha = 1.0; 
     ctx.restore();
-    if(levelType==='STEALTH'&&exposureTimer>0&&player&&!player.markForDeletion){let r=Math.min(exposureTimer/1500,1),sx=player.x+player.w/2-camera.x,sy=player.y-12-camera.y;ctx.fillStyle=(r>0.8)?'rgba(239,68,68,0.9)':'rgba(234,179,8,0.9)';ctx.fillRect(player.x-camera.x,sy,player.w*r,4);ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText('?',sx,sy-4);}
-    if(levelType==='STEALTH'&&spottedTimer>0){ctx.fillStyle=`rgba(239,68,68,${Math.abs(Math.sin(Date.now()/200))*0.25})`;ctx.fillRect(0,0,canvas.width,canvas.height);}
-    if(levelType==='SHADOWS'&&radarsAlive<3&&player&&!player.markForDeletion){let dk=radarsAlive===2?0.5:(radarsAlive===1?0.8:1),vr=radarsAlive===2?250:(radarsAlive===1?150:80),cx=player.x+player.w/2-camera.x,cy=player.y+player.h/2-camera.y;ctx.save();ctx.fillStyle=`rgba(0,0,0,${dk})`;ctx.beginPath();ctx.rect(0,0,canvas.width,canvas.height);ctx.arc(cx,cy,vr,0,Math.PI*2,true);ctx.fill();let g=ctx.createRadialGradient(cx,cy,vr*0.5,cx,cy,vr);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${dk})`);ctx.beginPath();ctx.arc(cx,cy,vr,0,Math.PI*2,false);ctx.fillStyle=g;ctx.fill();ctx.restore();}
+    
+    // Эффекты Стелс/Тени
+    if (levelType === 'STEALTH' && exposureTimer > 0 && player && !player.markForDeletion) {
+        let ratio = Math.min(exposureTimer / 1500, 1.0);
+        let screenPx = player.x + player.w/2 - camera.x;
+        let screenPy = player.y - 12 - camera.y;
+
+        ctx.fillStyle = (ratio > 0.8) ? 'rgba(239, 68, 68, 0.9)' : 'rgba(234, 179, 8, 0.9)'; 
+        ctx.fillRect(player.x - camera.x, screenPy, player.w * ratio, 4);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('?', screenPx, screenPy - 4);
+    }
+
+    if (levelType === 'STEALTH' && spottedTimer > 0) {
+        ctx.fillStyle = `rgba(239, 68, 68, ${Math.abs(Math.sin(Date.now() / 200)) * 0.25})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    if (levelType === 'SHADOWS' && radarsAlive < 3 && player && !player.markForDeletion) {
+        let darkness = radarsAlive === 2 ? 0.5 : (radarsAlive === 1 ? 0.8 : 1.0);
+        let visRadius = radarsAlive === 2 ? 250 : (radarsAlive === 1 ? 150 : 80);
+        
+        let screenCx = player.x + player.w/2 - camera.x;
+        let screenCy = player.y + player.h/2 - camera.y;
+        
+        ctx.save();
+        ctx.fillStyle = `rgba(0,0,0,${darkness})`;
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.arc(screenCx, screenCy, visRadius, 0, Math.PI * 2, true);
+        ctx.fill();
+        
+        let grad = ctx.createRadialGradient(screenCx, screenCy, visRadius * 0.5, screenCx, screenCy, visRadius);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, `rgba(0,0,0,${darkness})`);
+        ctx.beginPath();
+        ctx.arc(screenCx, screenCy, visRadius, 0, Math.PI * 2, false);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+    }
 }
 
-function gameLoop(ts){if(!lastTime)lastTime=ts;let dt=ts-lastTime;lastTime=ts;if(dt>100)dt=16;if(gameState!=='PAUSED')update(dt);draw();if(['PLAYING','LEVEL_TRANSITION','DYING','PAUSED','GAMEOVER'].includes(gameState))animationId=requestAnimationFrame(gameLoop);}
-function togglePause(){if(gameState==='PLAYING'){gameState='PAUSED';sfx.stopEngine();document.getElementById('pauseScreen').classList.remove('hidden');}else if(gameState==='PAUSED'){gameState='PLAYING';document.getElementById('pauseScreen').classList.add('hidden');lastTime=performance.now();}}
-function winLevel(){if(gameState==='LEVEL_TRANSITION'||gameState==='DYING')return;gameState='LEVEL_TRANSITION';sfx.stopEngine();sfx.playWin();level++;if(lives<3)lives=3;document.getElementById('livesUI').innerText=lives;document.getElementById('transitionText').innerHTML=t('levelCleared',{n:level});document.getElementById('transitionScreen').classList.remove('hidden');setTimeout(()=>{initLevel(false);},3500);}
-function gameOver(){gameState='GAMEOVER';document.getElementById('headerPauseBtn').classList.add('hidden');document.getElementById('gameOverScreen').classList.remove('hidden');document.getElementById('finalScore').innerText=score;}
-function levelFailed(rsn){if(['DYING','GAMEOVER','LEVEL_TRANSITION'].includes(gameState))return;gameState='DYING';sfx.stopEngine();sfx.playLose();setTimeout(()=>{if(continues>0){continues--;document.getElementById('continuesUI').innerText=continues;gameState='LEVEL_TRANSITION';document.getElementById('transitionText').innerHTML=rsn+(continues===0?t('lastChance'):t('attemptsLeft',{n:continues}));document.getElementById('transitionScreen').classList.remove('hidden');setTimeout(()=>{lives=3;document.getElementById('livesUI').innerText=lives;initLevel(true);},3500);}else gameOver();},1500);}
-function playerDeath(){createExplosion(player.x+player.w/2,player.y+player.h/2,'#f00',40);sfx.playExplosion(true);sfx.stopEngine();player.markForDeletion=true;lives--;document.getElementById('livesUI').innerText=lives;playerWeaponLevel=0;if(lives<=0)levelFailed(t('outOfTanks'));else setTimeout(()=>{if(gameState==='PLAYING'){let br=ROWS-1,bc=7;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){br=r;bc=c;break;}player=new Tank(bc-3,br,true);}},1000);}
+function gameLoop(ts) {
+    if (!lastTime) lastTime = ts;
+    let dt = ts - lastTime; lastTime = ts;
+    if (dt > 100) dt = 16; 
+    
+    if (gameState !== 'PAUSED') update(dt);
+    draw();
+
+    if (['PLAYING', 'LEVEL_TRANSITION', 'DYING', 'PAUSED', 'GAMEOVER'].includes(gameState)) {
+        animationId = requestAnimationFrame(gameLoop);
+    }
+}
+
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED'; sfx.stopEngine(); document.getElementById('pauseScreen').classList.remove('hidden');
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING'; document.getElementById('pauseScreen').classList.add('hidden'); lastTime = performance.now();
+    }
+}
+
+function winLevel() {
+    if (gameState === 'LEVEL_TRANSITION' || gameState === 'DYING') return;
+    gameState = 'LEVEL_TRANSITION'; sfx.stopEngine(); sfx.playWin();
+    level++; if (lives < 3) lives = 3; document.getElementById('livesUI').innerText = lives;
+    document.getElementById('transitionText').innerHTML = t('levelCleared', {n: level});
+    document.getElementById('transitionScreen').classList.remove('hidden');
+    setTimeout(() => { initLevel(false); }, 3500);
+}
+
+function gameOver() {
+    gameState = 'GAMEOVER';
+    document.getElementById('headerPauseBtn').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.remove('hidden');
+    document.getElementById('finalScore').innerText = score;
+}
+
+function levelFailed(rsn) {
+    if (['DYING', 'GAMEOVER', 'LEVEL_TRANSITION'].includes(gameState)) return;
+    gameState = 'DYING'; sfx.stopEngine(); sfx.playLose();
+    setTimeout(() => {
+        if (continues > 0) {
+            continues--; document.getElementById('continuesUI').innerText = continues;
+            gameState = 'LEVEL_TRANSITION';
+            document.getElementById('transitionText').innerHTML = rsn + (continues === 0 ? t('lastChance') : t('attemptsLeft', {n: continues}));
+            document.getElementById('transitionScreen').classList.remove('hidden');
+            setTimeout(() => { lives = 3; document.getElementById('livesUI').innerText = lives; initLevel(true); }, 3500);
+        } else {
+            gameOver();
+        }
+    }, 1500);
+}
+
+function playerDeath() {
+    createExplosion(player.x + player.w/2, player.y + player.h/2, '#f00', 40); sfx.playExplosion(true); sfx.stopEngine();
+    player.markForDeletion = true; lives--; document.getElementById('livesUI').innerText = lives;
+    playerWeaponLevel = 0; 
+    if (lives <= 0) levelFailed(t('outOfTanks'));
+    else setTimeout(() => {
+        if (gameState === 'PLAYING') {
+            let br = ROWS - 1, bc = 7;
+            for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === BASE) { br = r; bc = c; break; }
+            player = new Tank(bc - 3, br, true);
+        }
+    }, 1000);
+}
 
 /** СОБЫТИЯ */
-window.addEventListener('keydown',e=>{if(keys.hasOwnProperty(e.key))keys[e.key]=true;if(e.key==='Escape'&&['PLAYING','PAUSED'].includes(gameState))togglePause();});
-window.addEventListener('keyup',e=>{if(keys.hasOwnProperty(e.key))keys[e.key]=false;});
+window.addEventListener('keydown', e => { 
+    if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
+    if(e.key === 'Escape' && ['PLAYING', 'PAUSED'].includes(gameState)) togglePause(); 
+});
+window.addEventListener('keyup', e => { 
+    if(keys.hasOwnProperty(e.key)) keys[e.key] = false; 
+});
 
-['startBtn'].forEach(id=>document.getElementById(id).addEventListener('click',initGame));
-['restartBtn','pauseToMenuBtn'].forEach(id=>document.getElementById(id).addEventListener('click',goToGameMenu));
-['headerPauseBtn','resumeBtn'].forEach(id=>document.getElementById(id).addEventListener('click',togglePause));
-document.getElementById('muteBtnHeader').addEventListener('click',e=>{sfx.isMuted=!sfx.isMuted;e.target.innerText=sfx.isMuted?'🔇':'🔊';if(!sfx.isMuted&&audioCtx.state==='suspended')audioCtx.resume();});
-function toggleInfo(){let el=document.getElementById('encyclopediaScreen');if(el.classList.contains('hidden')){if(gameState==='PLAYING'){gameState='PAUSED';sfx.stopEngine();}el.classList.remove('hidden');}else{el.classList.add('hidden');if(gameState==='PAUSED'&&document.getElementById('pauseScreen').classList.contains('hidden')&&document.getElementById('startScreen').classList.contains('hidden')&&document.getElementById('transitionScreen').classList.contains('hidden')&&document.getElementById('gameOverScreen').classList.contains('hidden')){gameState='PLAYING';lastTime=performance.now();}}}
-['infoBtn','closeInfoBtn'].forEach(id=>document.getElementById(id).addEventListener('click',toggleInfo));
+['startBtn'].forEach(id => document.getElementById(id).addEventListener('click', initGame));
+['restartBtn', 'pauseToMenuBtn'].forEach(id => document.getElementById(id).addEventListener('click', goToGameMenu));
+['headerPauseBtn', 'resumeBtn'].forEach(id => document.getElementById(id).addEventListener('click', togglePause));
 
-const hT=(e)=>{e.preventDefault();touchDirs={up:false,down:false,left:false,right:false};touchFire=false;touchMine=false;['btn-up','btn-down','btn-left','btn-right','btn-fire','btn-mine'].forEach(id=>{let el=document.getElementById(id);if(el)el.classList.remove('active-btn');});for(let i=0;i<e.touches.length;i++){let t=e.touches[i],el=document.elementFromPoint(t.clientX,t.clientY);if(el){let b=el.closest('.btn,.btn-fire,.btn-mine');if(b){if(b.id==='btn-up')touchDirs.up=true;if(b.id==='btn-down')touchDirs.down=true;if(b.id==='btn-left')touchDirs.left=true;if(b.id==='btn-right')touchDirs.right=true;if(b.id==='btn-fire')touchFire=true;if(b.id==='btn-mine')touchMine=true;b.classList.add('active-btn');}}}};
-let mc=document.getElementById('mobile-controls');if(mc){['touchstart','touchmove','touchend','touchcancel'].forEach(ev=>mc.addEventListener(ev,hT,{passive:false}));}
-const sMB=(id,d,u)=>{let b=document.getElementById(id);b.addEventListener('mousedown',e=>{e.preventDefault();d();b.classList.add('active-btn');});['mouseup','mouseleave'].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();u();b.classList.remove('active-btn');}));};
-sMB('btn-up',()=>touchDirs.up=true,()=>touchDirs.up=false);sMB('btn-down',()=>touchDirs.down=true,()=>touchDirs.down=false);sMB('btn-left',()=>touchDirs.left=true,()=>touchDirs.left=false);sMB('btn-right',()=>touchDirs.right=true,()=>touchDirs.right=false);sMB('btn-fire',()=>touchFire=true,()=>touchFire=false);sMB('btn-mine',()=>touchMine=true,()=>touchMine=false);
+document.getElementById('muteBtnHeader').addEventListener('click', e => {
+    sfx.isMuted = !sfx.isMuted;
+    e.target.innerText = sfx.isMuted ? '🔇' : '🔊';
+    if (!sfx.isMuted && audioCtx.state === 'suspended') audioCtx.resume();
+});
 
-document.getElementById('saveBtn').addEventListener('click',saveGame);
-document.getElementById('startLoadBtn').addEventListener('click',()=>{sfx.init();loadGame('startLoadBtn');});
-document.getElementById('pauseLoadBtn').addEventListener('click',()=>{loadGame('pauseLoadBtn');});
+const hT = (e) => {
+    e.preventDefault();
+    touchDirs = { up: false, down: false, left: false, right: false }; touchFire = false; touchMine = false;
+    ['btn-up', 'btn-down', 'btn-left', 'btn-right', 'btn-fire', 'btn-mine'].forEach(id => {
+        let el = document.getElementById(id); if (el) el.classList.remove('active-btn');
+    });
+    for (let i = 0; i < e.touches.length; i++) {
+        let t = e.touches[i], el = document.elementFromPoint(t.clientX, t.clientY);
+        if (el) {
+            let b = el.closest('.btn, .btn-fire, .btn-mine');
+            if (b) {
+                if (b.id === 'btn-up') touchDirs.up = true; if (b.id === 'btn-down') touchDirs.down = true;
+                if (b.id === 'btn-left') touchDirs.left = true; if (b.id === 'btn-right') touchDirs.right = true;
+                if (b.id === 'btn-fire') touchFire = true; if (b.id === 'btn-mine') touchMine = true;
+                b.classList.add('active-btn');
+            }
+        }
+    }
+};
+
+let mc = document.getElementById('mobile-controls');
+if (mc) {
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(ev => mc.addEventListener(ev, hT, { passive: false }));
+}
+
+const sMB = (id, d, u) => {
+    let b = document.getElementById(id);
+    b.addEventListener('mousedown', e => { e.preventDefault(); d(); b.classList.add('active-btn'); });
+    ['mouseup', 'mouseleave'].forEach(ev => b.addEventListener(ev, e => { e.preventDefault(); u(); b.classList.remove('active-btn'); }));
+};
+
+sMB('btn-up', () => touchDirs.up = true, () => touchDirs.up = false);
+sMB('btn-down', () => touchDirs.down = true, () => touchDirs.down = false);
+sMB('btn-left', () => touchDirs.left = true, () => touchDirs.left = false);
+sMB('btn-right', () => touchDirs.right = true, () => touchDirs.right = false);
+sMB('btn-fire', () => touchFire = true, () => touchFire = false);
+sMB('btn-mine', () => touchMine = true, () => touchMine = false);
+
+document.getElementById('saveBtn').addEventListener('click', saveGame);
+document.getElementById('startLoadBtn').addEventListener('click', () => { sfx.init(); loadGame('startLoadBtn'); });
+document.getElementById('pauseLoadBtn').addEventListener('click', () => { loadGame('pauseLoadBtn'); });
 
 updateStaticUI();
 </script>
