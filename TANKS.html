@@ -188,27 +188,80 @@ function goToGameMenu() {
 }
 
 function saveGame() {
-    const data = { level, score, lives, continues, lastBossLevel, playerWeaponLevel, grid, brickState, savedGrid, savedBrickState, savedLevelType: levelType, savedAssaultMode: assaultMode, savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: enemiesToSpawn, savedEnemyMinesCoords: enemyMines.map(m => ({x: m.x, y: m.y})), savedButtonsLeft: buttonsLeft, enemiesToSpawn, radarsAlive, substationAlive, buttonsLeft, savedCols: COLS, savedRows: ROWS };
-    localStorage.setItem('battleCityEvoSave', JSON.stringify(data));
-    let btn = document.getElementById('saveBtn'); if (btn) { let old = btn.innerText; btn.innerText = t('success'); setTimeout(() => { btn.innerText = old; }, 2000); }
+    try {
+        const data = { 
+            level, score, lives, continues, lastBossLevel, playerWeaponLevel, 
+            grid, brickState, savedGrid, savedBrickState, 
+            savedLevelType: levelType, savedAssaultMode: assaultMode, 
+            savedEnemyBaseCol: enemyBaseCol, savedEnemiesToSpawn: enemiesToSpawn, 
+            savedEnemyMinesCoords: enemyMines.map(m => ({x: m.x, y: m.y})), 
+            savedButtonsLeft: buttonsLeft, 
+            radarsAlive, substationAlive, buttonsLeft, 
+            savedCols: COLS, savedRows: ROWS,
+            savedRadarsAlive: radarsAlive, savedSubstationAlive: substationAlive
+        };
+        localStorage.setItem('battleCityEvoSave', JSON.stringify(data));
+        let btn = document.getElementById('saveBtn'); 
+        if (btn) { let old = btn.innerText; btn.innerText = t('success'); setTimeout(() => { btn.innerText = old; }, 2000); }
+    } catch(e) { console.warn("save error",e); }
 }
 
 function loadGame(buttonId) {
-    const save = localStorage.getItem('battleCityEvoSave'); let btn = document.getElementById(buttonId); let old = btn ? btn.innerText : '';
-    if (save) {
-        const data = JSON.parse(save); level = data.level || 1; score = data.score || 0; lives = data.lives || 3; continues = data.continues || 3; lastBossLevel = data.lastBossLevel || 0; playerWeaponLevel = data.playerWeaponLevel || 0;
-        document.getElementById('scoreUI').innerText = score; document.getElementById('livesUI').innerText = lives; document.getElementById('continuesUI').innerText = continues;
-        if (btn) btn.innerText = t('loaded');
-        setTimeout(() => { 
-            if (btn) btn.innerText = old; document.getElementById('pauseScreen').classList.add('hidden'); document.getElementById('startScreen').classList.add('hidden');
-            if (data.grid) { grid = data.grid; brickState = data.brickState; savedGrid = data.savedGrid; savedBrickState = data.savedBrickState; savedLevelType = data.savedLevelType; savedAssaultMode = data.savedAssaultMode; savedEnemyBaseCol = data.savedEnemyBaseCol; savedEnemiesToSpawn = data.savedEnemiesToSpawn; savedEnemyMinesCoords = data.savedEnemyMinesCoords || []; levelType = data.savedLevelType; assaultMode = data.savedAssaultMode; enemyBaseCol = data.savedEnemyBaseCol; enemiesToSpawn = data.enemiesToSpawn; radarsAlive = data.radarsAlive ?? 3; substationAlive = data.substationAlive ?? false; buttonsLeft = data.buttonsLeft ?? 0; savedCols = data.savedCols || 15; savedRows = data.savedRows || 15; initLevel(false, true); } else initLevel(false);
-            if (gameState === 'PAUSED' || gameState === 'START') { gameState = 'PLAYING'; lastTime = performance.now(); }
-        }, 500);
-    } else { if (btn) { btn.innerText = t('noSaves'); setTimeout(() => { btn.innerText = old; }, 2000); } }
+    try {
+        const save = localStorage.getItem('battleCityEvoSave'); 
+        let btn = document.getElementById(buttonId); 
+        let old = btn ? btn.innerText : '';
+        if (save) {
+            const data = JSON.parse(save); 
+            level = data.level || 1; 
+            score = data.score || 0; 
+            lives = data.lives || 3; 
+            continues = data.continues || 3; 
+            lastBossLevel = data.lastBossLevel || 0; 
+            playerWeaponLevel = data.playerWeaponLevel || 0;
+            document.getElementById('scoreUI').innerText = score; 
+            document.getElementById('livesUI').innerText = lives; 
+            document.getElementById('continuesUI').innerText = continues;
+            if (btn) btn.innerText = t('loaded');
+            setTimeout(() => { 
+                if (btn) btn.innerText = old; 
+                document.getElementById('pauseScreen').classList.add('hidden'); 
+                document.getElementById('startScreen').classList.add('hidden');
+                if (data.grid) { 
+                    grid = data.grid; 
+                    brickState = data.brickState; 
+                    savedGrid = data.savedGrid; 
+                    savedBrickState = data.savedBrickState; 
+                    savedLevelType = data.savedLevelType; 
+                    savedAssaultMode = data.savedAssaultMode; 
+                    savedEnemyBaseCol = data.savedEnemyBaseCol; 
+                    savedEnemiesToSpawn = data.savedEnemiesToSpawn; 
+                    savedEnemyMinesCoords = data.savedEnemyMinesCoords || []; 
+                    levelType = data.savedLevelType; 
+                    assaultMode = data.savedAssaultMode; 
+                    enemyBaseCol = data.savedEnemyBaseCol; 
+                    enemiesToSpawn = data.enemiesToSpawn; 
+                    radarsAlive = data.radarsAlive ?? 3; 
+                    substationAlive = data.substationAlive ?? false; 
+                    buttonsLeft = data.buttonsLeft ?? 0; 
+                    savedCols = data.savedCols || 15; 
+                    savedRows = data.savedRows || 15;
+                    savedRadarsAlive = data.savedRadarsAlive ?? radarsAlive;
+                    savedSubstationAlive = data.savedSubstationAlive ?? substationAlive;
+                    initLevel(false, true); 
+                } else initLevel(false);
+                if (gameState === 'PAUSED' || gameState === 'START') { gameState = 'PLAYING'; lastTime = performance.now(); }
+            }, 500);
+        } else { 
+            if (btn) { btn.innerText = t('noSaves'); setTimeout(() => { btn.innerText = old; }, 2000); } 
+        }
+    } catch(e) { console.warn("load error",e); }
 }
 
 function updateObjectiveUI() {
-    const objUI = document.getElementById('objectiveUI'); let actE = enemies ? enemies.filter(e => !e.markForDeletion).length : 0; let cl = "w-full text-center mb-2 font-bold rounded py-1 border text-[11px] sm:text-xs bg-gray-800 ";
+    const objUI = document.getElementById('objectiveUI'); 
+    let actE = enemies ? enemies.filter(e => !e.markForDeletion).length : 0; 
+    let cl = "w-full text-center mb-2 font-bold rounded py-1 border text-[11px] sm:text-xs bg-gray-800 ";
     if (levelType === 'CLASSIC') { objUI.innerText = t('objDefend',{n:enemiesToSpawn+actE}); objUI.className = cl+"text-green-300 border-green-700"; }
     else if (levelType === 'BOSS') { objUI.innerText = t('objBoss'); objUI.className = cl+"text-yellow-300 border-yellow-700 animate-pulse"; }
     else if (levelType === 'SHADOWS') { objUI.innerText = t('objCommand',{n:radarsAlive}); objUI.className = cl+"text-cyan-300 border-cyan-700"; }
@@ -264,20 +317,28 @@ const sfx = {
     playStart(){ this.playMelody([[330,0.15],[330,0.15],[330,0.15],[261,0.15],[330,0.15],[392,0.3]]); },
     playWin(){ this.playMelody([[261,0.1],[330,0.1],[392,0.1],[523,0.4]]); }, playLose(){ this.playMelody([[392,0.2],[370,0.2],[349,0.2],[330,0.8]],'sawtooth'); }
 };
+// Resume audio on first user interaction
+function resumeAudio() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    document.body.removeEventListener('touchstart', resumeAudio);
+    document.body.removeEventListener('mousedown', resumeAudio);
+}
+document.body.addEventListener('touchstart', resumeAudio);
+document.body.addEventListener('mousedown', resumeAudio);
 
 /** ИГРОВОЕ СОСТОЯНИЕ */
 let grid=[], brickState=[], player=null, enemies=[], allies=[], turrets=[], bullets=[], lasers=[], particles=[], bonuses=[], placedMines=[], enemyMines=[], currentEnemySpawns=[];
 let score=0, lives=3, continues=3, minesCount=3, level=1, levelType='CLASSIC', assaultMode='NORMAL', gameState='START', baseAlive=true, substationAlive=false, radarsAlive=3, buttonsLeft=0;
 let exposureTimer=0, spottedTimer=0, wasSpottedLastFrame=false;
 let enemiesToSpawn=0, enemySpawnTimer=0, MAX_ENEMIES_ON_SCREEN=3, camera={x:0,y:0}, enemyBaseCol=7, baseDefTimer=0, mineCooldown=0, timeStopTimer=0, playerWeaponLevel=0, lastBossLevel=0;
-let savedGrid=[], savedBrickState=[], savedLevelType='CLASSIC', savedAssaultMode='NORMAL', savedEnemyBaseCol=7, savedEnemiesToSpawn=0, savedEnemyMinesCoords=[], savedButtonsLeft=0, savedCols=15, savedRows=15, lastTime=0, animationId;
+let savedGrid=[], savedBrickState=[], savedLevelType='CLASSIC', savedAssaultMode='NORMAL', savedEnemyBaseCol=7, savedEnemiesToSpawn=0, savedEnemyMinesCoords=[], savedButtonsLeft=0, savedCols=15, savedRows=15, savedRadarsAlive=3, savedSubstationAlive=false, lastTime=0, animationId;
 const ENEMY_SPAWN_RATE = 2500;
 const keys={ArrowUp:false,ArrowDown:false,ArrowLeft:false,ArrowRight:false,w:false,a:false,s:false,d:false,W:false,A:false,S:false,D:false,'ц':false,'ф':false,'ы':false,'в':false,'Ц':false,'Ф':false,'Ы':false,'В':false,' ':false,'b':false,'B':false,'и':false,'И':false};
 let touchDirs={up:false,down:false,left:false,right:false}, touchFire=false, touchMine=false;
 
 const countMiniBosses = () => enemies ? enemies.filter(e => e.isMiniBoss && !e.markForDeletion && e.hp > 0).length : 0;
 
-/** КЛАССЫ */
+// Классы (полностью сохранены)
 class Particle {
     constructor(x,y,c){this.x=x;this.y=y;this.color=c;let a=Math.random()*Math.PI*2;let s=Math.random()*80+30;this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s;this.life=1;this.decay=Math.random()*2+1;}
     update(dt){this.x+=this.vx*(dt/1000);this.y+=this.vy*(dt/1000);this.life-=this.decay*(dt/1000);}
@@ -553,7 +614,7 @@ function generateLevel() {
         validLevel=checkLevelPlayability();
         if(!validLevel&&genAttempts>=18){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===WATER||grid[r][c]===STEEL)grid[r][c]=EMPTY;validLevel=true;}
     }
-    savedGrid=grid.map(r=>[...r]);savedBrickState=brickState.map(r=>[...r]);savedLevelType=levelType;savedAssaultMode=assaultMode;savedEnemyBaseCol=enemyBaseCol;savedEnemiesToSpawn=enemiesToSpawn;savedEnemyMinesCoords=enemyMines.map(m=>({x:m.x,y:m.y}));savedButtonsLeft=buttonsLeft;savedCols=COLS;savedRows=ROWS;
+    savedGrid=grid.map(r=>[...r]);savedBrickState=brickState.map(r=>[...r]);savedLevelType=levelType;savedAssaultMode=assaultMode;savedEnemyBaseCol=enemyBaseCol;savedEnemiesToSpawn=enemiesToSpawn;savedEnemyMinesCoords=enemyMines.map(m=>({x:m.x,y:m.y}));savedButtonsLeft=buttonsLeft;savedCols=COLS;savedRows=ROWS;savedRadarsAlive=radarsAlive;savedSubstationAlive=substationAlive;
 }
 
 /** ИГРОВОЙ ЦИКЛ И ЛОГИКА */
@@ -561,9 +622,22 @@ function initGame(){sfx.init();score=0;lives=3;continues=3;level=1;lastBossLevel
 function initLevel(retry=false,ls=false){
     bullets=[];lasers=[];particles=[];enemies=[];bonuses=[];allies=[];turrets=[];placedMines=[];enemyMines=[];
     document.getElementById('levelUI').innerText=level;minesCount=3;document.getElementById('minesUI').innerText=minesCount;mineCooldown=0;timeStopTimer=0;
-    if(ls){COLS=savedCols||15;ROWS=savedRows||15;baseAlive=false;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE)baseAlive=true;baseDefTimer=0;enemyMines=savedEnemyMinesCoords.map(c=>new Mine(c.x,c.y,true));updateObjectiveUI();}
+    // Reset stealth timers
+    exposureTimer=0; spottedTimer=0; wasSpottedLastFrame=false; window.sirenTick=600;
+    if(ls){
+        COLS=savedCols||15;ROWS=savedRows||15;baseAlive=false;
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE)baseAlive=true;
+        baseDefTimer=0;
+        enemyMines=savedEnemyMinesCoords.map(c=>new Mine(c.x,c.y,true));
+        // Restore radars and substation from saved
+        radarsAlive = savedRadarsAlive;
+        substationAlive = savedSubstationAlive;
+        updateObjectiveUI();
+    }
     else if(!retry)generateLevel();
-    else{COLS=savedCols||15;ROWS=savedRows||15;grid=savedGrid.map(r=>[...r]);brickState=savedBrickState.map(r=>[...r]);levelType=savedLevelType;assaultMode=savedAssaultMode;enemyBaseCol=savedEnemyBaseCol;enemiesToSpawn=savedEnemiesToSpawn;baseAlive=true;baseDefTimer=0;substationAlive=false;radarsAlive=0;buttonsLeft=savedButtonsLeft||0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c]===SUBSTATION)substationAlive=true;if(grid[r][c]===RADAR)radarsAlive++;}enemyMines=savedEnemyMinesCoords.map(c=>new Mine(c.x,c.y,true));updateObjectiveUI();}
+    else{
+        COLS=savedCols||15;ROWS=savedRows||15;grid=savedGrid.map(r=>[...r]);brickState=savedBrickState.map(r=>[...r]);levelType=savedLevelType;assaultMode=savedAssaultMode;enemyBaseCol=savedEnemyBaseCol;enemiesToSpawn=savedEnemiesToSpawn;baseAlive=true;baseDefTimer=0;substationAlive=savedSubstationAlive;radarsAlive=savedRadarsAlive;buttonsLeft=savedButtonsLeft||0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c]===SUBSTATION)substationAlive=true;if(grid[r][c]===RADAR)radarsAlive++;}enemyMines=savedEnemyMinesCoords.map(c=>new Mine(c.x,c.y,true));updateObjectiveUI();
+    }
     let br=ROWS-1,bc=7;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){br=r;bc=c;break;}
     player=new Tank(bc-3,br,true);
     if(levelType==='BOSS')enemies.push(new Tank(7,2,false,'BOSS'));
@@ -616,7 +690,19 @@ function gameLoop(ts){if(!lastTime)lastTime=ts;let dt=ts-lastTime;lastTime=ts;if
 function togglePause(){if(gameState==='PLAYING'){gameState='PAUSED';sfx.stopEngine();document.getElementById('pauseScreen').classList.remove('hidden');}else if(gameState==='PAUSED'){gameState='PLAYING';document.getElementById('pauseScreen').classList.add('hidden');lastTime=performance.now();}}
 function winLevel(){if(gameState==='LEVEL_TRANSITION'||gameState==='DYING')return;gameState='LEVEL_TRANSITION';sfx.stopEngine();sfx.playWin();level++;if(lives<3)lives=3;document.getElementById('livesUI').innerText=lives;document.getElementById('transitionText').innerHTML=t('levelCleared',{n:level});document.getElementById('transitionScreen').classList.remove('hidden');setTimeout(()=>{initLevel(false);},3500);}
 function gameOver(){gameState='GAMEOVER';document.getElementById('headerPauseBtn').classList.add('hidden');document.getElementById('gameOverScreen').classList.remove('hidden');document.getElementById('finalScore').innerText=score;}
-function levelFailed(rsn){if(['DYING','GAMEOVER','LEVEL_TRANSITION'].includes(gameState))return;gameState='DYING';sfx.stopEngine();sfx.playLose();setTimeout(()=>{if(continues>0){continues--;document.getElementById('continuesUI').innerText=continues;gameState='LEVEL_TRANSITION';document.getElementById('transitionText').innerHTML=rsn+(continues===0?t('lastChance'):t('attemptsLeft',{n:continues}));document.getElementById('transitionScreen').classList.remove('hidden');setTimeout(()=>{lives=3;document.getElementById('livesUI').innerText=lives;initLevel(true);},3500);}else gameOver();},1500);}
+function levelFailed(rsn){
+    if(['DYING','GAMEOVER','LEVEL_TRANSITION'].includes(gameState)) return;
+    gameState='DYING';sfx.stopEngine();sfx.playLose();
+    setTimeout(()=>{
+        if(continues>0){
+            continues--;document.getElementById('continuesUI').innerText=continues;
+            gameState='LEVEL_TRANSITION';
+            document.getElementById('transitionText').innerHTML=rsn+(continues===0?t('lastChance'):t('attemptsLeft',{n:continues}));
+            document.getElementById('transitionScreen').classList.remove('hidden');
+            setTimeout(()=>{lives=3;document.getElementById('livesUI').innerText=lives;initLevel(true);},3500);
+        } else gameOver();
+    },1500);
+}
 function playerDeath(){createExplosion(player.x+player.w/2,player.y+player.h/2,'#f00',40);sfx.playExplosion(true);sfx.stopEngine();player.markForDeletion=true;lives--;document.getElementById('livesUI').innerText=lives;playerWeaponLevel=0;if(lives<=0)levelFailed(t('outOfTanks'));else setTimeout(()=>{if(gameState==='PLAYING'){let br=ROWS-1,bc=7;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===BASE){br=r;bc=c;break;}player=new Tank(bc-3,br,true);}},1000);}
 
 /** СОБЫТИЯ */
