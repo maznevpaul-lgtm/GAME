@@ -10,7 +10,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-[#14120f] m-0 p-0 overflow-hidden touch-manipulation overscroll-none hide-scrollbar">
-    
     <div id="root"></div>
 
     <script type="text/babel">
@@ -262,16 +261,14 @@
         };
 
         const generateStartingDeck = () => {
-          const deck = [
+          return [
             createCard(CARD_TYPES.STOAT), createCard(CARD_TYPES.STOAT),
             createCard(CARD_TYPES.FROG), createCard(CARD_TYPES.WOLF)
           ];
-          return deck;
         };
 
-        // --- ГЕНЕРАТОР КАРТЫ СЛУЧАЙНОЙ ДЛИНЫ И ДЕРЕВА ---
         const getX = (nIndex, total) => total === 1 ? 50 : total === 2 ? (nIndex === 0 ? 35 : 65) : (nIndex === 0 ? 20 : nIndex === 1 ? 50 : 80);
-        const ROW_HEIGHT = 15; // Расстояние между узлами в vh
+        const ROW_HEIGHT = 15;
 
         const generateMap = () => {
           const numRows = Math.floor(Math.random() * 5) + 7; 
@@ -305,7 +302,6 @@
              map.push(row);
           }
 
-          // Построение связей
           for (let i = 0; i < numRows - 1; i++) {
               const currRow = map[i];
               const nextRow = map[i+1];
@@ -381,7 +377,6 @@
            return entry ? entry[0] : null;
         };
 
-        // --- ЗВУКОВАЯ СИСТЕМА ---
         let audioCtx = null;
         const playSound = (type, isEnabled) => {
           if (!isEnabled) return;
@@ -687,7 +682,6 @@
             }
           };
 
-          // --- ЛОГИКА КАРТЫ ---
           const startNode = (node, rIndex, nIndex) => {
             playSound('card_heavy', isSoundEnabled);
             triggerEyeReaction();
@@ -858,11 +852,14 @@
 
                 const newBoard = [...playerBoard];
                 sacrifices.forEach(sacIndex => {
-                  if (!playerBoard[sacIndex].manyLives) newBoard[sacIndex] = null;
+                  const sacrificedCard = playerBoard[sacIndex];
+                  if (sacrificedCard && sacrificedCard.unkillable) {
+                    setPlayerHand(prev => [...prev, createCard(CARD_TYPES[sacrificedCard.typeId])]);
+                  }
+                  if (!sacrificedCard.manyLives) newBoard[sacIndex] = null;
                 });
 
                 newBoard[index] = { ...selectedHandCard };
-
                 setPlayerHand(playerHand.filter(c => c.id !== selectedHandCard.id));
                 setPlayerBoard(newBoard);
                 setSelectedHandCard(null);
@@ -971,6 +968,11 @@
                       if (currentPlayerBoard[col] && currentPlayerBoard[col].unkillable) {
                           setPlayerHand(prev => [...prev, createCard(CARD_TYPES[currentPlayerBoard[col].typeId])]);
                       }
+                      if (currentOppBoard[col] && currentOppBoard[col].unkillable) {
+                          for(let qi=0; qi<4; qi++) {
+                              if(!currentQueue[qi]) { currentQueue[qi] = createCard(CARD_TYPES[currentOppBoard[col].typeId]); break; }
+                          }
+                      }
                       currentPlayerBoard[col] = null;
                       currentOppBoard[col] = null;
                   } else {
@@ -997,7 +999,14 @@
                          }
                          currentPlayerBoard[pTarget] = null;
                       }
-                      if (oTarget !== -1) currentOppBoard[oTarget] = null;
+                      if (oTarget !== -1) {
+                         if (currentOppBoard[oTarget].unkillable) {
+                             for(let qi=0; qi<4; qi++) {
+                                 if(!currentQueue[qi]) { currentQueue[qi] = createCard(CARD_TYPES[currentOppBoard[oTarget].typeId]); break; }
+                             }
+                         }
+                         currentOppBoard[oTarget] = null;
+                      }
                   }
 
                   setPlayerBoard([...currentPlayerBoard]);
@@ -1292,8 +1301,7 @@
             </div>
           );
 
-          // Возвращен полностью адаптивный размер (никаких sm: классов ломающих адаптив)
-          const Card = ({ card, onClick, isSelected, isSacrifice, isAttacking, isHidden }) => {
+          const Card = ({ card, onClick, isSelected, isSacrifice, isAttacking, isHidden, isScissorsMode }) => {
             const cardBaseClass = "w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded-[0.5vh] border-[1.5px] border-[#111] shrink-0";
             
             if (!card && !isHidden) return <div className={`${cardBaseClass} border-dashed border-[#443c30] bg-[#2a241b] opacity-50`} />;
@@ -1314,7 +1322,7 @@
                   ${isSacrifice ? 'border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.6)] anim-node-pulse' : ''}
                   ${isAttacking ? 'scale-110 z-10 border-red-500 shadow-red-500/50' : ''}
                   ${card?.isPunished ? 'anim-punish' : (card?.isDying ? 'anim-die' : '')}
-                  ${activeItem?.type === 'scissors' && !isSelected && !isHidden ? 'hover:border-blue-500 hover:shadow-blue-900/50 cursor-crosshair' : ''}
+                  ${isScissorsMode && !isSelected && !isHidden ? 'hover:border-blue-500 hover:shadow-blue-900/50 cursor-crosshair' : ''}
                   bg-[#e6d8ba] text-[#2c241b] z-10
                 `}
                 style={{
@@ -1363,7 +1371,6 @@
             );
           };
 
-          // MAP_TOTAL_HEIGHT рассчитывается для плавной прокрутки
           const MAP_TOTAL_HEIGHT = mapData.length * ROW_HEIGHT + 40;
 
           return (
@@ -1655,7 +1662,7 @@
                     <div className="flex gap-[min(1.5vw,1vh)] p-[min(1.5vw,1vh)] rounded bg-[#1e1a15] border border-[#2a241c] shadow-xl relative shrink-0 z-20" style={{ '--attack-dir': -1 }}>
                       {opponentBoard.map((card, i) => (
                         <div key={`opp-${i}`} onClick={() => handleOpponentBoardClick(i)}>
-                          <Card card={card} isAttacking={attackingSlot?.side === 'opponent' && attackingSlot?.index === i} />
+                          <Card card={card} isAttacking={attackingSlot?.side === 'opponent' && attackingSlot?.index === i} isScissorsMode={activeItem?.type === 'scissors'} />
                         </div>
                       ))}
                     </div>
@@ -1675,16 +1682,13 @@
                   {/* ПАНЕЛЬ ИГРОКА */}
                   <div className="w-full max-w-4xl bg-[#110e0c] border-t border-[#2a241c] p-[min(1.5vw,1vh)] pb-[calc(env(safe-area-inset-bottom)+min(1vw,0.5vh))] rounded-t-xl flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 shrink-0 mt-auto">
                     
-                    {/* СТРОКА СООБЩЕНИЯ В ПАНЕЛИ ИГРОКА */}
                     <div className="text-center w-full mb-[min(1.5vw,1vh)] text-[min(3vw,1.4vh)] font-bold text-[#d4c3a3] animate-pulse z-10 px-2 shrink-0 border-b border-[#2a241c] pb-[min(1vw,0.5vh)]">
                       {message}
                     </div>
 
                     <div className="flex justify-between w-full mb-[min(1vw,0.5vh)] px-[min(1.5vw,1vh)] items-center gap-[min(2vw,1vh)]">
                       
-                      {/* ЛЕВАЯ ЧАСТЬ: КОЛОДЫ + КОЛОНКА ПРЕДМЕТОВ */}
                       <div className="flex gap-[min(2vw,1.5vh)] items-center shrink-0">
-                        {/* Колоды */}
                         <div className="flex gap-[min(1.5vw,1.5vh)] shrink-0">
                           <button onClick={() => drawCard(true)} disabled={phase !== 'draw'} className="group relative cursor-pointer disabled:opacity-50 transition-transform hover:-translate-y-1 touch-manipulation w-[min(15vw,9.5vh)] h-[min(22.5vw,14.25vh)] rounded border-[1.5px] border-[#111] bg-[#2a241b]">
                             <div className="absolute -top-[min(3vw,2vh)] left-1/2 -translate-x-1/2 text-[min(2vw,1.2vh)] text-[#8c7a61] opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">{t.squirrel}</div>
@@ -1698,7 +1702,6 @@
                           </button>
                         </div>
 
-                        {/* Вертикальная колонка предметов (макс. 3) */}
                         <div className="flex flex-col gap-[min(1vw,0.5vh)] shrink-0 h-[min(22.5vw,14.25vh)] w-[min(8vw,5vh)]">
                           {items.map((item, i) => (
                             <button key={i} onClick={() => handleItemClick(i)} disabled={phase !== 'play'} title={t.items[item.id].desc} 
@@ -1715,7 +1718,6 @@
 
                       </div>
 
-                      {/* ПРАВАЯ ЧАСТЬ: ЖИЗНИ + ОГРОМНАЯ КНОПКА ХОДА */}
                       <div className="flex flex-col gap-[min(1vw,0.6vh)] shrink-0 h-[min(22.5vw,14.25vh)] w-[min(18vw,12vh)]">
                         <div className="flex items-center justify-between gap-[min(1vw,0.5vh)] bg-[#1a1612] px-[min(2vw,1vh)] py-[min(0.8vw,0.4vh)] rounded border border-[#3a3022] font-bold shrink-0" title={t.you}>
                            <span className="text-[min(1.8vw,1vh)] leading-none text-[#8c7a61]">{t.you}</span>
