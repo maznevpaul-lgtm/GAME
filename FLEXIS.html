@@ -170,12 +170,25 @@
         .touch-controls { display: none; /* Скрыто на ПК */ }
         
         .touch-btn {
+            position: relative; /* Необходимо для невидимой зоны нажатия */
             background-color: #1a1a1a; border: 2px solid #333; color: white;
             font-size: 28px; border-radius: 16px; 
             display: flex; justify-content: center; align-items: center;
             box-shadow: 0 5px 0 #000; padding: 0; transition: transform 0.1s, box-shadow 0.1s;
             cursor: pointer; flex-shrink: 0;
         }
+        
+        /* Невидимое расширение зоны нажатия (Hitbox) вокруг кнопки на 15px */
+        .touch-btn::after {
+            content: '';
+            position: absolute;
+            top: -15px;
+            bottom: -15px;
+            left: -15px;
+            right: -15px;
+            border-radius: 20px;
+        }
+
         .touch-btn:active { background-color: #4CAF50; transform: translateY(5px); box-shadow: 0 0px 0 #000; }
 
         /* --- АДАПТАЦИЯ ДЛЯ УСТРОЙСТВ С ТАЧСКРИНОМ --- */
@@ -243,9 +256,10 @@
                 }
                 .control-group { display: flex; gap: 15px; }
                 .touch-btn {
-                    width: clamp(55px, 15vw, 75px);
-                    height: clamp(55px, 15vw, 75px);
-                    font-size: clamp(22px, 6vw, 30px);
+                    /* Немного увеличиваем минимальный визуальный размер */
+                    width: clamp(60px, 16vw, 80px);
+                    height: clamp(60px, 16vw, 80px);
+                    font-size: clamp(24px, 6vw, 32px);
                 }
             }
         }
