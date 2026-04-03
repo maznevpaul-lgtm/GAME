@@ -13,7 +13,7 @@
 
         body {
             margin: 0;
-            padding: 10px 0;
+            padding: 10px 0 40px 0;
             background-color: #121212;
             color: #fff;
             font-family: 'Segoe UI', sans-serif;
@@ -49,8 +49,9 @@
             position: absolute;
             top: 15px;
             left: 15px;
+            right: 15px;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
             z-index: 105;
         }
 
@@ -214,7 +215,8 @@
             justify-content: space-between;
             padding: 15px 20px;
             box-sizing: border-box;
-            margin-top: 15px;
+            margin-top: 5px;
+            margin-bottom: env(safe-area-inset-bottom, 40px);
         }
         .control-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         #mobile-controls button {
