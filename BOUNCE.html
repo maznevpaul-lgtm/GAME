@@ -3,70 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bounce Clone</title>
+    <title>Bounce: Vertical Winds</title>
     <style>
+        * {
+            user-select: none;
+            touch-action: none;
+        }
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #87CEEB; /* Небесно-голубой фон */
+            background-color: #87CEEB;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
-            position: fixed; 
-            touch-action: none; 
-            user-select: none;
+            position: fixed;
         }
-
         #gameCanvas {
             display: block;
             width: 100%;
             height: 100%;
         }
-
         #homeLink {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 20;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0,0,0,0.5);
             color: white;
             text-decoration: none;
             padding: 5px 12px;
             border-radius: 20px;
             font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255,255,255,0.5);
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            transition: transform 0.1s, background 0.1s;
         }
-
-        #homeLink:active {
-            background: rgba(0,0,0,0.8);
-            transform: scale(0.95);
-        }
-
         #pauseBtn {
             position: absolute;
             top: 10px;
             right: 10px;
             z-index: 20;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0,0,0,0.5);
             color: white;
             padding: 4px 12px;
             border-radius: 10px;
             font-size: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255,255,255,0.5);
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-
-        #pauseBtn:active {
-            background: rgba(0,0,0,0.8);
-            transform: scale(0.95);
-        }
-
-        /* UI */
         #uiLayer {
             position: absolute;
             top: 45px;
@@ -80,79 +65,47 @@
             font-size: 18px;
             font-weight: bold;
             color: white;
-            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            text-shadow: 2px 2px 0 #000;
         }
-
-        .ui-left, .ui-center, .ui-right {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            flex: 1;
-        }
-
-        .ui-center {
-            text-align: center;
-            font-size: 22px;
-            color: #f1c40f;
-        }
-
-        .ui-right {
-            text-align: right;
-        }
-
-        #bonusDisplay {
-            color: #f1c40f;
-            font-size: 16px;
-            text-shadow: 1px 1px 0 #000;
-        }
-
-        /* Наэкранные элементы управления для телефонов */
+        .ui-left, .ui-center, .ui-right { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+        .ui-center { text-align: center; font-size: 22px; color: #f1c40f; }
+        .ui-right { text-align: right; }
+        #bonusDisplay, #themeDisplay { font-size: 14px; background: rgba(0,0,0,0.5); display: inline-block; padding: 2px 8px; border-radius: 20px; margin-top: 5px; }
         #controls {
             position: absolute;
-            bottom: max(40px, env(safe-area-inset-bottom)); 
+            bottom: max(40px, env(safe-area-inset-bottom));
             left: 0;
             width: 100%;
             display: flex;
             justify-content: space-between;
-            padding: 0 max(30px, env(safe-area-inset-left)) 0 max(30px, env(safe-area-inset-right)); 
+            padding: 0 30px;
             box-sizing: border-box;
             z-index: 5;
         }
-
-        .d-pad {
-            display: flex;
-            gap: 15px;
-        }
-
+        .d-pad, .action-pad { display: flex; gap: 15px; }
         .btn {
             width: 70px;
             height: 70px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 3px solid rgba(255, 255, 255, 0.6);
+            background: rgba(0,0,0,0.4);
+            border: 3px solid rgba(255,255,255,0.6);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: rgba(255, 255, 255, 0.8);
+            color: white;
             font-size: 36px;
             font-weight: bold;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            user-select: none;
+            transition: 0.05s linear;
         }
-
-        .btn:active {
-            background: rgba(0, 0, 0, 0.7);
-            transform: scale(0.95);
-        }
-
-        /* Экраны */
+        .btn:active { background: rgba(0,0,0,0.7); transform: scale(0.95); }
         .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0,0,0,0.85);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -161,30 +114,9 @@
             z-index: 10;
             transition: opacity 0.3s;
         }
-
-        .hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        h1 {
-            font-size: clamp(2rem, 8vw, 3rem); 
-            text-align: center; 
-            width: 100%;
-            margin-bottom: 10px;
-            color: #ff4757;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            text-transform: uppercase;
-        }
-
-        p {
-            font-size: 1.2rem;
-            text-align: center;
-            max-width: 80%;
-            margin-bottom: 30px;
-            color: #dfe4ea;
-        }
-
+        .hidden { opacity: 0; pointer-events: none; }
+        h1 { font-size: clamp(2rem, 8vw, 3rem); margin-bottom: 10px; color: #ff4757; text-shadow: 0 4px 10px black; text-align: center; }
+        p { font-size: 1.2rem; text-align: center; max-width: 80%; margin-bottom: 30px; }
         button.action-btn {
             padding: 15px 40px;
             margin: 5px;
@@ -194,1272 +126,790 @@
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 6px 0 #218c4b, 0 10px 20px rgba(0,0,0,0.4);
-            transition: transform 0.1s, box-shadow 0.1s;
-            text-transform: uppercase;
+            box-shadow: 0 6px 0 #218c4b;
+            transition: 0.05s linear;
             font-weight: bold;
         }
-
-        button.action-btn:active {
-            transform: translateY(6px);
-            box-shadow: 0 0px 0 #218c4b, 0 4px 10px rgba(0,0,0,0.4);
-        }
-
+        button.action-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #218c4b; }
         .btn-blue { background-color: #3498db !important; box-shadow: 0 6px 0 #2980b9 !important; }
         .btn-red { background-color: #e74c3c !important; box-shadow: 0 6px 0 #c0392b !important; }
-
-        @media (min-width: 800px) and (min-height: 600px) {
-            #controls { opacity: 0.5; }
-        }
-
-        @media (orientation: landscape) and (max-height: 600px) {
-            #uiLayer { top: 5px; font-size: 14px; }
-            .ui-center { font-size: 16px; }
-            #homeLink, #pauseBtn { top: 5px; padding: 4px 10px; font-size: 12px;}
-            #pauseBtn { right: 5px; }
+        @media (max-width: 700px) {
             .btn { width: 55px; height: 55px; font-size: 28px; }
-            #controls { bottom: max(20px, env(safe-area-inset-bottom)); }
-            h1 { margin-top: 10px; }
-            p { margin-bottom: 15px; font-size: 1rem; }
-            #startScreen > div { flex-direction: row !important; padding: 10px 15px !important; gap: 20px !important; }
-            #startScreen label { font-size: 1rem !important; }
-            button.action-btn { padding: 10px 25px; font-size: 1rem; }
+            #uiLayer { top: 35px; font-size: 14px; }
         }
     </style>
 </head>
 <body>
-
     <a id="homeLink" href="index.html">🏠 В меню</a>
     <div id="pauseBtn">⏸️ Пауза</div>
-
     <div id="uiLayer">
         <div class="ui-left">
             <div id="levelDisplay">Ур: 1</div>
             <div id="bonusDisplay"></div>
+            <div id="themeDisplay">🌍 Тема: обычная</div>
         </div>
-        <div class="ui-center">
-            <div id="timeDisplay">0.0с</div>
-        </div>
+        <div class="ui-center"><div id="timeDisplay">0.0с</div></div>
         <div class="ui-right">
             <div id="livesDisplay">Жизни: ❤️❤️❤️</div>
             <div id="ringsDisplay">Кольца: 0/0</div>
         </div>
     </div>
-
     <canvas id="gameCanvas"></canvas>
-
-    <!-- Наэкранное управление -->
     <div id="controls">
-        <div class="d-pad">
-            <div id="btnLeft" class="btn">←</div>
-            <div id="btnRight" class="btn">→</div>
-        </div>
-        <div class="action-pad" style="display: flex; gap: 15px;">
-            <div id="btnDash" class="btn" style="background: rgba(52, 152, 219, 0.6); border-color: rgba(52, 152, 219, 0.8);">⚡</div>
-            <div id="btnJump" class="btn">↑</div>
-        </div>
+        <div class="d-pad"><div id="btnLeft" class="btn">←</div><div id="btnRight" class="btn">→</div></div>
+        <div class="action-pad"><div id="btnDash" class="btn">⚡</div><div id="btnJump" class="btn">↑</div></div>
     </div>
 
-    <!-- Стартовый экран -->
     <div id="startScreen" class="overlay">
-        <h1>Bounce Classic</h1>
-        <p>Соберите все золотые кольца, чтобы открыть дверь. Берегитесь шипов!<br><br><i>Управление: Наклоняйте телефон или жмите стрелочки.<br><br>⚡ <b>НОВОЕ: РЫВОК (Пробел)</b> - позволяет пролетать сквозь шипы в узких туннелях!</i></p>
-        
-        <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.5); padding: 15px 25px; border-radius: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <input type="checkbox" id="gyroToggle" style="width: 25px; height: 25px; cursor: pointer;" checked>
-                <label for="gyroToggle" style="font-size: 1.2rem; cursor: pointer; color: #2ed573; font-weight: bold;">Управление гироскопом</label>
-            </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <input type="checkbox" id="soundToggle" style="width: 25px; height: 25px; cursor: pointer;" checked>
-                <label for="soundToggle" style="font-size: 1.2rem; cursor: pointer; color: #f1c40f; font-weight: bold;">Включить звук</label>
-            </div>
+        <h1>Bounce: Vertical Winds</h1>
+        <p>Соберите ВСЕ кольца → откроется дверь.<br>🧱 Прыжок от стены (↑ от стены в противоположную сторону)<br>⚡ Рывок – неуязвимость и полёт сквозь шипы.<br>🌬️ Воздушные потоки – ускоряют или поднимают вверх!<br>🏔️ Каждый уровень выше предыдущего.</p>
+        <div style="margin-bottom: 20px; background: rgba(0,0,0,0.5); padding: 15px 25px; border-radius: 15px;">
+            <div><input type="checkbox" id="gyroToggle" checked> <label>Гироскоп (наклон)</label></div>
+            <div><input type="checkbox" id="soundToggle" checked> <label>Звук</label></div>
         </div>
-
-        <div style="display: flex; flex-wrap: wrap; justify-content: center;">
-            <button id="startBtn" class="action-btn">Новая игра</button>
-            <button id="mainLoadBtn" class="action-btn btn-blue">Загрузить</button>
-        </div>
+        <button id="startBtn" class="action-btn">Новая игра</button>
+        <button id="mainLoadBtn" class="action-btn btn-blue">Загрузить</button>
     </div>
-
-    <!-- Меню паузы -->
-    <div id="pauseScreen" class="overlay hidden">
-        <h1>Пауза</h1>
-        <button id="resumeBtn" class="action-btn">Продолжить</button>
-        <button id="saveBtn" class="action-btn btn-blue">Сохранить прогресс</button>
-        <button id="quitBtn" class="action-btn btn-red">Выйти в меню</button>
-    </div>
-
-    <!-- Экран смерти (потеря жизни) -->
-    <div id="deathScreen" class="overlay hidden">
-        <h1 style="color: #ff4757;">Ой!</h1>
-        <p>Вы потеряли жизнь.</p>
-        <button id="respawnBtn" class="action-btn">Продолжить</button>
-    </div>
-
-    <!-- Экран Game Over -->
-    <div id="gameOverScreen" class="overlay hidden">
-        <h1 style="color: #ff4757;">Игра Окончена</h1>
-        <p>У вас закончились жизни.</p>
-        <button id="restartBtn" class="action-btn">Начать заново</button>
-    </div>
-
-    <!-- Экран Победы -->
-    <div id="winScreen" class="overlay hidden">
-        <h1 style="color: #2ed573;">Уровень Пройден!</h1>
-        <p id="winMessage">Вы собрали все кольца и дошли до выхода!</p>
-        <button id="nextBtn" class="action-btn">Играть еще раз</button>
-    </div>
+    <div id="pauseScreen" class="overlay hidden"><h1>Пауза</h1><button id="resumeBtn" class="action-btn">Продолжить</button><button id="saveBtn" class="action-btn btn-blue">Сохранить</button><button id="quitBtn" class="action-btn btn-red">Выйти</button></div>
+    <div id="deathScreen" class="overlay hidden"><h1>💀 Потеря жизни</h1><p>Вы возродитесь, собранные кольца останутся.</p><button id="respawnBtn" class="action-btn">Продолжить</button></div>
+    <div id="gameOverScreen" class="overlay hidden"><h1>Игра Окончена</h1><button id="restartBtn" class="action-btn">Начать заново</button></div>
+    <div id="winScreen" class="overlay hidden"><h1 style="color:#2ed573;">Уровень пройден!</h1><p id="winMessage"></p><button id="nextBtn" class="action-btn">Следующий уровень</button></div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    (function(){
+        // -------- ИНИЦИАЛИЗАЦИЯ --------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const ringsDisplay = document.getElementById('ringsDisplay');
+        const bonusDisplay = document.getElementById('bonusDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const themeDisplay = document.getElementById('themeDisplay');
+        const screens = {
+            start: document.getElementById('startScreen'),
+            death: document.getElementById('deathScreen'),
+            gameOver: document.getElementById('gameOverScreen'),
+            win: document.getElementById('winScreen'),
+            pause: document.getElementById('pauseScreen')
+        };
 
-    const levelDisplay = document.getElementById('levelDisplay');
-    const livesDisplay = document.getElementById('livesDisplay');
-    const ringsDisplay = document.getElementById('ringsDisplay');
-    const bonusDisplay = document.getElementById('bonusDisplay');
-    const timeDisplay = document.getElementById('timeDisplay');
-    
-    const screens = {
-        start: document.getElementById('startScreen'),
-        death: document.getElementById('deathScreen'),
-        gameOver: document.getElementById('gameOverScreen'),
-        win: document.getElementById('winScreen'),
-        pause: document.getElementById('pauseScreen')
-    };
+        // -------- ПАРАМЕТРЫ --------
+        const CELL_SIZE = 40;
+        let GRAVITY = 0.4;
+        let NORMAL_JUMP = -11.0;
+        let SUPER_JUMP = -14.5;
+        let currentJumpForce = NORMAL_JUMP;
+        let DASH_SPEED = 15;
+        let DASH_DURATION = 12;
+        let DASH_COOLDOWN_MAX = 60;
+        let INVULN_DURATION = 30;
+        let WALL_JUMP_ENABLED = true;
+        let themeName = "обычная";
 
-    // Настройки игры (ИСПРАВЛЕНЫ: чуть сильнее прыжок и скорость для уверенности)
-    const CELL_SIZE = 40;
-    const GRAVITY = 0.4; 
-    const FRICTION = 0.88; 
-    const BOUNCINESS = 0.3; 
-    const NORMAL_JUMP_FORCE = -11.0; // Было -10.5, теперь запрыгивать легче!
-    const SUPER_JUMP_FORCE = -14.5; 
-    const MOVE_SPEED = 0.6; // Чуть быстрее набирает скорость
-    const MAX_SPEED_X = 4.5; // Чуть выше максимальная горизонтальная скорость
-    const MAX_SPEED_Y = 12; 
+        const FRICTION = 0.88;
+        const BOUNCINESS = 0.3;
+        const MAX_SPEED_X = 4.8;
+        const MAX_SPEED_Y = 12;
 
-    let gameState = 'START'; 
-    let animationId;
-    let camera = { x: 0, y: 0 };
-    let frameCount = 0;
-    
-    let startTime = 0;
-    let elapsedTime = 0;
-    let pauseStartTime = 0;
+        let gameState = 'START';
+        let animationId = null;
+        let camera = { x: 0, y: 0 };
+        let frameCount = 0;
+        let startTime = 0, elapsedTime = 0, pauseStartTime = 0;
+        let lives = 3;
+        let currentLevel = 1;
+        let ringsTotal = 0, ringsCollected = 0;
+        let hasSuperJump = false;
+        let zoom = 1;
 
-    let lives = 3;
-    let currentLevel = 1;
-    let ringsTotal = 0;
-    let ringsCollected = 0;
-    let hasSuperJump = false;
-    let jumpForce = NORMAL_JUMP_FORCE;
-    let zoom = 1; // НОВОЕ: Масштаб (зум) камеры для телефонов
-    
-    let keys = { left: false, right: false, up: false, dash: false };
-    let jumpHeld = false; 
-    let tiltX = 0;
-    let useGyro = false;
-    let currentPlatform = null; 
-    let isDashing = false;
-    let dashFrames = 0;
-    let dashCooldown = 0;
-    let dashDir = 1; 
-    let lastDir = 1; // НОВОЕ: запоминаем, куда шарик катился последним
-    let invulnerableFrames = 0; 
-    let trail = [];
+        let keys = { left: false, right: false, up: false, dash: false };
+        let jumpHeld = false;
+        let tiltX = 0, useGyro = false;
+        let currentPlatform = null;
+        let isDashing = false, dashFrames = 0, dashCooldown = 0, dashDir = 1;
+        let lastDir = 1;
+        let invulnerableFrames = 0;
+        let trail = [];
+        let touchingWallDir = 0;
+        let wallJumpCooldown = 0;
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-    let soundEnabled = true;
+        let ball = { x: 0, y: 0, vx: 0, vy: 0, r: 14, isGrounded: false, startX: 0, startY: 0 };
+        let walls = [], movingWalls = [], spikes = [], rings = [], lifeBonuses = [], jumpBonuses = [], door = null;
+        let windZones = []; // { x, y, w, h, dirX, dirY, strength }
+        let levelGrid = [];
 
-    const sounds = {
-        init: () => {
-            if (!audioCtx) audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            soundEnabled = document.getElementById('soundToggle').checked;
-        },
-        play: (freq, type, duration, slideFreq = null) => {
-            if (!soundEnabled || !audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            if (slideFreq) {
-                osc.frequency.exponentialRampToValueAtTime(slideFreq, audioCtx.currentTime + duration);
+        // -------- ЗВУК --------
+        let audioCtx = null;
+        let soundEnabled = true;
+        const sounds = {
+            init: () => {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                soundEnabled = document.getElementById('soundToggle').checked;
+            },
+            play: (freq, type, duration, slide=null) => {
+                if(!soundEnabled || !audioCtx) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    if(slide) osc.frequency.exponentialRampToValueAtTime(slide, audioCtx.currentTime+duration);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+duration);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime+duration);
+                } catch(e) { console.warn("sound error", e); }
+            },
+            jump: () => sounds.play(300, 'sine', 0.2, 500),
+            dash: () => sounds.play(600, 'triangle', 0.15, 200),
+            ring: () => sounds.play(800, 'sine', 0.1),
+            door: () => { sounds.play(400,'square',0.2); setTimeout(()=>sounds.play(600,'square',0.2),150); setTimeout(()=>sounds.play(800,'square',0.4),300); },
+            die: () => { sounds.play(200,'sawtooth',0.3,100); setTimeout(()=>sounds.play(150,'sawtooth',0.4,200),200); },
+            start: () => { sounds.play(440,'square',0.1); setTimeout(()=>sounds.play(554,'square',0.1),100); setTimeout(()=>sounds.play(659,'square',0.2),200); }
+        };
+
+        // -------- ТЕМЫ УРОВНЕЙ (влияют на физику и тип генерации) --------
+        function applyLevelTheme(level) {
+            GRAVITY = 0.4;
+            NORMAL_JUMP = -11.0;
+            DASH_SPEED = 15;
+            DASH_DURATION = 12;
+            DASH_COOLDOWN_MAX = 60;
+            INVULN_DURATION = 30;
+            WALL_JUMP_ENABLED = true;
+            const r = (level % 7 + Math.floor(level/2)) % 7;
+            switch(r) {
+                case 0: GRAVITY = 0.32; NORMAL_JUMP = -10.2; DASH_COOLDOWN_MAX = 50; themeName = "🧸 Низкая гравитация"; break;
+                case 1: GRAVITY = 0.48; NORMAL_JUMP = -12.0; DASH_SPEED = 17; DASH_COOLDOWN_MAX = 40; themeName = "⚡ Быстрый рывок"; break;
+                case 2: INVULN_DURATION = 45; themeName = "🛡️ Долгая неуязвимость"; break;
+                case 3: WALL_JUMP_ENABLED = true; themeName = "🧗‍♂️ Стены-лабиринт"; break;
+                case 4: DASH_DURATION = 16; themeName = "🌀 Длинный рывок"; break;
+                case 5: themeName = "💀 Опасные шипы"; break;
+                default: themeName = "🌍 Классика"; break;
             }
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        },
-        jump: () => sounds.play(300, 'sine', 0.2, 500),
-        dash: () => sounds.play(600, 'triangle', 0.15, 200),
-        ring: () => sounds.play(800, 'sine', 0.1),
-        door: () => {
-            sounds.play(400, 'square', 0.2);
-            setTimeout(() => sounds.play(600, 'square', 0.2), 150);
-            setTimeout(() => sounds.play(800, 'square', 0.4), 300);
-        },
-        die: () => {
-            sounds.play(200, 'sawtooth', 0.3, 100);
-            setTimeout(() => sounds.play(150, 'sawtooth', 0.4, 50), 200);
-        },
-        start: () => {
-            sounds.play(440, 'square', 0.1);
-            setTimeout(() => sounds.play(554, 'square', 0.1), 100);
-            setTimeout(() => sounds.play(659, 'square', 0.2), 200);
-        }
-    };
-
-    let ball = {
-        x: 0, y: 0,
-        vx: 0, vy: 0,
-        r: 14,
-        isGrounded: false,
-        startX: 0, startY: 0
-    };
-
-    let walls = [];
-    let movingWalls = []; 
-    let spikes = [];
-    let rings = [];
-    let lifeBonuses = [];
-    let jumpBonuses = [];
-    let door = null;
-
-    let levelData = [];
-
-    // --- НОВАЯ СИСТЕМА ГЕНЕРАЦИИ МАКРО-ЧАНКАМИ ---
-    function generateLevel(levelIndex) {
-        const width = 60 + levelIndex * 20; 
-        const height = 40; 
-        let grid = Array.from({length: height}, () => Array(width).fill(' '));
-
-        function line(y, x1, x2) {
-            for(let c=x1; c<=x2; c++) {
-                if (c >= 0 && c < width && y >= 0 && y < height) {
-                    grid[y][c] = '#';
-                }
-            }
+            currentJumpForce = hasSuperJump ? SUPER_JUMP : NORMAL_JUMP;
+            themeDisplay.innerText = `🎨 ${themeName}`;
         }
 
-        // Границы мира
-        line(0, 0, width-1); // Потолок
-        for(let c=0; c<width; c++) grid[height-1][c] = '^'; // ИСПРАВЛЕНО: Весь низ карты - это колючки. Если упадете мимо платформ, то сразу погибнете!
-        for(let r=0; r<height; r++) { grid[r][0] = '#'; grid[r][width-1] = '#'; } // Боковые стены
+        // -------- ГЕНЕРАЦИЯ УРОВНЯ С ВЕРТИКАЛЬНЫМИ СЕКЦИЯМИ И ВЕТРОМ --------
+        function generateLevel(levelIndex) {
+            applyLevelTheme(levelIndex);
+            // Высота мира увеличивается с каждым уровнем (от 40 до 100+)
+            const width = 50 + levelIndex * 8;
+            const height = Math.min(80, 40 + Math.floor(levelIndex * 1.5));
+            let grid = Array.from({length: height}, () => Array(width).fill(' '));
+            const line = (y, x1, x2) => { for(let c=x1; c<=x2; c++) if(c>=0 && c<width && y>=0 && y<height) grid[y][c] = '#'; };
+            // границы
+            line(0,0,width-1);
+            for(let c=0;c<width;c++) grid[height-1][c] = '^';
+            for(let r=0;r<height;r++) { grid[r][0]='#'; grid[r][width-1]='#'; }
 
-        let curX = 2;
-        let curY = height - 5; 
+            let curX = 2, curY = height - 5;
+            line(curY, curX, curX+4);
+            grid[curY-1][curX+1] = 'S';
+            if(levelIndex%2===0) grid[curY-1][curX+2] = 'L';
+            curX += 6;
 
-        // Старт
-        line(curY, curX, curX + 4);
-        grid[curY-1][curX+1] = 'S';
-        if (levelIndex % 2 === 0) grid[curY-1][curX+2] = 'L'; // Жизнь
-        curX += 5;
+            // Список сегментов с возможностью вертикального подъёма
+            let segments = ['GAP','STAIRS_UP','STAIRS_DOWN','DROP','TUNNEL','CROSS','ELEVATOR','WATERFALL','BONUSROOM'];
+            // Добавляем вертикальные сегменты для высоких уровней
+            if(levelIndex > 3) segments.push('TOWER', 'WIND_TUNNEL', 'UPWARD_SPIRAL');
+            if(levelIndex > 5) segments.push('GIANT_JUMP');
 
-        // Генерация пути чанками
-        while (curX < width - 25) {
-            let possibleSegments = [];
-            
-            // Строгая проверка границ по высоте, чтобы не врезаться в потолок или в пол из колючек
-            if (curY >= 5) possibleSegments.push('GAP', 'MOVING_GAP');
-            if (curY >= 7) possibleSegments.push('TUNNEL', 'CROSSROADS');
-            if (curY >= 8) possibleSegments.push('STAIRS_UP');
-            if (curY <= height - 8) possibleSegments.push('STAIRS_DOWN', 'DROP_DOWN');
-            if (curY <= height - 12) possibleSegments.push('CATACOMBS');
-            if (curY >= 18) possibleSegments.push('MAZE_TOWER'); // Для башни нужно много места вверх
-            if (curY >= 10) possibleSegments.push('ELEVATOR_UP');
+            while(curX < width - 28) {
+                let seg = segments[Math.floor(Math.random() * segments.length)];
+                if(curY <= 7 && (seg === 'STAIRS_UP' || seg === 'ELEVATOR' || seg === 'TOWER')) seg = 'GAP';
+                if(curY >= height-8 && (seg === 'STAIRS_DOWN' || seg === 'DROP')) seg = 'TUNNEL';
 
-            // Балансировка высоты
-            if (curY < 15) {
-                possibleSegments = possibleSegments.filter(s => ['STAIRS_DOWN', 'DROP_DOWN', 'GAP', 'MOVING_GAP', 'TUNNEL', 'CATACOMBS'].includes(s));
-            } else if (curY > height - 15) {
-                possibleSegments = possibleSegments.filter(s => ['STAIRS_UP', 'ELEVATOR_UP', 'MAZE_TOWER', 'GAP', 'MOVING_GAP', 'CROSSROADS'].includes(s));
-            }
-
-            // На случай, если ничего не подошло
-            if (possibleSegments.length === 0) possibleSegments = ['GAP'];
-
-            let type = possibleSegments[Math.floor(Math.random() * possibleSegments.length)];
-
-            if (type === 'GAP') {
-                let gap = 3;
-                curX += gap;
-                let len = 5;
-                line(curY, curX, curX + len - 1);
-                // Кольца над ямой на парящем островке
-                grid[curY-4][curX-1] = '#'; grid[curY-4][curX-2] = '#';
-                grid[curY-5][curX-1] = 'R'; grid[curY-5][curX-2] = 'R';
-                curX += len;
-            }
-            else if (type === 'MOVING_GAP') {
-                // Яма с оранжевой платформой
-                grid[curY-1][curX + 1] = 'M';
-                grid[curY-1][curX + 2] = 'm'; 
-                grid[curY-3][curX + 1] = 'R'; 
-                grid[curY-3][curX + 2] = 'R';
-                curX += 4;
-                line(curY, curX, curX + 3); 
-                curX += 4;
-            }
-            else if (type === 'STAIRS_UP') {
-                for(let i=0; i<3; i++) {
-                    curX += 2;
-                    curY -= 2;
-                    line(curY, curX, curX + 2);
-                    grid[curY-1][curX+1] = 'R'; 
-                    curX += 3;
+                if(seg === 'GAP') {
+                    curX += 4;
+                    line(curY, curX, curX+5);
+                    if(Math.random()<0.6) { grid[curY-3][curX+1]='R'; grid[curY-3][curX+3]='R'; }
+                    curX += 6;
                 }
-            }
-            else if (type === 'STAIRS_DOWN') {
-                for(let i=0; i<3; i++) {
-                    curX += 2;
-                    curY += 2;
-                    line(curY, curX, curX + 2);
-                    grid[curY-1][curX+1] = 'R';
-                    curX += 3;
+                else if(seg === 'STAIRS_UP') {
+                    for(let i=0;i<3;i++){ curX+=2; curY-=2; line(curY, curX, curX+2); grid[curY-1][curX+1]='R'; curX+=3; }
                 }
-            }
-            else if (type === 'DROP_DOWN') {
-                // Резкий спуск
-                curX += 2;
-                curY += 6;
-                line(curY, curX, curX + 5);
-                grid[curY-4][curX+1] = 'R'; 
-                grid[curY-2][curX+3] = 'R';
-                curX += 6;
-            }
-            else if (type === 'TUNNEL') {
-                // Туннель с верхним и нижним путем
-                let len = 14;
-                line(curY, curX, curX + len - 1); // Пол
-                line(curY - 4, curX, curX + len - 1); // Потолок (он же верхний путь)
-                
-                // Внизу: Колючки и кольца
-                grid[curY-1][curX+3] = '^';
-                grid[curY-2][curX+5] = 'R';
-                grid[curY-1][curX+8] = '^';
-
-                // Наверху: Паркур
-                grid[curY-5][curX+2] = 'R';
-                grid[curY-5][curX+6] = 'R';
-                grid[curY-6][curX+4] = '^';
-                grid[curY-6][curX+8] = '^';
-
-                curX += len;
-            }
-            else if (type === 'CROSSROADS') {
-                // Развилка
-                let len = 12;
-                line(curY, curX, curX + len - 1); // нижний путь
-                line(curY - 5, curX, curX + len - 1); // верхний путь (опустил чуть ниже, чтобы было легко запрыгивать)
-                
-                grid[curY-1][curX+1] = 'J'; // Бонус чтобы запрыгнуть
-                grid[curY-6][curX+4] = 'R';
-                grid[curY-6][curX+8] = 'R';
-                grid[curY-1][curX+6] = '^';
-                grid[curY-1][curX+10] = '^';
-
-                curX += len;
-            }
-            else if (type === 'CATACOMBS') {
-                // Спуск под землю с лифтом обратно
-                let len = 16;
-                line(curY, curX, curX + len - 1); // Крыша катакомб
-                line(curY + 5, curX, curX + len - 1); // Середина
-                line(curY + 10, curX, curX + len - 1); // Дно
-                
-                // Тупиковая стена (чтобы заставить спуститься)
-                grid[curY-1][curX + 8] = '#';
-                grid[curY-2][curX + 8] = '#';
-                grid[curY-3][curX + 8] = '#';
-
-                // Дырки для спуска
-                grid[curY][curX + 2] = ' '; grid[curY][curX + 3] = ' ';
-                grid[curY + 5][curX + 6] = ' '; grid[curY + 5][curX + 7] = ' ';
-
-                // Награды внизу
-                grid[curY + 4][curX + 4] = 'R';
-                grid[curY + 9][curX + 11] = 'R';
-                grid[curY + 9][curX + 5] = '^';
-
-                // Лифт вверх в конце катакомб
-                grid[curY + 9][curX + len - 3] = 'W'; 
-                grid[curY + 9][curX + len - 2] = 'w';
-                
-                // Прорубаем выход для лифта
-                grid[curY + 5][curX + len - 3] = ' '; grid[curY + 5][curX + len - 2] = ' ';
-                grid[curY][curX + len - 3] = ' '; grid[curY][curX + len - 2] = ' ';
-
-                // Стенки шахты
-                for(let r=1; r<=10; r++) {
-                    grid[curY + 10 - r][curX + len - 4] = '#';
-                    grid[curY + 10 - r][curX + len - 1] = '#';
+                else if(seg === 'STAIRS_DOWN') {
+                    for(let i=0;i<3;i++){ curX+=2; curY+=2; line(curY, curX, curX+2); grid[curY-1][curX+1]='R'; curX+=3; }
                 }
-
-                curX += len;
-                line(curY, curX, curX + 3);
-                curX += 4;
-            }
-            else if (type === 'MAZE_TOWER') {
-                // ИСПРАВЛЕНО: Здание-лабиринт с безопасными прыжками
-                let w = 16;
-                let h = 15; 
-                line(curY, curX, curX + w - 1); // Пол
-                line(curY - h, curX, curX + w - 1); // Крыша
-
-                // Стены
-                for(let r=3; r<=h; r++) grid[curY - r][curX] = '#';
-                for(let r=1; r<=h-3; r++) grid[curY - r][curX + w - 1] = '#';
-
-                // Зигзаги внутри теперь через каждые 3 блока высоты (Гарантированно можно запрыгнуть!)
-                line(curY - 3, curX + 3, curX + w - 1);
-                grid[curY - 4][curX + w - 2] = 'R'; 
-                grid[curY - 4][curX + w - 4] = '^';
-
-                line(curY - 6, curX, curX + w - 4);
-                grid[curY - 7][curX + 1] = 'R'; 
-                grid[curY - 7][curX + 3] = '^';
-
-                line(curY - 9, curX + 3, curX + w - 1);
-                grid[curY - 10][curX + w - 2] = 'R';
-
-                line(curY - 12, curX, curX + w - 4);
-                grid[curY - 13][curX + 1] = 'R';
-
-                grid[curY - 1][curX + 1] = 'J'; // Бонус на входе в башню
-
-                curY -= 12; // Выходим на новом этаже
-                curX += w;
-                line(curY, curX, curX + 3); // Площадка после
-                curX += 4;
-            }
-            else if (type === 'ELEVATOR_UP') {
-                // Лифт в трубе
-                let sWidth = 6;
-                line(curY, curX, curX + sWidth - 1);
-
-                grid[curY - 1][curX + 2] = 'W'; 
-                grid[curY - 1][curX + 3] = 'w';
-
-                // Стены трубы
-                for(let r=1; r<=9; r++) {
-                    grid[curY - r][curX] = '#';
-                    grid[curY - r][curX + sWidth - 1] = '#';
+                else if(seg === 'DROP') {
+                    curX+=2; curY+=5; line(curY, curX, curX+6); grid[curY-3][curX+2]='R'; grid[curY-1][curX+4]='R'; curX+=7;
                 }
-                // Двери
-                grid[curY - 1][curX] = ' '; grid[curY - 2][curX] = ' '; grid[curY - 3][curX] = ' ';
-                grid[curY - 9][curX + sWidth - 1] = ' '; grid[curY - 8][curX + sWidth - 1] = ' '; grid[curY - 7][curX + sWidth - 1] = ' ';
-
-                grid[curY - 5][curX + 1] = 'R';
-                grid[curY - 8][curX + 4] = 'R';
-
-                curY -= 9; 
-                curX += sWidth;
-                line(curY, curX, curX + 3); 
-                curX += 4;
-            }
-        }
-
-        // Финальная сборка небесных островков (Заполняет пустые дыры в небе)
-        for (let r = 4; r < height - 6; r += 4) {
-            for (let c = 4; c < width - 8; c += 5) {
-                // Проверяем зону 5x5 на абсолютную пустоту
-                let isEmpty = true;
-                for (let i = -2; i <= 2; i++) {
-                    for (let j = -2; j <= 3; j++) {
-                        if (r+i >= 0 && r+i < height && c+j >= 0 && c+j < width) {
-                            if (grid[r+i][c+j] !== ' ') {
-                                isEmpty = false; break;
-                            }
+                else if(seg === 'TUNNEL') {
+                    let len = 12;
+                    line(curY, curX, curX+len-1);
+                    line(curY-4, curX, curX+len-1);
+                    grid[curY-2][curX+3]='^'; grid[curY-3][curX+7]='R'; grid[curY-5][curX+2]='R'; grid[curY-5][curX+8]='R';
+                    curX += len;
+                }
+                else if(seg === 'CROSS') {
+                    let len = 10;
+                    line(curY, curX, curX+len-1);
+                    line(curY-4, curX, curX+len-1);
+                    grid[curY-1][curX+2]='J'; grid[curY-5][curX+4]='R'; grid[curY-1][curX+7]='^';
+                    curX += len;
+                }
+                else if(seg === 'ELEVATOR') {
+                    line(curY, curX, curX+5);
+                    grid[curY-1][curX+2]='W'; grid[curY-1][curX+3]='w';
+                    for(let r=1;r<=8;r++){ grid[curY-r][curX]='#'; grid[curY-r][curX+5]='#'; }
+                    for(let r=1;r<=3;r++){ grid[curY-r][curX]=' '; grid[curY-8+r][curX+5]=' '; }
+                    grid[curY-4][curX+2]='R'; grid[curY-7][curX+4]='R';
+                    curY -= 8; curX += 6; line(curY, curX, curX+4); curX += 5;
+                }
+                else if(seg === 'WATERFALL') {
+                    let len = 14;
+                    line(curY, curX, curX+len-1);
+                    for(let i=1;i<=4;i++) line(curY-i, curX+2, curX+4);
+                    for(let i=1;i<=3;i++) grid[curY-i][curX+7]='R';
+                    grid[curY-2][curX+10]='^';
+                    curX += len;
+                }
+                else if(seg === 'BONUSROOM') {
+                    let len = 8;
+                    line(curY, curX, curX+len-1);
+                    line(curY-3, curX, curX+len-1);
+                    grid[curY-1][curX+2]='L'; grid[curY-1][curX+5]='J';
+                    grid[curY-4][curX+3]='R'; grid[curY-4][curX+5]='R';
+                    curX += len;
+                }
+                else if(seg === 'TOWER') {
+                    // Вертикальная башня: узкий коридор с платформами
+                    let towerW = 6;
+                    let towerH = 10;
+                    for(let i=1; i<=towerH; i++) {
+                        if(curY-i >= 0) {
+                            line(curY-i, curX, curX+towerW-1);
+                            if(i % 3 === 0) grid[curY-i-1][curX+2] = 'R';
+                            if(i % 4 === 0) grid[curY-i-1][curX+4] = '^';
                         }
                     }
-                    if (!isEmpty) break;
+                    curY -= towerH;
+                    curX += towerW+1;
+                    line(curY, curX, curX+4);
+                    curX += 5;
                 }
+                else if(seg === 'WIND_TUNNEL') {
+                    // Горизонтальный ветряной туннель
+                    let len = 12;
+                    line(curY, curX, curX+len-1);
+                    line(curY-3, curX, curX+len-1);
+                    // зона ветра в середине
+                    for(let i=1; i<=len-2; i++) {
+                        grid[curY-1][curX+i] = '~';  // маркер ветра
+                    }
+                    grid[curY-2][curX+3]='R'; grid[curY-2][curX+7]='R';
+                    curX += len;
+                }
+                else if(seg === 'UPWARD_SPIRAL') {
+                    // Спиральный подъём
+                    for(let i=0;i<4;i++) {
+                        line(curY, curX, curX+4);
+                        grid[curY-1][curX+2] = 'R';
+                        curX += 5;
+                        curY -= 3;
+                        if(curY<5) break;
+                    }
+                }
+                else if(seg === 'GIANT_JUMP') {
+                    // Огромный прыжок вверх с воздушным потоком
+                    line(curY, curX, curX+5);
+                    grid[curY-1][curX+2] = 'W'; // ветер вверх
+                    for(let i=1;i<=6;i++) {
+                        if(curY-i-1 >=0) grid[curY-i-1][curX+2] = '~';
+                    }
+                    curY -= 8;
+                    line(curY, curX, curX+5);
+                    curX += 6;
+                }
+            }
 
-                // Спавним парящий кусок
-                if (isEmpty && Math.random() < 0.4) {
-                    let pLen = Math.floor(Math.random() * 3) + 2;
-                    for(let i=0; i<pLen; i++) {
-                        grid[r][c+i] = '#';
-                        if (Math.random() < 0.5) grid[r-1][c+i] = 'R';
+            // Финишная платформа
+            line(curY, curX, curX+6);
+            grid[curY-1][curX+3] = 'D';
+
+            // Добавляем парящие островки с кольцами (только если под ними есть земля)
+            for(let r=5; r<height-4; r+=4) {
+                for(let c=5; c<width-6; c+=6) {
+                    let hasGround = false;
+                    for(let i=1;i<=3;i++) if(r+i<height && grid[r+i][c] !== ' ') { hasGround=true; break; }
+                    if(hasGround && grid[r][c]===' ' && Math.random()<0.35) {
+                        grid[r][c]='#'; 
+                        if(Math.random()<0.6) grid[r-1][c]='R';
+                        if(Math.random()<0.3) grid[r][c+1]='#';
+                    }
+                }
+            }
+
+            // Убираем шипы, висящие в воздухе: если под шипом нет твёрдого блока, заменяем на пробел
+            for(let r=0; r<height; r++) {
+                for(let c=0; c<width; c++) {
+                    if(grid[r][c] === '^') {
+                        let hasSupport = false;
+                        for(let i=1; i<=2; i++) {
+                            if(r+i < height && (grid[r+i][c] === '#' || grid[r+i][c] === 'M' || grid[r+i][c] === 'W')) {
+                                hasSupport = true;
+                                break;
+                            }
+                        }
+                        if(!hasSupport) grid[r][c] = ' ';
+                    }
+                }
+            }
+
+            return grid.map(row=>row.join(''));
+        }
+
+        function initLevelFromGrid(gridData) {
+            walls = []; movingWalls = []; spikes = []; rings = []; lifeBonuses = []; jumpBonuses = []; door = null;
+            windZones = [];
+            ringsTotal = 0; ringsCollected = 0;
+            hasSuperJump = false;
+            currentJumpForce = NORMAL_JUMP;
+
+            for(let r=0; r<gridData.length; r++) {
+                for(let c=0; c<gridData[r].length; c++) {
+                    const ch = gridData[r][c];
+                    const x = c*CELL_SIZE, y = r*CELL_SIZE;
+                    if(ch === '#') walls.push({x,y,w:CELL_SIZE,h:CELL_SIZE});
+                    else if(ch === 'M') movingWalls.push({x,y,w:CELL_SIZE*2,h:CELL_SIZE, startX:x-CELL_SIZE, endX:x+CELL_SIZE*2, speed:1+Math.random()*1.2, dir:Math.random()<0.5?1:-1, axis:'x', isMoving:true});
+                    else if(ch === 'W') movingWalls.push({x,y,w:CELL_SIZE*2,h:CELL_SIZE, startY:y-CELL_SIZE*8, endY:y, speed:1.5, dir:-1, axis:'y', isMoving:true});
+                    else if(ch === '^') spikes.push({x,y,w:CELL_SIZE,h:CELL_SIZE});
+                    else if(ch === 'R') { rings.push({x:x+CELL_SIZE/2, y:y+CELL_SIZE/2, collected:false}); ringsTotal++; }
+                    else if(ch === 'L') lifeBonuses.push({x:x+CELL_SIZE/2, y:y+CELL_SIZE/2, collected:false});
+                    else if(ch === 'J') jumpBonuses.push({x:x+CELL_SIZE/2, y:y+CELL_SIZE/2, collected:false});
+                    else if(ch === 'D') door = {x,y,w:CELL_SIZE, h:CELL_SIZE*2};
+                    else if(ch === 'S') { ball.startX = x+CELL_SIZE/2; ball.startY = y+CELL_SIZE/2; }
+                    else if(ch === '~') {
+                        // зона ветра: направление в зависимости от контекста (горизонтальный или вертикальный)
+                        let dirX = 0, dirY = 0, strength = 1.2;
+                        // проверяем, есть ли рядом стены для определения направления
+                        let hasLeftWall = (c>0 && gridData[r][c-1] === '#');
+                        let hasRightWall = (c<gridData[r].length-1 && gridData[r][c+1] === '#');
+                        let hasTopWall = (r>0 && gridData[r-1][c] === '#');
+                        let hasBottomWall = (r<gridData.length-1 && gridData[r+1][c] === '#');
+                        if(hasLeftWall && !hasRightWall) dirX = 1;   // дует вправо
+                        else if(hasRightWall && !hasLeftWall) dirX = -1; // дует влево
+                        else if(hasBottomWall && !hasTopWall) dirY = -1; // дует вверх
+                        else if(hasTopWall && !hasBottomWall) dirY = 1;   // дует вниз
+                        else dirX = (Math.random()>0.5?1:-1); // случайно
+                        windZones.push({ x, y, w:CELL_SIZE, h:CELL_SIZE, dirX, dirY, strength });
                     }
                 }
             }
         }
 
-        // Финишная зона
-        line(curY, curX, curX + 6);
-        grid[curY-1][curX+3] = 'D'; 
-        
-        return grid.map(row => row.join(''));
-    }
-
-    function initLevel() {
-        levelData = generateLevel(currentLevel);
-        walls = [];
-        movingWalls = [];
-        spikes = [];
-        rings = [];
-        lifeBonuses = [];
-        jumpBonuses = [];
-        door = null;
-        ringsTotal = 0;
-        ringsCollected = 0;
-        hasSuperJump = false;
-        jumpForce = NORMAL_JUMP_FORCE;
-
-        for (let r = 0; r < levelData.length; r++) {
-            for (let c = 0; c < levelData[r].length; c++) {
-                const char = levelData[r][c];
-                const x = c * CELL_SIZE;
-                const y = r * CELL_SIZE;
-
-                if (char === '#') {
-                    walls.push({ x, y, w: CELL_SIZE, h: CELL_SIZE });
-                } else if (char === 'M') {
-                    // M - Горизонтальная платформа 
-                    let startX = x - CELL_SIZE;
-                    let endX = x + CELL_SIZE * 2;
-                    movingWalls.push({ 
-                        x: startX + Math.random() * (endX - startX), 
-                        y: y, 
-                        w: CELL_SIZE * 2, h: CELL_SIZE, 
-                        startX: startX, 
-                        endX: endX, 
-                        speed: 1.0 + Math.random() * 1.5, 
-                        dir: Math.random() < 0.5 ? 1 : -1, 
-                        axis: 'x', isMoving: true
-                    });
-                } else if (char === 'W') {
-                    // W - Вертикальный лифт
-                    let startY = y - CELL_SIZE * 8; // Едет на 8 блоков вверх
-                    let endY = y;
-                    
-                    movingWalls.push({ 
-                        x: x, 
-                        y: startY + Math.random() * (endY - startY), 
-                        w: CELL_SIZE * 2, h: CELL_SIZE, 
-                        startY: startY, 
-                        endY: endY, 
-                        speed: 1.5 + Math.random() * 0.5, 
-                        dir: -1, 
-                        axis: 'y', isMoving: true
-                    });
-                } else if (char === 'm' || char === 'w') {
-                    // Зарезервированные блоки, игнорируем
-                } else if (char === '^') {
-                    spikes.push({ x, y, w: CELL_SIZE, h: CELL_SIZE });
-                } else if (char === 'R') {
-                    rings.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
-                    ringsTotal++;
-                } else if (char === 'L') {
-                    lifeBonuses.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
-                } else if (char === 'J') {
-                    jumpBonuses.push({ x: x + CELL_SIZE/2, y: y + CELL_SIZE/2, collected: false });
-                } else if (char === 'D') {
-                    door = { x, y, w: CELL_SIZE, h: CELL_SIZE * 2 }; 
-                } else if (char === 'S') {
-                    ball.startX = x + CELL_SIZE/2;
-                    ball.startY = y + CELL_SIZE/2;
-                    resetBall();
-                }
-            }
-        }
-        updateUI();
-    }
-
-    function resetBall() {
-        ball.x = ball.startX;
-        ball.y = ball.startY;
-        ball.vx = 0;
-        ball.vy = 0;
-        isDashing = false;
-        dashFrames = 0;
-        dashCooldown = 0;
-        dashDir = 1;
-        invulnerableFrames = 0; 
-        trail = [];
-        
-        // ИСПРАВЛЕНО: Учитываем масштаб и сдвигаем шарик чуть выше центра экрана
-        let viewWidth = canvas.width / zoom;
-        let viewHeight = canvas.height / zoom;
-        camera.x = ball.x - viewWidth / 2;
-        camera.y = ball.y - viewHeight * 0.6; // 0.6 вместо 0.5, чтобы шарик был выше кнопок
-        
-        // Ограничиваем камеру на старте
-        let maxCamX = Math.max(0, levelData[0].length * CELL_SIZE - viewWidth);
-        let maxCamY = Math.max(0, levelData.length * CELL_SIZE - viewHeight);
-        if (camera.x < 0) camera.x = 0;
-        if (camera.y < 0) camera.y = 0;
-        if (camera.x > maxCamX) camera.x = maxCamX;
-        if (camera.y > maxCamY) camera.y = maxCamY;
-    }
-
-    function updateUI() {
-        levelDisplay.innerText = `Ур: ${currentLevel}`;
-        let hearts = '';
-        for(let i=0; i<lives; i++) hearts += '❤️';
-        livesDisplay.innerText = `Жизни: ${hearts}`;
-        ringsDisplay.innerText = `Кольца: ${ringsCollected}/${ringsTotal}`;
-        bonusDisplay.innerText = hasSuperJump ? '🚀 Суперпрыжок' : '';
-    }
-
-    // Обработка клавиатуры
-    window.addEventListener('keydown', (e) => {
-        // ИСПРАВЛЕНО: Блокируем стандартное действие клавиш (особенно Пробела),
-        // чтобы он случайно не нажимал скрытые кнопки меню или не скроллил страницу.
-        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-            e.preventDefault();
+        function resetBallOnly() {
+            ball.x = ball.startX;
+            ball.y = ball.startY;
+            ball.vx = 0;
+            ball.vy = 0;
+            isDashing = false;
+            dashFrames = 0;
+            dashCooldown = 0;
+            dashDir = lastDir;
+            invulnerableFrames = 0;
+            trail = [];
+            touchingWallDir = 0;
+            wallJumpCooldown = 0;
+            ball.isGrounded = false;
+            const viewW = canvas.width / zoom;
+            const viewH = canvas.height / zoom;
+            camera.x = ball.x - viewW/2;
+            camera.y = ball.y - viewH*0.6;
+            if(camera.x < 0) camera.x = 0;
+            if(camera.y < 0) camera.y = 0;
+            const maxX = Math.max(0, (levelGrid[0]?.length || 100) * CELL_SIZE - viewW);
+            const maxY = Math.max(0, (levelGrid.length || 100) * CELL_SIZE - viewH);
+            if(camera.x > maxX) camera.x = maxX;
+            if(camera.y > maxY) camera.y = maxY;
         }
 
-        if (e.code === 'ArrowLeft') keys.left = true;
-        if (e.code === 'ArrowRight') keys.right = true;
-        if (e.code === 'ArrowUp') {
-            if (!e.repeat) keys.up = true; 
-        }
-        if (e.code === 'Space' || e.code === 'ShiftLeft') {
-            if (!e.repeat) keys.dash = true;
-        }
-    });
-    window.addEventListener('keyup', (e) => {
-        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-            e.preventDefault();
-        }
-        
-        if (e.code === 'ArrowLeft') keys.left = false;
-        if (e.code === 'ArrowRight') keys.right = false;
-        if (e.code === 'ArrowUp') keys.up = false;
-        if (e.code === 'Space' || e.code === 'ShiftLeft') keys.dash = false;
-    });
-
-    // Обработка наэкранных кнопок
-    function setupTouchBtn(id, key) {
-        const btn = document.getElementById(id);
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
-        btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
-        btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[key] = false; });
-    }
-    setupTouchBtn('btnLeft', 'left');
-    setupTouchBtn('btnRight', 'right');
-    setupTouchBtn('btnJump', 'up');
-    setupTouchBtn('btnDash', 'dash');
-
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        
-        // НОВОЕ: Адаптивный зум для комфортной игры на телефонах
-        let isPortrait = canvas.height > canvas.width;
-        // Мы хотим видеть минимум 14 блоков в ширину на телефоне (и 22 на широком экране ПК)
-        let desiredVisibleBlocks = isPortrait ? 14 : 22; 
-        let desiredVisibleWidth = desiredVisibleBlocks * CELL_SIZE;
-        
-        if (canvas.width < desiredVisibleWidth) {
-            zoom = canvas.width / desiredVisibleWidth; // Отдаляем камеру
-        } else {
-            zoom = 1; // Оригинальный масштаб
-        }
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    // Гироскоп
-    function handleOrientation(event) {
-        if (!document.getElementById('gyroToggle').checked) return;
-
-        let gamma = event.gamma; 
-        let beta = event.beta;
-        if (gamma === null) return;
-        useGyro = true;
-        
-        let orientation = (screen.orientation || {}).angle || window.orientation || 0;
-        if (orientation === 90) tiltX = beta;
-        else if (orientation === -90 || orientation === 270) tiltX = -beta;
-        else tiltX = gamma;
-        
-        if (Math.abs(tiltX) < 5) tiltX = 0;
-    }
-
-    function requestGyro() {
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission()
-                .then(permissionState => {
-                    if (permissionState === 'granted') {
-                        window.addEventListener('deviceorientation', handleOrientation);
-                    }
-                }).catch(console.error);
-        } else {
-            window.addEventListener('deviceorientation', handleOrientation);
-        }
-    }
-
-    // Физика и коллизии
-    function updatePhysics() {
-        if (dashCooldown > 0) dashCooldown--;
-        if (invulnerableFrames > 0) invulnerableFrames--; 
-
-        if (keys.dash && dashCooldown === 0 && !isDashing) {
-            isDashing = true;
-            dashFrames = 12; // ИЗМЕНЕНО: Максимальная длина рывка стала меньше (было 15)
-            dashCooldown = 60; // ИЗМЕНЕНО: Уменьшен кулдаун (было 80)
-            invulnerableFrames = 30; // Чуть короче неуязвимость
-            
-            // Если стоим на месте - делаем рывок в последнюю сторону движения
-            if (keys.left) dashDir = -1;
-            else if (keys.right) dashDir = 1;
-            else dashDir = lastDir; 
-            
-            sounds.dash();
+        function initLevel() {
+            levelGrid = generateLevel(currentLevel);
+            initLevelFromGrid(levelGrid);
+            resetBallOnly();
+            updateUI();
         }
 
-        if (isDashing) {
-            dashFrames--;
-            
-            // ИЗМЕНЕНО: Зависимость от длительности удержания кнопки
-            // Даем минимальный рывок в 3 кадра, чтобы короткое касание тоже работало
-            if (!keys.dash && dashFrames < 9) {
-                isDashing = false;
-                dashFrames = 0;
-                ball.vx *= 0.4; // Резко гасим скорость, чтобы не лететь по инерции
-            } else if (dashFrames <= 0) {
-                isDashing = false;
-                // Гасим остаточную скорость при естественном окончании полного рывка
-                if (Math.abs(ball.vx) > MAX_SPEED_X) {
-                    ball.vx *= 0.7;
-                }
-            }
-            
-            if (isDashing) {
-                ball.vx = dashDir * 15; // Скорость рывка немного снижена (было 16)
-                ball.vy = 0; 
-            }
-        } else {
-            let accel = 0;
-            if (keys.left) accel -= MOVE_SPEED;
-            if (keys.right) accel += MOVE_SPEED;
-            
-            if (useGyro && document.getElementById('gyroToggle').checked && tiltX !== 0) {
-                accel += (tiltX / 15) * MOVE_SPEED;
-            }
-            
-            ball.vx += accel;
-            ball.vx *= FRICTION;
-            
-            if (Math.abs(ball.vx) < 0.1) ball.vx = 0;
-            
-            // Запоминаем направление
-            if (ball.vx > 0.1) lastDir = 1;
-            if (ball.vx < -0.1) lastDir = -1;
-
-            ball.vy += GRAVITY;
-        }
-
-        for(let mw of movingWalls) {
-            if (mw.axis === 'x') {
-                let oldX = mw.x;
-                mw.x += mw.speed * mw.dir;
-                if(mw.x > mw.endX) { mw.x = mw.endX; mw.dir = -1; }
-                if(mw.x < mw.startX) { mw.x = mw.startX; mw.dir = 1; }
-                if (currentPlatform === mw && ball.isGrounded) {
-                    ball.x += (mw.x - oldX);
-                }
-            } else if (mw.axis === 'y') {
-                let oldY = mw.y;
-                mw.y += mw.speed * mw.dir;
-                if(mw.y > mw.endY) { mw.y = mw.endY; mw.dir = -1; }
-                if(mw.y < mw.startY) { mw.y = mw.startY; mw.dir = 1; }
-                if (currentPlatform === mw && ball.isGrounded) {
-                    ball.y += (mw.y - oldY); 
-                }
-            }
-        }
-
-        ball.x += ball.vx;
-        handleWallCollisions(true); 
-
-        if (!isDashing) {
-            if (keys.up) {
-                if (ball.isGrounded && !jumpHeld) {
-                    ball.vy = jumpForce;
-                    ball.isGrounded = false;
-                    currentPlatform = null; 
-                    sounds.jump(); 
-                }
-                jumpHeld = true;
-            } else {
-                if (jumpHeld && ball.vy < 0) {
-                    ball.vy *= 0.4; 
-                }
-                jumpHeld = false;
-            }
-            
-            if (ball.vy > MAX_SPEED_Y) ball.vy = MAX_SPEED_Y;
-        }
-
-        ball.y += ball.vy;
-        ball.isGrounded = false;
-        currentPlatform = null; 
-        
-        handleWallCollisions(false); 
-
-        trail.push({x: ball.x, y: ball.y});
-        if (trail.length > (invulnerableFrames > 0 ? 8 : 4)) trail.shift();
-    }
-
-    function handleWallCollisions(isXAxis) {
-        let allWalls = walls.concat(movingWalls);
-
-        for (let w of allWalls) {
-            let marginX = isXAxis ? 0 : 8; 
-            let marginY = isXAxis ? 8 : 0; 
-
-            if (ball.x - ball.r + marginX < w.x + w.w && 
-                ball.x + ball.r - marginX > w.x &&
-                ball.y - ball.r + marginY < w.y + w.h && 
-                ball.y + ball.r - marginY > w.y) {
-                
-                if (isXAxis) {
-                    if (ball.x < w.x + w.w / 2) {
-                        ball.x = w.x - ball.r;
-                    } else {
-                        ball.x = w.x + w.w + ball.r;
-                    }
-                    
-                    if (isDashing) {
-                        // ИСПРАВЛЕНО: Врезались в стену при рывке - просто останавливаемся, без отскока назад!
-                        isDashing = false;
-                        dashFrames = 0;
-                        ball.vx = 0; 
-                    } else {
-                        ball.vx *= -BOUNCINESS; 
-                    }
-                } else {
-                    if (ball.y < w.y + w.h / 2) { 
-                        ball.y = w.y - ball.r;
-                        ball.isGrounded = true;
-                        if (w.isMoving) currentPlatform = w; 
-                        
-                        if (ball.vy > 3) ball.vy *= -BOUNCINESS;
-                        else ball.vy = 0;
-                    } else { 
-                        ball.y = w.y + w.h + ball.r;
-                        ball.vy *= -BOUNCINESS;
-                    }
-                }
-            }
-        }
-    }
-
-    function checkInteractions() {
-        // Проверяем шипы только если спала полная неуязвимость
-        if (invulnerableFrames === 0) {
-            for (let s of spikes) {
-                let marginX = 8; 
-                let spikeRect = { x: s.x + marginX, y: s.y + s.h/2, w: s.w - marginX * 2, h: s.h/2 };
-                
-                if (ball.x + ball.r > spikeRect.x && ball.x - ball.r < spikeRect.x + spikeRect.w &&
-                    ball.y + ball.r > spikeRect.y && ball.y - ball.r < spikeRect.y + spikeRect.h) {
-                    die();
-                    return;
-                }
-            }
-        }
-
-        // Если шарик упал за карту (на всякий случай)
-        if (ball.y > levelData.length * CELL_SIZE + 50) {
-            die();
-            return;
-        }
-
-        for (let r of rings) {
-            if (!r.collected) {
-                let dx = ball.x - r.x;
-                let dy = ball.y - r.y;
-                if (Math.sqrt(dx*dx + dy*dy) < ball.r + 15) { 
-                    r.collected = true;
-                    ringsCollected++;
-                    sounds.ring(); 
-                    
-                    if (ringsCollected === ringsTotal) sounds.door();
-                    updateUI();
-                }
-            }
-        }
-
-        for (let l of lifeBonuses) {
-            if (!l.collected) {
-                let dx = ball.x - l.x;
-                let dy = ball.y - l.y;
-                if (Math.sqrt(dx*dx + dy*dy) < ball.r + 12) {
-                    l.collected = true;
-                    lives++;
-                    updateUI();
-                }
-            }
-        }
-
-        for (let j of jumpBonuses) {
-            if (!j.collected) {
-                let dx = ball.x - j.x;
-                let dy = ball.y - j.y;
-                if (Math.sqrt(dx*dx + dy*dy) < ball.r + 12) {
-                    j.collected = true;
-                    hasSuperJump = true;
-                    jumpForce = SUPER_JUMP_FORCE;
-                    updateUI();
-                }
-            }
-        }
-
-        if (door) {
-            if (ringsCollected === ringsTotal) {
-                if (ball.x + ball.r > door.x && ball.x - ball.r < door.x + door.w &&
-                    ball.y + ball.r > door.y && ball.y - ball.r < door.y + door.h) {
-                    win();
-                }
-            }
-        }
-    }
-
-    function die() {
-        sounds.die(); 
-        lives--;
-        updateUI();
-        
-        if (lives <= 0) {
-            gameState = 'GAMEOVER';
-            showScreen('gameOver');
-        } else {
-            gameState = 'DEAD';
-            showScreen('death');
-        }
-    }
-
-    function win() {
-        gameState = 'WON';
-        currentLevel++;
-        document.querySelector('#winMessage').innerHTML = `Вы прошли уровень!<br><span style="color: #f1c40f;">Время: ${(elapsedTime / 1000).toFixed(1)}с</span>`;
-        document.getElementById('nextBtn').innerText = "Следующий уровень";
-        showScreen('win');
-    }
-
-    function updateCamera() {
-        // Учитываем зум при расчетах границ экрана
-        let viewWidth = canvas.width / zoom;
-        let viewHeight = canvas.height / zoom;
-        
-        let targetX = ball.x - viewWidth / 2;
-        // Сдвигаем фокус камеры так, чтобы шарик находился выше центра экрана.
-        // Это освобождает место внизу экрана для ваших пальцев (кнопок)
-        let targetY = ball.y - viewHeight * 0.6; 
-        
-        camera.x += (targetX - camera.x) * 0.1;
-        camera.y += (targetY - camera.y) * 0.1;
-
-        let maxCamX = Math.max(0, levelData[0].length * CELL_SIZE - viewWidth);
-        let maxCamY = Math.max(0, levelData.length * CELL_SIZE - viewHeight);
-        
-        if (camera.x < 0) camera.x = 0;
-        if (camera.y < 0) camera.y = 0;
-        if (camera.x > maxCamX) camera.x = maxCamX;
-        if (camera.y > maxCamY) camera.y = maxCamY;
-    }
-
-    // Отрисовка
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.save();
-        // ПРИМЕНЯЕМ ЗУМ ко всему игровому миру
-        ctx.scale(zoom, zoom); 
-        ctx.translate(-camera.x, -camera.y);
-
-        // Стены 
-        ctx.fillStyle = '#8B4513';
-        for (let w of walls) {
-            ctx.fillRect(w.x, w.y, w.w, w.h);
-            ctx.strokeStyle = '#5c2e0b';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(w.x, w.y, w.w, w.h);
-        }
-
-        // Движущиеся платформы 
-        for (let mw of movingWalls) {
-            if (mw.axis === 'x') {
-                ctx.fillStyle = '#e67e22'; 
-                ctx.strokeStyle = '#d35400';
-            } else {
-                ctx.fillStyle = '#00cec9'; 
-                ctx.strokeStyle = '#01a3a4';
-            }
-            ctx.fillRect(mw.x, mw.y, mw.w, mw.h);
-            ctx.lineWidth = 2;
-            ctx.strokeRect(mw.x, mw.y, mw.w, mw.h);
-        }
-
-        // Колючки
-        ctx.fillStyle = '#bdc3c7';
-        for (let s of spikes) {
-            ctx.beginPath();
-            let marginX = 8;
-            let drawW = s.w - marginX * 2;
-            let startBaseX = s.x + marginX;
-            for(let i=0; i<3; i++) {
-                let startX = startBaseX + (drawW/3) * i;
-                ctx.moveTo(startX, s.y + s.h);
-                ctx.lineTo(startX + drawW/6, s.y + s.h/2); 
-                ctx.lineTo(startX + drawW/3, s.y + s.h);
-            }
-            ctx.fill();
-            ctx.strokeStyle = '#7f8c8d';
-            ctx.stroke();
-        }
-
-        // Дверь
-        if (door) {
-            if (ringsCollected === ringsTotal) {
-                ctx.fillStyle = 'rgba(46, 213, 115, 0.5)';
-                ctx.fillRect(door.x, door.y, door.w, door.h);
-                ctx.strokeStyle = '#2ed573';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(door.x, door.y, door.w, door.h);
-            } else {
-                ctx.fillStyle = 'rgba(255, 71, 87, 0.3)';
-                ctx.fillRect(door.x, door.y, door.w, door.h);
-                ctx.strokeStyle = '#ff4757';
-                ctx.lineWidth = 4;
-                for(let i=1; i<4; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(door.x + (door.w/4)*i, door.y);
-                    ctx.lineTo(door.x + (door.w/4)*i, door.y + door.h);
-                    ctx.stroke();
-                }
-            }
-        }
-
-        // Кольца 
-        let ringScale = Math.sin(frameCount * 0.1) * 0.5 + 0.5; 
-        for (let r of rings) {
-            if (!r.collected) {
-                ctx.beginPath();
-                ctx.ellipse(r.x, r.y, 12 * ringScale + 3, 15, 0, 0, Math.PI*2);
-                ctx.strokeStyle = '#f1c40f'; 
-                ctx.lineWidth = 4;
-                ctx.stroke();
-            }
-        }
-
-        // Бонусы 
-        for (let l of lifeBonuses) {
-            if (!l.collected) {
-                let floatY = Math.sin(frameCount * 0.1) * 5;
-                ctx.beginPath();
-                ctx.arc(l.x, l.y + floatY, 8, 0, Math.PI*2);
-                ctx.fillStyle = '#ff6b81';
-                ctx.fill();
-                ctx.fillStyle = 'white';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('+1', l.x, l.y + floatY);
-            }
-        }
-
-        for (let j of jumpBonuses) {
-            if (!j.collected) {
-                let floatY = Math.sin(frameCount * 0.1) * 5;
-                ctx.beginPath();
-                ctx.arc(j.x, j.y + floatY, 10, 0, Math.PI*2);
-                ctx.fillStyle = '#3498db'; 
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(j.x, j.y + floatY + 4);
-                ctx.lineTo(j.x, j.y + floatY - 4);
-                ctx.lineTo(j.x - 3, j.y + floatY - 1);
-                ctx.moveTo(j.x, j.y + floatY - 4);
-                ctx.lineTo(j.x + 3, j.y + floatY - 1);
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-        }
-
-        // Шарик 
-        if (gameState === 'PLAYING' || gameState === 'PAUSED') {
-            // Отрисовка хвоста (trail)
-            for (let i = 0; i < trail.length; i++) {
-                let t = trail[i];
-                ctx.beginPath();
-                ctx.arc(t.x, t.y, ball.r * (i / trail.length), 0, Math.PI*2);
-                // Синий хвост во время неуязвимости, иначе красный
-                ctx.fillStyle = invulnerableFrames > 0 ? `rgba(52, 152, 219, ${i/trail.length * 0.5})` : `rgba(238, 82, 83, ${i/trail.length * 0.2})`;
-                ctx.fill();
-            }
-
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y + ball.r - 2, ball.r, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fill();
-
-            let grad = ctx.createRadialGradient(ball.x - ball.r/3, ball.y - ball.r/3, 2, ball.x, ball.y, ball.r);
-            if (invulnerableFrames > 0) {
-                grad.addColorStop(0, '#81ecec'); 
-                grad.addColorStop(0.3, '#00cec9'); 
-                grad.addColorStop(1, '#01a3a4'); 
-            } else {
-                grad.addColorStop(0, '#ff9f43'); 
-                grad.addColorStop(0.3, '#ee5253'); 
-                grad.addColorStop(1, '#833471'); 
-            }
-
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-            ctx.fillStyle = grad;
-            ctx.fill();
-        }
-
-        ctx.restore();
-    }
-
-    // Главный цикл
-    function loop() {
-        if (gameState === 'PLAYING') {
-            elapsedTime = Date.now() - startTime;
-            timeDisplay.innerText = (elapsedTime / 1000).toFixed(1) + 'с';
-            
-            // Анимация перезарядки кнопки Рывка
-            const btnDash = document.getElementById('btnDash');
-            if (btnDash) {
-                btnDash.style.opacity = dashCooldown > 0 ? '0.3' : '1';
-                btnDash.style.transform = dashCooldown > 0 ? 'scale(0.95)' : 'scale(1)';
-            }
-
-            updatePhysics();
-            checkInteractions();
-            updateCamera();
-        }
-        
-        draw();
-        frameCount++;
-        animationId = requestAnimationFrame(loop);
-    }
-
-    // Управление экранами
-    function hideAllScreens() {
-        Object.values(screens).forEach(s => s.classList.add('hidden'));
-    }
-
-    function showScreen(name) {
-        hideAllScreens();
-        screens[name].classList.remove('hidden');
-    }
-
-    // Обработка Паузы
-    function togglePause() {
-        if (gameState === 'PLAYING') {
-            gameState = 'PAUSED';
-            pauseStartTime = Date.now();
-            showScreen('pause');
-        } else if (gameState === 'PAUSED') {
+        function respawnLevel() {
+            resetBallOnly();
             gameState = 'PLAYING';
             hideAllScreens();
-            startTime += (Date.now() - pauseStartTime);
-        }
-    }
-
-    // --- ЛОКАЛЬНЫЕ СОХРАНЕНИЯ ---
-    function saveGame() {
-        try {
-            const saveData = { currentLevel, lives };
-            localStorage.setItem('bounce_save_slot1', JSON.stringify(saveData));
-            alert("✅ Прогресс успешно сохранен локально!");
-        } catch (e) {
-            console.error(e);
-            alert("Ошибка сохранения.");
-        }
-    }
-
-    function loadGame() {
-        try {
-            const savedData = localStorage.getItem('bounce_save_slot1');
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                currentLevel = data.currentLevel || 1;
-                lives = data.lives || 3;
-                alert("✅ Прогресс загружен!");
-                startGame(true); // true = запуск загруженной игры
-            } else {
-                alert("Сохранений не найдено.");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Ошибка загрузки.");
-        }
-    }
-
-    // Функция старта
-    function startGame(isLoad = false) {
-        // ИСПРАВЛЕНО: Жестко снимаем фокус с любых кнопок меню, 
-        // чтобы исключить ложные срабатывания от Пробела.
-        if (document.activeElement) {
-            document.activeElement.blur();
-        }
-
-        hideAllScreens();
-        sounds.init();
-
-        if (document.getElementById('gyroToggle').checked) {
-            requestGyro();
-        }
-        
-        if (gameState === 'START' || gameState === 'GAMEOVER') {
-            if (!isLoad) { // Если не загрузка, то сбрасываем статусы
-                lives = 3;
-                currentLevel = 1;
-            }
-            initLevel();
+            startTime += Date.now() - (pauseStartTime || startTime);
             sounds.start();
-        } else if (gameState === 'WON') {
-            initLevel(); 
-        } else if (gameState === 'PAUSED' && isLoad) {
-            initLevel();
         }
 
-        resetBall();
-        keys = { left: false, right: false, up: false }; 
-        jumpHeld = false;
-        currentPlatform = null;
-        startTime = Date.now();
-        gameState = 'PLAYING';
-    }
+        function updateUI() {
+            levelDisplay.innerText = `Ур: ${currentLevel}`;
+            let hearts=''; for(let i=0;i<lives;i++) hearts+='❤️';
+            livesDisplay.innerText = `Жизни: ${hearts}`;
+            ringsDisplay.innerText = `Кольца: ${ringsCollected}/${ringsTotal}`;
+            bonusDisplay.innerText = hasSuperJump ? '🚀 Суперпрыжок' : (WALL_JUMP_ENABLED ? '🧱 Прыжок от стены' : '');
+        }
 
-    // Привязки кнопок
-    document.getElementById('startBtn').addEventListener('click', () => startGame(false));
-    document.getElementById('mainLoadBtn').addEventListener('click', loadGame);
-    document.getElementById('respawnBtn').addEventListener('click', () => startGame(false));
-    document.getElementById('restartBtn').addEventListener('click', () => startGame(false));
-    document.getElementById('nextBtn').addEventListener('click', () => startGame(false));
+        // -------- ФИЗИКА С ВЕТРОМ --------
+        function handleWallCollisions(isXAxis) {
+            const allWalls = walls.concat(movingWalls);
+            for(let w of allWalls) {
+                let marginX = isXAxis ? 0 : 8, marginY = isXAxis ? 8 : 0;
+                if(ball.x-ball.r+marginX < w.x+w.w && ball.x+ball.r-marginX > w.x &&
+                   ball.y-ball.r+marginY < w.y+w.h && ball.y+ball.r-marginY > w.y) {
+                    if(isXAxis) {
+                        if(ball.x < w.x+w.w/2) { ball.x = w.x - ball.r; touchingWallDir = -1; }
+                        else { ball.x = w.x + w.w + ball.r; touchingWallDir = 1; }
+                        if(isDashing) { isDashing=false; dashFrames=0; ball.vx=0; }
+                        else ball.vx *= -BOUNCINESS;
+                    } else {
+                        if(ball.y < w.y+w.h/2) {
+                            ball.y = w.y - ball.r;
+                            ball.isGrounded = true;
+                            touchingWallDir = 0;
+                            if(w.isMoving) currentPlatform = w;
+                            if(ball.vy > 3) ball.vy *= -BOUNCINESS;
+                            else ball.vy = 0;
+                        } else { ball.y = w.y+w.h+ball.r; ball.vy *= -BOUNCINESS; }
+                    }
+                }
+            }
+        }
 
-    // Кнопки паузы
-    document.getElementById('pauseBtn').addEventListener('click', togglePause);
-    document.getElementById('resumeBtn').addEventListener('click', togglePause);
-    document.getElementById('saveBtn').addEventListener('click', saveGame);
-    
-    // ИСПРАВЛЕНО: Кнопка выхода теперь ведет на главную страницу с выбором игр
-    document.getElementById('quitBtn').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+        function applyWind() {
+            for(let w of windZones) {
+                if(ball.x+ball.r > w.x && ball.x-ball.r < w.x+w.w &&
+                   ball.y+ball.r > w.y && ball.y-ball.r < w.y+w.h) {
+                    ball.vx += w.dirX * w.strength * 0.2;
+                    ball.vy += w.dirY * w.strength * 0.2;
+                    // ограничим, чтобы не улететь
+                    ball.vx = Math.min(Math.max(ball.vx, -MAX_SPEED_X*1.5), MAX_SPEED_X*1.5);
+                    ball.vy = Math.min(Math.max(ball.vy, -MAX_SPEED_Y*1.2), MAX_SPEED_Y*1.2);
+                }
+            }
+        }
 
-    // Старт
-    initLevel();
-    draw(); 
-    animationId = requestAnimationFrame(loop);
+        function updatePhysics() {
+            if(dashCooldown>0) dashCooldown--;
+            if(invulnerableFrames>0) invulnerableFrames--;
+            if(wallJumpCooldown>0) wallJumpCooldown--;
 
+            if(keys.dash && dashCooldown===0 && !isDashing) {
+                isDashing = true; dashFrames = DASH_DURATION; dashCooldown = DASH_COOLDOWN_MAX;
+                invulnerableFrames = INVULN_DURATION;
+                if(keys.left) dashDir=-1; else if(keys.right) dashDir=1; else dashDir=lastDir;
+                sounds.dash();
+            }
+
+            if(isDashing) {
+                dashFrames--;
+                if((!keys.dash && dashFrames<DASH_DURATION-3) || dashFrames<=0) {
+                    isDashing=false;
+                    if(Math.abs(ball.vx)>MAX_SPEED_X) ball.vx*=0.5;
+                } else {
+                    ball.vx = dashDir * DASH_SPEED;
+                    ball.vy = 0;
+                }
+            } else {
+                let accel = 0;
+                if(keys.left) accel -= 0.6;
+                if(keys.right) accel += 0.6;
+                if(useGyro && document.getElementById('gyroToggle').checked && tiltX!==0) accel += (tiltX/15)*0.6;
+                ball.vx += accel;
+                ball.vx *= FRICTION;
+                if(Math.abs(ball.vx)<0.1) ball.vx=0;
+                if(ball.vx>0.1) lastDir=1; if(ball.vx<-0.1) lastDir=-1;
+                ball.vy += GRAVITY;
+            }
+
+            // Ветер
+            applyWind();
+
+            // движущиеся платформы
+            for(let mw of movingWalls) {
+                let oldX=mw.x, oldY=mw.y;
+                if(mw.axis==='x') { mw.x += mw.speed*mw.dir; if(mw.x>mw.endX||mw.x<mw.startX){ mw.dir*=-1; mw.x = Math.min(Math.max(mw.x,mw.startX),mw.endX); } }
+                else { mw.y += mw.speed*mw.dir; if(mw.y>mw.endY||mw.y<mw.startY){ mw.dir*=-1; mw.y = Math.min(Math.max(mw.y,mw.startY),mw.endY); } }
+                if(currentPlatform===mw && ball.isGrounded) { ball.x += mw.x-oldX; ball.y += mw.y-oldY; }
+            }
+
+            ball.x += ball.vx;
+            handleWallCollisions(true);
+            if(!isDashing) {
+                if(keys.up && !jumpHeld) {
+                    let canJump = ball.isGrounded;
+                    if(!canJump && WALL_JUMP_ENABLED && wallJumpCooldown===0 && touchingWallDir!==0 && ((touchingWallDir===-1 && keys.right) || (touchingWallDir===1 && keys.left))) {
+                        ball.vy = -9;
+                        ball.vx = -touchingWallDir * 8;
+                        ball.isGrounded = false;
+                        touchingWallDir = 0;
+                        wallJumpCooldown = 15;
+                        sounds.jump();
+                        jumpHeld=true;
+                    } else if(canJump) {
+                        ball.vy = currentJumpForce;
+                        ball.isGrounded = false;
+                        currentPlatform = null;
+                        sounds.jump();
+                        jumpHeld=true;
+                    }
+                } else if(!keys.up) {
+                    if(jumpHeld && ball.vy<0) ball.vy *= 0.4;
+                    jumpHeld = false;
+                }
+                if(ball.vy > MAX_SPEED_Y) ball.vy = MAX_SPEED_Y;
+            }
+            ball.y += ball.vy;
+            ball.isGrounded = false;
+            currentPlatform = null;
+            handleWallCollisions(false);
+            trail.push({x:ball.x,y:ball.y});
+            if(trail.length>(invulnerableFrames>0?8:4)) trail.shift();
+        }
+
+        function checkInteractions() {
+            if(invulnerableFrames===0) {
+                for(let s of spikes) {
+                    let rect = { x:s.x+8, y:s.y+s.h/2, w:s.w-16, h:s.h/2 };
+                    if(ball.x+ball.r>rect.x && ball.x-ball.r<rect.x+rect.w && ball.y+ball.r>rect.y && ball.y-ball.r<rect.y+rect.h) { die(); return; }
+                }
+            }
+            if(ball.y > levelGrid.length * CELL_SIZE + 100) { die(); return; }
+
+            for(let r of rings) if(!r.collected && Math.hypot(ball.x-r.x, ball.y-r.y)<ball.r+15) { r.collected=true; ringsCollected++; sounds.ring(); if(ringsCollected===ringsTotal) sounds.door(); updateUI(); }
+            for(let l of lifeBonuses) if(!l.collected && Math.hypot(ball.x-l.x, ball.y-l.y)<ball.r+12) { l.collected=true; lives++; updateUI(); }
+            for(let j of jumpBonuses) if(!j.collected && Math.hypot(ball.x-j.x, ball.y-j.y)<ball.r+12) { j.collected=true; hasSuperJump=true; currentJumpForce = SUPER_JUMP; updateUI(); }
+
+            if(door && ringsCollected===ringsTotal && ball.x+ball.r>door.x && ball.x-ball.r<door.x+door.w && ball.y+ball.r>door.y && ball.y-ball.r<door.y+door.h) win();
+        }
+
+        function die() {
+            sounds.die();
+            lives--;
+            updateUI();
+            if(lives<=0) { gameState='GAMEOVER'; showScreen('gameOver'); }
+            else { gameState='DEAD'; showScreen('death'); }
+        }
+
+        function win() {
+            gameState='WON';
+            currentLevel++;
+            document.querySelector('#winMessage').innerHTML = `Вы прошли уровень!<br>⭐ Время: ${(elapsedTime/1000).toFixed(1)}с`;
+            showScreen('win');
+        }
+
+        function updateCamera() {
+            const viewW = canvas.width / zoom;
+            const viewH = canvas.height / zoom;
+            let targetX = ball.x - viewW/2, targetY = ball.y - viewH*0.6;
+            camera.x += (targetX-camera.x)*0.1;
+            camera.y += (targetY-camera.y)*0.1;
+            const maxX = Math.max(0, (levelGrid[0]?.length || 100) * CELL_SIZE - viewW);
+            const maxY = Math.max(0, (levelGrid.length || 100) * CELL_SIZE - viewH);
+            camera.x = Math.min(Math.max(camera.x, 0), maxX);
+            camera.y = Math.min(Math.max(camera.y, 0), maxY);
+        }
+
+        // -------- ОТРИСОВКА --------
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.save();
+            ctx.scale(zoom,zoom);
+            ctx.translate(-camera.x,-camera.y);
+
+            // стены
+            ctx.fillStyle='#8B4513';
+            for(let w of walls) { ctx.fillRect(w.x,w.y,w.w,w.h); ctx.strokeStyle='#5c2e0b'; ctx.strokeRect(w.x,w.y,w.w,w.h); }
+            for(let mw of movingWalls) { ctx.fillStyle=mw.axis==='x'?'#e67e22':'#00cec9'; ctx.fillRect(mw.x,mw.y,mw.w,mw.h); ctx.strokeRect(mw.x,mw.y,mw.w,mw.h); }
+            // шипы
+            ctx.fillStyle='#bdc3c7';
+            for(let s of spikes) { ctx.beginPath(); for(let i=0;i<3;i++){ let x=s.x+8+(s.w-16)/3*i; ctx.moveTo(x,s.y+s.h); ctx.lineTo(x+(s.w-16)/6,s.y+s.h/2); ctx.lineTo(x+(s.w-16)/3,s.y+s.h); } ctx.fill(); }
+            // дверь
+            if(door) { ctx.fillStyle=ringsCollected===ringsTotal?'rgba(46,213,115,0.5)':'rgba(255,71,87,0.3)'; ctx.fillRect(door.x,door.y,door.w,door.h); ctx.strokeStyle=ringsCollected===ringsTotal?'#2ed573':'#ff4757'; ctx.lineWidth=4; ctx.strokeRect(door.x,door.y,door.w,door.h); }
+            // кольца
+            for(let r of rings) if(!r.collected){ ctx.beginPath(); ctx.ellipse(r.x,r.y,12+Math.sin(frameCount*0.1)*3,15,0,0,Math.PI*2); ctx.strokeStyle='#f1c40f'; ctx.lineWidth=4; ctx.stroke(); }
+            // бонусы
+            for(let l of lifeBonuses) if(!l.collected){ let y=Math.sin(frameCount*0.1)*5; ctx.beginPath(); ctx.arc(l.x,l.y+y,8,0,Math.PI*2); ctx.fillStyle='#ff6b81'; ctx.fill(); ctx.fillStyle='white'; ctx.font='12px Arial'; ctx.fillText('+1',l.x,l.y+y); }
+            for(let j of jumpBonuses) if(!j.collected){ let y=Math.sin(frameCount*0.1)*5; ctx.beginPath(); ctx.arc(j.x,j.y+y,10,0,Math.PI*2); ctx.fillStyle='#3498db'; ctx.fill(); ctx.beginPath(); ctx.moveTo(j.x,j.y+y+4); ctx.lineTo(j.x,j.y+y-4); ctx.lineTo(j.x-3,j.y+y-1); ctx.moveTo(j.x,j.y+y-4); ctx.lineTo(j.x+3,j.y+y-1); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); }
+            // ветер
+            for(let w of windZones) {
+                ctx.globalAlpha = 0.4;
+                ctx.fillStyle = '#aaf0ff';
+                ctx.fillRect(w.x, w.y, w.w, w.h);
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '20px Arial';
+                ctx.fillText('🌬️', w.x+10, w.y+25);
+            }
+            // шарик
+            if(gameState==='PLAYING' || gameState==='PAUSED') {
+                for(let i=0;i<trail.length;i++){ ctx.beginPath(); ctx.arc(trail[i].x,trail[i].y,ball.r*(i/trail.length),0,Math.PI*2); ctx.fillStyle=invulnerableFrames>0?`rgba(52,152,219,${i/trail.length*0.5})`:`rgba(238,82,83,${i/trail.length*0.2})`; ctx.fill(); }
+                ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+                let grad=ctx.createRadialGradient(ball.x-ball.r/3,ball.y-ball.r/3,2,ball.x,ball.y,ball.r);
+                if(invulnerableFrames>0) grad.addColorStop(0,'#81ecec'), grad.addColorStop(1,'#01a3a4');
+                else grad.addColorStop(0,'#ff9f43'), grad.addColorStop(1,'#833471');
+                ctx.fillStyle=grad; ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // -------- ЦИКЛ --------
+        function loop() {
+            if(gameState==='PLAYING') {
+                elapsedTime = Date.now()-startTime;
+                timeDisplay.innerText = (elapsedTime/1000).toFixed(1)+'с';
+                const btnDash=document.getElementById('btnDash');
+                if(btnDash){ btnDash.style.opacity = dashCooldown>0?'0.3':'1'; btnDash.style.transform = dashCooldown>0?'scale(0.95)':'scale(1)'; }
+                updatePhysics();
+                checkInteractions();
+                updateCamera();
+            }
+            draw();
+            frameCount++;
+            animationId = requestAnimationFrame(loop);
+        }
+
+        // -------- UI И СОБЫТИЯ --------
+        function hideAllScreens() { Object.values(screens).forEach(s=>s.classList.add('hidden')); }
+        function showScreen(name) { hideAllScreens(); screens[name].classList.remove('hidden'); }
+
+        function togglePause() {
+            if(gameState==='PLAYING'){ gameState='PAUSED'; pauseStartTime=Date.now(); showScreen('pause'); }
+            else if(gameState==='PAUSED'){ gameState='PLAYING'; hideAllScreens(); startTime+=Date.now()-pauseStartTime; }
+        }
+
+        function saveGame() {
+            try {
+                const save = {
+                    currentLevel, lives, ringsCollected, ringsTotal, hasSuperJump,
+                    rings: rings.map(r=>r.collected),
+                    lifeBonuses: lifeBonuses.map(l=>l.collected),
+                    jumpBonuses: jumpBonuses.map(j=>j.collected)
+                };
+                localStorage.setItem('bounce_save', JSON.stringify(save));
+                alert('✅ Сохранено!');
+            } catch(e) { alert('Ошибка сохранения'); }
+        }
+
+        function loadGame() {
+            const data = localStorage.getItem('bounce_save');
+            if(!data) { alert('Нет сохранений'); return; }
+            try {
+                const d = JSON.parse(data);
+                currentLevel = d.currentLevel;
+                lives = d.lives;
+                ringsCollected = d.ringsCollected;
+                ringsTotal = d.ringsTotal;
+                hasSuperJump = d.hasSuperJump;
+                initLevel();
+                if(d.rings) rings.forEach((r,i)=>r.collected=d.rings[i]);
+                if(d.lifeBonuses) lifeBonuses.forEach((l,i)=>l.collected=d.lifeBonuses[i]);
+                if(d.jumpBonuses) jumpBonuses.forEach((j,i)=>j.collected=d.jumpBonuses[i]);
+                ringsCollected = rings.filter(r=>r.collected).length;
+                currentJumpForce = hasSuperJump ? SUPER_JUMP : NORMAL_JUMP;
+                resetBallOnly();
+                gameState = 'PLAYING';
+                hideAllScreens();
+                startTime = Date.now();
+                updateUI();
+                alert('Загружено!');
+            } catch(e) { alert('Ошибка загрузки'); }
+        }
+
+        function startGame(reset=true) {
+            if(document.activeElement) document.activeElement.blur();
+            hideAllScreens();
+            sounds.init();
+            if(reset) { lives = 3; currentLevel = 1; }
+            initLevel();
+            resetBallOnly();
+            keys = {left:false,right:false,up:false,dash:false};
+            jumpHeld = false;
+            startTime = Date.now();
+            gameState = 'PLAYING';
+            if(document.getElementById('gyroToggle').checked && typeof DeviceOrientationEvent!=='undefined'){
+                if(DeviceOrientationEvent.requestPermission) {
+                    DeviceOrientationEvent.requestPermission().then(()=>{
+                        window.addEventListener('deviceorientation', handleOrientation);
+                    }).catch(()=>{});
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            }
+        }
+
+        function handleOrientation(e) {
+            if(!document.getElementById('gyroToggle').checked) return;
+            let gamma = e.gamma;
+            let orient = screen.orientation?.angle || 0;
+            if(orient === 90) tiltX = e.beta;
+            else if(orient === -90 || orient === 270) tiltX = -e.beta;
+            else tiltX = gamma;
+            if(Math.abs(tiltX) < 5) tiltX = 0;
+            useGyro = true;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const isPortrait = canvas.height > canvas.width;
+            const desiredBlocks = isPortrait ? 14 : 22;
+            zoom = canvas.width / (desiredBlocks * CELL_SIZE);
+            if(zoom > 1) zoom = 1;
+            if(zoom < 0.5) zoom = 0.5;
+        }
+
+        function bindButton(id, key) {
+            const btn = document.getElementById(id);
+            if(!btn) return;
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('mouseup', (e) => { e.preventDefault(); keys[key] = false; });
+        }
+
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            bindButton('btnLeft', 'left');
+            bindButton('btnRight', 'right');
+            bindButton('btnJump', 'up');
+            bindButton('btnDash', 'dash');
+
+            document.getElementById('startBtn').addEventListener('click', () => startGame(true));
+            document.getElementById('mainLoadBtn').addEventListener('click', loadGame);
+            document.getElementById('respawnBtn').addEventListener('click', () => respawnLevel());
+            document.getElementById('restartBtn').addEventListener('click', () => startGame(true));
+            document.getElementById('nextBtn').addEventListener('click', () => startGame(false));
+            document.getElementById('pauseBtn').addEventListener('click', togglePause);
+            document.getElementById('resumeBtn').addEventListener('click', togglePause);
+            document.getElementById('saveBtn').addEventListener('click', saveGame);
+            document.getElementById('quitBtn').addEventListener('click', () => window.location.href = 'index.html');
+
+            window.addEventListener('keydown', (e) => {
+                if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+                if(e.code === 'ArrowLeft') keys.left = true;
+                if(e.code === 'ArrowRight') keys.right = true;
+                if(e.code === 'ArrowUp') keys.up = true;
+                if(e.code === 'Space' || e.code === 'ShiftLeft') keys.dash = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                if(e.code === 'ArrowLeft') keys.left = false;
+                if(e.code === 'ArrowRight') keys.right = false;
+                if(e.code === 'ArrowUp') keys.up = false;
+                if(e.code === 'Space' || e.code === 'ShiftLeft') keys.dash = false;
+            });
+
+            initLevel();
+            draw();
+            loop();
+            gameState = 'START';
+            showScreen('start');
+        });
+    })();
 </script>
 </body>
 </html>
