@@ -13,7 +13,7 @@
 
         body {
             margin: 0;
-            padding: 10px 0 40px 0;
+            padding: 10px 0 80px 0;
             background-color: #121212;
             color: #fff;
             font-family: 'Segoe UI', sans-serif;
@@ -216,7 +216,8 @@
             padding: 15px 20px;
             box-sizing: border-box;
             margin-top: 5px;
-            margin-bottom: env(safe-area-inset-bottom, 40px);
+            /* Поднимаем кнопки на высоту самих кнопок (70px) + безопасная зона */
+            margin-bottom: calc(env(safe-area-inset-bottom, 20px) + 70px);
         }
         .control-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         #mobile-controls button {
@@ -259,7 +260,7 @@
             #mobile-controls button { width: 60px; height: 60px; font-size: 24px; }
         }
         @media (max-height: 650px) {
-            .main-container { transform: scale(0.75); transform-origin: center top; margin-bottom: -130px; }
+            .main-container { transform: scale(0.75); transform-origin: center top; margin-bottom: -80px; }
             #mobile-controls button { width: 50px; height: 50px; font-size: 20px; border-radius: 12px; }
             #mobile-controls { padding: 5px 10px; gap: 8px;}
         }
@@ -284,8 +285,8 @@
 
         <div id="game-wrapper">
             <div id="top-bar">
-                <button class="btn-small" onclick="location.reload()">🏠 Меню</button>
-                <button class="btn-small" onclick="togglePause()">⏸ Пауза</button>
+                <button id="top-menu-btn" class="btn-small" onclick="handleMenuBtn()">🚪 Выйти</button>
+                <button id="top-pause-btn" class="btn-small" onclick="togglePause()" style="display: none;">⏸ Пауза</button>
             </div>
             
             <div id="start-screen">
@@ -382,15 +383,13 @@
 
         let physicsEnabled = true;
 
-        // Состояние классической сетки (теперь с плавающим Y)
         let classicGrid = [];
         let activeMatrix = null;
         let activeColor = null;
         let classicX = 0;
-        let classicY = 0; // Теперь это float (плавающая координата для плавного падения)
+        let classicY = 0; 
         let lastMove = 0;
 
-        // Общее состояние
         let activePiece = null;
         let lockedBodies = [];
         let lockTimer = null; 
@@ -413,6 +412,29 @@
         let isRotatePressed = false;
         const LOCK_DELAY = 1000;
 
+        // Отслеживаем, находимся ли мы в главном меню
+        let isInMainMenu = true;
+
+        function updateTopBar() {
+            const menuBtn = document.getElementById('top-menu-btn');
+            const pauseBtn = document.getElementById('top-pause-btn');
+            if (isInMainMenu) {
+                menuBtn.innerHTML = '🚪 Выйти';
+                pauseBtn.style.display = 'none';
+            } else {
+                menuBtn.innerHTML = '🏠 Меню';
+                pauseBtn.style.display = 'flex';
+            }
+        }
+
+        window.handleMenuBtn = () => {
+            if (isInMainMenu) {
+                window.location.href = 'index.html';
+            } else {
+                goToMenu();
+            }
+        };
+
         const wallOptions = { isStatic: true, friction: 0.0, restitution: 0.0, render: { fillStyle: '#111' } };
         const ground = Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT + 25, GAME_WIDTH + 100, 50, wallOptions);
         const leftWall = Bodies.rectangle(-25, GAME_HEIGHT / 2, 50, GAME_HEIGHT * 2, wallOptions);
@@ -425,7 +447,6 @@
             });
         });
 
-        // Отрисовка плавно падающей фигуры классического режима
         Events.on(render, 'afterRender', () => {
             Composite.allBodies(engine.world).forEach(b => {
                 if (b.render._wasSleeping !== undefined) b.isSleeping = b.render._wasSleeping;
@@ -440,7 +461,7 @@
                     for (let c = 0; c < activeMatrix[r].length; c++) {
                         if (activeMatrix[r][c]) {
                             let px = (classicX + c) * BLOCK_SIZE;
-                            let py = (classicY + r) * BLOCK_SIZE; // Отрисовывается с учетом float координаты
+                            let py = (classicY + r) * BLOCK_SIZE; 
                             ctx.beginPath();
                             if(ctx.roundRect) ctx.roundRect(px, py, BLOCK_SIZE, BLOCK_SIZE, 5);
                             else ctx.rect(px, py, BLOCK_SIZE, BLOCK_SIZE);
@@ -465,7 +486,6 @@
             return res;
         }
 
-        // Базовая проверка по целым координатам
         function canMove(matrix, x, y) {
             for (let r = 0; r < matrix.length; r++) {
                 for (let c = 0; c < matrix[r].length; c++) {
@@ -480,12 +500,10 @@
             return true;
         }
 
-        // Проверка для плавного падения (проверяем верхнюю и нижнюю границу пересечения с целыми рядами)
         function canMoveFloat(matrix, x, yFloat) {
             return canMove(matrix, x, Math.floor(yFloat)) && canMove(matrix, x, Math.ceil(yFloat));
         }
 
-        // --- ЛИДЕРБОРД ---
         let leaderboard = [];
         function loadLeaderboard() {
             const stored = localStorage.getItem('flexis_leaderboard');
@@ -512,12 +530,12 @@
             updateLeaderboardUI();
         }
 
-        // --- СОХРАНЕНИЕ / ЗАГРУЗКА ---
         window.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('flexis_save')) {
                 document.getElementById('btn-load-main').style.display = 'inline-block';
             }
             loadLeaderboard();
+            updateTopBar();
         });
 
         window.showToast = (msg) => {
@@ -585,6 +603,9 @@
                         document.getElementById('gravVal').innerText = parseFloat(baseGravity).toFixed(2);
                     }
 
+                    isInMainMenu = false;
+                    updateTopBar();
+
                     document.getElementById('start-screen').style.display = 'none';
                     document.getElementById('pause-screen').style.display = 'none';
                     isGameStarted = true; isPaused = false;
@@ -602,7 +623,21 @@
             } catch(e) { window.showToast("Ошибка загрузки"); }
         };
 
-        // --- ЗВУКИ ---
+        window.goToMenu = () => {
+            if (isGameStarted && !isGameOver) {
+                isPaused = true;
+                engine.timing.timeScale = 0;
+                saveGame(); 
+            }
+            
+            isInMainMenu = true;
+            updateTopBar();
+            
+            document.getElementById('start-screen').style.display = 'flex';
+            document.getElementById('pause-screen').style.display = 'none';
+            document.getElementById('game-over').style.display = 'none';
+        };
+
         let audioCtx = null;
         let isMuted = false;
         window.initAudio = function() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); };
@@ -749,13 +784,12 @@
             setTimeout(() => { if (!isGameOver && !isPaused) spawnPiece(); }, 150);
         }
 
-        // Фиксация классической фигуры с учетом выравнивания по сетке
         function lockPieceClassic() {
             if (!activeMatrix) return;
             if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
             
             let overflow = false;
-            let cY = Math.round(classicY); // Жесткая привязка к ряду при фиксации
+            let cY = Math.round(classicY); 
 
             for (let r = 0; r < activeMatrix.length; r++) {
                 for (let c = 0; c < activeMatrix[r].length; c++) {
@@ -1019,27 +1053,24 @@
                     }
                 }
             } else {
-                // ПЛАВНОЕ ПАДЕНИЕ В КЛАССИКЕ
                 if (activeMatrix) {
-                    // Обработка движения по X
                     if (now - lastMove > 100) {
                         if (keys.ArrowLeft) {
                             if (canMoveFloat(activeMatrix, classicX - 1, classicY)) {
                                 classicX--;
-                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; } // Сброс таймера задержки
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; } 
                             }
                             lastMove = now;
                         } else if (keys.ArrowRight) {
                             if (canMoveFloat(activeMatrix, classicX + 1, classicY)) {
                                 classicX++;
-                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; } // Сброс таймера задержки
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; } 
                             }
                             lastMove = now;
                         }
                     }
 
-                    // Вычисление скорости плавного падения
-                    let baseFallSpeed = 1 / 30; // базовая скорость ~1 ряд за 30 кадров
+                    let baseFallSpeed = 1 / 30; 
                     if (currentMode === 'accel') {
                         let ticks = Math.max(5, 30 - (score/1000)*8);
                         baseFallSpeed = 1 / ticks;
@@ -1048,18 +1079,16 @@
                         baseFallSpeed = 1 / ticks;
                     }
 
-                    // Применяем ползунок и бонусы
                     let fallSpeed = baseFallSpeed * (baseGravity / 0.5);
                     if (activeBonus) {
                         if (activeBonus.type === 'magnet') fallSpeed *= 2;
                         if (activeBonus.type === 'slow') fallSpeed *= 0.5;
                     }
 
-                    if (keys.ArrowDown) fallSpeed = 0.5; // Быстрое падение
+                    if (keys.ArrowDown) fallSpeed = 0.5; 
 
                     let nextY = classicY + fallSpeed;
                     
-                    // Защита от багов с float
                     if (Math.abs(nextY - Math.round(nextY)) < 0.0001) {
                         nextY = Math.round(nextY);
                     }
@@ -1067,26 +1096,22 @@
                     let nextFloor = Math.floor(nextY);
                     let nextCeil = Math.ceil(nextY);
 
-                    // Проверка препятствий внизу
                     let hittingGround = false;
                     if (!canMove(activeMatrix, classicX, nextFloor) || !canMove(activeMatrix, classicX, nextCeil)) {
                         hittingGround = true;
                     }
 
                     if (hittingGround) {
-                        // Если достигли дна, фиксируем четко на целый ряд
                         if (canMove(activeMatrix, classicX, nextFloor)) {
                             classicY = nextFloor;
                         } else {
                             classicY = Math.floor(classicY);
                         }
 
-                        // Стартуем Lock Delay (даём долю секунды на движение)
                         if (!lockTimer) {
                             lockTimer = setTimeout(lockPieceClassic, keys.ArrowDown ? 50 : 400);
                         }
                     } else {
-                        // Если путь свободен, продолжаем плавное падение
                         classicY = nextY;
                         if (lockTimer) {
                             clearTimeout(lockTimer);
@@ -1132,6 +1157,9 @@
             } else {
                 engine.world.gravity.y = 0; 
             }
+
+            isInMainMenu = false;
+            updateTopBar();
 
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('pause-screen').style.display = 'none';
