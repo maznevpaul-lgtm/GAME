@@ -2,32 +2,47 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Флексис Тетрис</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Флексис Тетрис 2.0</title>
     <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            padding: 20px 0; /* Минимальные отступы сверху и снизу */
+            padding: 10px 0;
             background-color: #121212;
             color: #fff;
             font-family: 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* Центрируем всю игру по вертикали */
-            height: 100dvh; /* Динамическая высота (решает проблему скрытой панели на смартфонах) */
-            box-sizing: border-box;
-            overflow: hidden;
+            justify-content: flex-start;
+            min-height: 100dvh;
+            overflow-x: hidden;
             touch-action: none;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            margin: auto;
         }
 
         #game-wrapper {
             position: relative;
-            /* Убрали жесткий отступ margin-top, так как игра центрируется сама */
             box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
             border-radius: 12px;
             overflow: hidden;
             background-color: #050505;
+            flex-shrink: 0;
         }
 
         #top-bar {
@@ -56,32 +71,64 @@
         }
         .btn-small:active { background: #4CAF50; transform: translateY(2px); border-color: #4CAF50; }
 
-        #score-board {
-            position: absolute;
-            top: 15px;
-            right: 15px; /* Перенесли вправо, чтобы освободить место для кнопки меню */
-            font-size: 32px;
-            font-weight: 900;
-            color: #4CAF50;
-            text-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
-            z-index: 10;
+        .side-panel {
+            background: rgba(17, 17, 17, 0.8);
+            border-radius: 16px;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            min-width: 140px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            border: 1px solid #222;
+            flex-shrink: 0;
         }
 
-        #game-over, #start-screen {
+        .stat-box {
+            text-align: center;
+            font-size: 14px;
+            color: #aaa;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 900;
+            color: #4CAF50;
+            line-height: 1.2;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
+        }
+
+        .record-value { color: #FFD966; font-size: 28px; text-shadow: 0 0 10px rgba(255, 217, 102, 0.3); }
+        
+        #nextCanvas {
+            background: #0a0a0a;
+            border-radius: 12px;
+            display: block;
+            margin: 10px auto 0;
+            border: 2px solid #333;
+            width: 80px; 
+            height: 80px;
+        }
+
+        .bonus-icon { font-size: 32px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); transition: 0.3s; }
+
+        #game-over, #start-screen, #pause-screen {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.92);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 100;
             text-align: center;
+            padding: 20px;
+            backdrop-filter: blur(5px);
         }
-
         #game-over { display: none; }
         #pause-screen { display: none; }
 
@@ -90,8 +137,8 @@
         .red { color: #ff4444; }
 
         .btn {
-            padding: 15px 50px;
-            font-size: 20px;
+            padding: 12px 35px;
+            font-size: 18px;
             background: linear-gradient(135deg, #4CAF50, #2e7d32);
             color: white;
             border: none;
@@ -100,14 +147,15 @@
             font-weight: bold;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
             transition: all 0.2s;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 250px;
         }
-
         .btn:active { transform: scale(0.95); }
 
         .toast {
             position: absolute;
-            bottom: 25%;
-            left: 50%;
+            bottom: 25%; left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.9);
             color: #4CAF50;
@@ -124,6 +172,41 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         }
 
+        .slider-container { margin: 10px 0; font-size: 14px; color: #ccc; }
+        input[type="range"] { vertical-align: middle; width: 120px; accent-color: #4CAF50; }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #FFD966;
+            cursor: pointer;
+            background: rgba(255, 217, 102, 0.1);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 217, 102, 0.3);
+        }
+        .checkbox-container input {
+            width: 20px; height: 20px; accent-color: #4CAF50; cursor: pointer;
+        }
+
+        .leaderboard {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 250px;
+            font-size: 13px;
+            border: 1px solid #333;
+        }
+        .leaderboard table { width: 100%; color: #ddd; text-align: left; }
+        .leaderboard th { color: #4CAF50; padding-bottom: 5px; }
+
         #mobile-controls {
             display: flex;
             width: 100%;
@@ -131,97 +214,122 @@
             justify-content: space-between;
             padding: 15px 20px;
             box-sizing: border-box;
-            margin-top: 20px; /* Отступ от стакана */
-            margin-bottom: env(safe-area-inset-bottom, 10px); /* Учитываем "челку" и системные полоски снизу */
+            margin-top: 15px;
         }
-
-        .control-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
+        .control-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         #mobile-controls button {
             background-color: #1a1a1a;
             border: 2px solid #333;
             color: white;
             font-size: 28px;
-            width: 70px;
-            height: 70px;
+            width: 70px; height: 70px;
             border-radius: 16px; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            user-select: none;
+            display: flex; justify-content: center; align-items: center;
             box-shadow: 0 5px 0 #000;
             padding: 0;
             transition: transform 0.1s, box-shadow 0.1s;
         }
-        
         #mobile-controls button:active { 
-            background-color: #4CAF50; 
-            transform: translateY(5px);
-            box-shadow: 0 0px 0 #000;
+            background-color: #4CAF50; transform: translateY(5px); box-shadow: 0 0px 0 #000;
         }
 
-        /* АДАПТИВНОСТЬ: Увеличение на больших экранах (ПК, Планшеты) */
-        @media (min-height: 900px) and (min-width: 500px) {
-            #game-wrapper { transform: scale(1.15); transform-origin: center top; margin-bottom: 90px; }
+        @media (min-height: 900px) and (min-width: 600px) {
+            .main-container { transform: scale(1.15); transform-origin: center top; margin-bottom: 90px; }
             #mobile-controls button { width: 80px; height: 80px; font-size: 32px; border-radius: 20px; }
             #mobile-controls { max-width: 480px; }
         }
-        @media (min-height: 1000px) and (min-width: 600px) {
-            #game-wrapper { transform: scale(1.3); transform-origin: center top; margin-bottom: 180px; }
+
+        @media (max-width: 850px), (max-height: 750px) {
+            .main-container { flex-direction: column; align-items: center; gap: 10px; margin-top: 5px; }
+            .side-panel {
+                flex-direction: row; width: 100%; max-width: 360px; justify-content: space-between;
+                align-items: center; padding: 10px 15px; gap: 5px; min-width: unset;
+            }
+            .side-panel .stat-box { font-size: 11px; margin-bottom: 0; }
+            .stat-value { font-size: 24px; }
+            .record-value { font-size: 20px; }
+            #nextCanvas { width: 50px !important; height: 50px !important; margin-top: 0; }
+            .bonus-icon { font-size: 24px; margin: 0; }
         }
 
-        /* АДАПТИВНОСТЬ: Уменьшение на маленьких телефонах */
-        @media (max-height: 850px) {
-            #game-wrapper { transform: scale(0.85); transform-origin: center top; margin-bottom: -90px; }
-        }
-        @media (max-height: 700px) {
-            #game-wrapper { transform: scale(0.75); transform-origin: center top; margin-bottom: -150px; }
+        @media (max-height: 800px) {
+            .main-container { transform: scale(0.9); transform-origin: center top; margin-bottom: -50px; }
             #mobile-controls button { width: 60px; height: 60px; font-size: 24px; }
         }
-        @media (max-height: 600px) {
-            #game-wrapper { transform: scale(0.65); transform-origin: center top; margin-bottom: -210px; }
+        @media (max-height: 650px) {
+            .main-container { transform: scale(0.75); transform-origin: center top; margin-bottom: -130px; }
             #mobile-controls button { width: 50px; height: 50px; font-size: 20px; border-radius: 12px; }
-            #mobile-controls { padding: 5px 10px; }
+            #mobile-controls { padding: 5px 10px; gap: 8px;}
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
 
-    <div id="game-wrapper">
-        <div id="top-bar">
-            <a href="index.html" class="btn-small">🏠 В меню</a>
-            <button class="btn-small" onclick="togglePause()">⏸ Пауза</button>
-        </div>
-        <div id="score-board"><span id="score">0</span></div>
-        
-        <div id="start-screen">
-            <h1 class="green">FLEXIS</h1>
-            <p style="color: #666; margin-bottom: 15px;">Тетрис с физикой</p>
-            <button class="btn" style="margin-bottom: 10px;" onclick="startGame('classic')">КЛАССИКА</button>
-            <button class="btn" style="margin-bottom: 10px; background: linear-gradient(135deg, #FF9800, #F57C00);" onclick="startGame('accel')">С УСКОРЕНИЕМ</button>
-            <button id="btn-load-main" class="btn" style="margin-bottom: 10px; background: linear-gradient(135deg, #2196F3, #1976D2); display: none;" onclick="loadGame()">ПРОДОЛЖИТЬ</button>
-            <button id="mute-btn" class="btn" onclick="toggleMute()" style="background: #1a1a1a; border: 2px solid #333; font-size: 16px; padding: 10px 30px;">🔊 Звук: ВКЛ</button>
+    <div class="main-container">
+        <div class="side-panel">
+            <div class="stat-box">СЧЕТ<br><div class="stat-value" id="score">0</div></div>
+            <div class="stat-box">РЕКОРД<br><div class="stat-value record-value" id="recordValue">0</div></div>
+            <div class="stat-box" style="display: flex; flex-direction: column; align-items: center;">
+                СЛЕДУЮЩАЯ
+                <canvas id="nextCanvas" width="160" height="160"></canvas>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div class="bonus-icon" id="bonusIcon">✨</div>
+                <div id="survivalInfo" style="font-size:12px; color:#ff9800; font-weight: bold; margin-top: 5px;"></div>
+            </div>
         </div>
 
-        <div id="pause-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 101; text-align: center;">
-            <h1 style="color: #FF9800; margin-bottom: 30px;">ПАУЗА</h1>
-            <button class="btn" style="margin-bottom: 15px;" onclick="togglePause()">ПРОДОЛЖИТЬ</button>
-            <button class="btn" style="margin-bottom: 15px; background: linear-gradient(135deg, #2196F3, #1976D2);" onclick="saveGame()">💾 СОХРАНИТЬ</button>
-        </div>
+        <div id="game-wrapper">
+            <div id="top-bar">
+                <button class="btn-small" onclick="location.reload()">🏠 Меню</button>
+                <button class="btn-small" onclick="togglePause()">⏸ Пауза</button>
+            </div>
+            
+            <div id="start-screen">
+                <h1 class="green">FLEXIS</h1>
+                <p style="color: #888; margin-bottom: 15px; font-size: 14px;">Тетрис + Бонусы</p>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="physics-toggle" checked>
+                    ВКЛЮЧИТЬ ФИЗИКУ БЛОКОВ
+                </label>
+                
+                <button class="btn" onclick="startGame('classic')">КЛАССИКА</button>
+                <button class="btn" style="background: linear-gradient(135deg, #FF9800, #F57C00);" onclick="startGame('accel')">УСКОРЕНИЕ</button>
+                <button class="btn" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);" onclick="startGame('survival')">ВЫЖИВАНИЕ</button>
+                <button id="btn-load-main" class="btn" style="background: linear-gradient(135deg, #2196F3, #1976D2); display: none;" onclick="loadGame()">ПРОДОЛЖИТЬ</button>
+                
+                <div class="slider-container">
+                    <span>⚙️ Базовая скорость: </span><span id="gravVal" style="color:#fff; font-weight:bold;">0.50</span><br>
+                    <input type="range" id="gravitySlider" min="0.2" max="1.2" step="0.05" value="0.5">
+                </div>
+                
+                <button id="mute-btn" class="btn-small" onclick="toggleMute()" style="margin-top: 5px;">🔊 Звук: ВКЛ</button>
+                
+                <div class="leaderboard">
+                    <div style="text-align: center; font-weight: bold; color: #4CAF50; margin-bottom: 5px;">🏆 ТОП-5 РЕКОРДОВ</div>
+                    <table id="leaderboardTable">
+                        <tr><th>#</th><th>Счёт</th><th>Режим</th></tr>
+                    </table>
+                </div>
+            </div>
 
-        <div id="game-over">
-            <h1 class="red">КОНЕЦ ИГРЫ</h1>
-            <p>Ваш счет: <span id="final-score">0</span></p>
-            <button class="btn" style="background: #ff4444;" onclick="restartGame()">ЗАНОВО</button>
+            <div id="pause-screen">
+                <h1 style="color: #FF9800; margin-bottom: 30px;">ПАУЗА</h1>
+                <button class="btn" onclick="togglePause()">ПРОДОЛЖИТЬ</button>
+                <button class="btn" style="background: linear-gradient(135deg, #2196F3, #1976D2);" onclick="saveGame()">💾 СОХРАНИТЬ</button>
+            </div>
+
+            <div id="game-over">
+                <h1 class="red">КОНЕЦ ИГРЫ</h1>
+                <p>Ваш счет: <span id="final-score" style="font-size: 24px; font-weight: bold; color: white;">0</span></p>
+                <button class="btn" style="background: #ff4444; margin-top: 15px;" onclick="restartGame()">ЗАНОВО</button>
+            </div>
+            
+            <div id="canvas-container"></div>
+            <div id="toast" class="toast">Сообщение</div>
         </div>
-        
-        <div id="canvas-container"></div>
-        <div id="toast" class="toast">Сообщение</div>
     </div>
 
     <div id="mobile-controls">
@@ -236,20 +344,183 @@
     </div>
 
     <script>
-        // --- ЛОКАЛЬНОЕ СОХРАНЕНИЕ (LOCALSTORAGE) ---
+        const { Engine, Render, Runner, Bodies, Body, Composite, Events, Sleeping } = Matter;
+
+        const GAME_WIDTH = 360;
+        const GAME_HEIGHT = 600;
+        const BLOCK_SIZE = 30;
+        const COLS = GAME_WIDTH / BLOCK_SIZE; // 12
+        const ROWS = GAME_HEIGHT / BLOCK_SIZE; // 20
+
+        const engine = Engine.create({ enableSleeping: true });
+        engine.world.gravity.y = 0.5;
+        engine.positionIterations = 15;
+        engine.velocityIterations = 15;
+
+        const render = Render.create({
+            element: document.getElementById('canvas-container'),
+            engine: engine,
+            options: { width: GAME_WIDTH, height: GAME_HEIGHT, wireframes: false, background: '#050505' }
+        });
+
+        const tetrominos = [
+            { matrix: [[1,1,1,1]], color: '#00e5f0' }, // I
+            { matrix: [[1,1],[1,1]], color: '#f0e000' }, // O
+            { matrix: [[0,1,0],[1,1,1]], color: '#c058f0' }, // T
+            { matrix: [[1,0,0],[1,1,1]], color: '#3a6eff' }, // J
+            { matrix: [[0,0,1],[1,1,1]], color: '#f0a030' }, // L
+            { matrix: [[0,1,1],[1,1,0]], color: '#30f030' }, // S
+            { matrix: [[1,1,0],[0,1,1]], color: '#f03050' }  // Z
+        ];
+        const rareTetrominos = [
+            { matrix: [[0,1,0],[1,1,1],[0,1,0]], color: '#FFD966' }, 
+            { matrix: [[1,0,1],[1,1,1]], color: '#B0BEC5' }, 
+            { matrix: [[1,1,1,1,1]], color: '#FF80AB' } 
+        ];
+
+        let physicsEnabled = true;
+
+        // Состояние классической сетки (теперь с плавающим Y)
+        let classicGrid = [];
+        let activeMatrix = null;
+        let activeColor = null;
+        let classicX = 0;
+        let classicY = 0; // Теперь это float (плавающая координата для плавного падения)
+        let lastMove = 0;
+
+        // Общее состояние
+        let activePiece = null;
+        let lockedBodies = [];
+        let lockTimer = null; 
+
+        let score = 0;
+        let isGameOver = false, isGameStarted = false, isPaused = false;
+        let currentMode = 'classic';
+        let bestScore = localStorage.getItem('flexis_best') ? parseInt(localStorage.getItem('flexis_best')) : 0;
+        document.getElementById('recordValue').innerText = bestScore;
+        let nextShapeObj = null;
+        const nextCanvasEl = document.getElementById('nextCanvas');
+        const ctxNext = nextCanvasEl.getContext('2d');
         
-        // Проверяем наличие сохранения при загрузке страницы
+        let activeBonus = null, bonusTimer = null;
+        let survivalInterval = null;
+        let survivalMultiplier = 1.0;
+        let baseGravity = 0.5;
+
+        const keys = { ArrowLeft: false, ArrowRight: false, ArrowDown: false };
+        let isRotatePressed = false;
+        const LOCK_DELAY = 1000;
+
+        const wallOptions = { isStatic: true, friction: 0.0, restitution: 0.0, render: { fillStyle: '#111' } };
+        const ground = Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT + 25, GAME_WIDTH + 100, 50, wallOptions);
+        const leftWall = Bodies.rectangle(-25, GAME_HEIGHT / 2, 50, GAME_HEIGHT * 2, wallOptions);
+        const rightWall = Bodies.rectangle(GAME_WIDTH + 25, GAME_HEIGHT / 2, 50, GAME_HEIGHT * 2, wallOptions);
+        Composite.add(engine.world, [ground, leftWall, rightWall]);
+
+        Events.on(render, 'beforeRender', () => {
+            Composite.allBodies(engine.world).forEach(b => {
+                b.render._wasSleeping = b.isSleeping; b.isSleeping = false; 
+            });
+        });
+
+        // Отрисовка плавно падающей фигуры классического режима
+        Events.on(render, 'afterRender', () => {
+            Composite.allBodies(engine.world).forEach(b => {
+                if (b.render._wasSleeping !== undefined) b.isSleeping = b.render._wasSleeping;
+            });
+
+            if (!physicsEnabled && activeMatrix) {
+                const ctx = render.context;
+                ctx.fillStyle = activeColor;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                for (let r = 0; r < activeMatrix.length; r++) {
+                    for (let c = 0; c < activeMatrix[r].length; c++) {
+                        if (activeMatrix[r][c]) {
+                            let px = (classicX + c) * BLOCK_SIZE;
+                            let py = (classicY + r) * BLOCK_SIZE; // Отрисовывается с учетом float координаты
+                            ctx.beginPath();
+                            if(ctx.roundRect) ctx.roundRect(px, py, BLOCK_SIZE, BLOCK_SIZE, 5);
+                            else ctx.rect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+                            ctx.fill(); ctx.stroke();
+                        }
+                    }
+                }
+            }
+        });
+
+        function resetClassicGrid() {
+            classicGrid = Array(ROWS).fill().map(() => Array(COLS).fill(null));
+        }
+
+        function rotateMatrix(matrix) {
+            const N = matrix.length;
+            const M = matrix[0].length;
+            let res = new Array(M).fill(0).map(() => new Array(N).fill(0));
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < M; c++) res[c][N - 1 - r] = matrix[r][c];
+            }
+            return res;
+        }
+
+        // Базовая проверка по целым координатам
+        function canMove(matrix, x, y) {
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < matrix[r].length; c++) {
+                    if (matrix[r][c]) {
+                        let gridX = x + c;
+                        let gridY = y + r;
+                        if (gridX < 0 || gridX >= COLS || gridY >= ROWS) return false;
+                        if (gridY >= 0 && classicGrid[gridY][gridX]) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Проверка для плавного падения (проверяем верхнюю и нижнюю границу пересечения с целыми рядами)
+        function canMoveFloat(matrix, x, yFloat) {
+            return canMove(matrix, x, Math.floor(yFloat)) && canMove(matrix, x, Math.ceil(yFloat));
+        }
+
+        // --- ЛИДЕРБОРД ---
+        let leaderboard = [];
+        function loadLeaderboard() {
+            const stored = localStorage.getItem('flexis_leaderboard');
+            leaderboard = stored ? JSON.parse(stored) : [];
+            updateLeaderboardUI();
+        }
+        function updateLeaderboardUI() {
+            const tbody = document.getElementById('leaderboardTable');
+            tbody.innerHTML = '<tr><th>#</th><th>Счёт</th><th>Режим</th></tr>';
+            leaderboard.slice(0, 5).forEach((entry, idx) => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerText = idx + 1;
+                row.insertCell(1).innerText = entry.score;
+                let modeStr = entry.mode === 'classic' ? 'Клас.' : (entry.mode === 'accel' ? 'Ускор.' : 'Выжив.');
+                if(entry.physics === false) modeStr += " (Сетка)";
+                row.insertCell(2).innerText = modeStr;
+            });
+        }
+        function addScoreToLeaderboard(score, mode) {
+            leaderboard.push({ score, mode, physics: physicsEnabled, date: Date.now() });
+            leaderboard.sort((a, b) => b.score - a.score);
+            if (leaderboard.length > 5) leaderboard = leaderboard.slice(0, 5);
+            localStorage.setItem('flexis_leaderboard', JSON.stringify(leaderboard));
+            updateLeaderboardUI();
+        }
+
+        // --- СОХРАНЕНИЕ / ЗАГРУЗКА ---
         window.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('flexis_save')) {
                 document.getElementById('btn-load-main').style.display = 'inline-block';
             }
+            loadLeaderboard();
         });
 
         window.showToast = (msg) => {
             const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.style.display = 'block';
-            toast.style.opacity = '1';
+            toast.innerText = msg; toast.style.display = 'block'; toast.style.opacity = '1';
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.style.display = 'none', 300);
@@ -260,89 +531,79 @@
             const blocksToSave = [];
             lockedBodies.forEach(body => {
                 if(!body) return;
-                const cubes = body.parts.length > 1 ? body.parts.slice(1) : [body];
+                const cubes = body.parts && body.parts.length > 1 ? body.parts.slice(1) : [body];
                 cubes.forEach(part => {
-                    blocksToSave.push({
-                        x: part.position.x,
-                        y: part.position.y,
-                        angle: part.angle,
-                        color: part.render.fillStyle
-                    });
+                    blocksToSave.push({ x: part.position.x, y: part.position.y, angle: part.angle, color: part.render.fillStyle });
                 });
             });
-            const saveData = {
-                score: score,
-                mode: isAccelerationMode ? 'accel' : 'classic',
-                blocks: blocksToSave
-            };
-            
-            try {
-                // Сохраняем в память браузера
-                localStorage.setItem('flexis_save', JSON.stringify(saveData));
-                window.showToast("Игра сохранена! 💾");
-                document.getElementById('btn-load-main').style.display = 'inline-block'; // Показываем кнопку продолжения
-            } catch(e) {
-                window.showToast("Ошибка сохранения");
-            }
+            localStorage.setItem('flexis_save', JSON.stringify({
+                score: score, mode: currentMode, blocks: blocksToSave, baseGravity: baseGravity, physicsEnabled: physicsEnabled
+            }));
+            window.showToast("Игра сохранена! 💾");
+            document.getElementById('btn-load-main').style.display = 'inline-block';
         };
 
         window.loadGame = () => {
             try {
-                // Читаем из памяти браузера
                 const savedStr = localStorage.getItem('flexis_save');
                 if (savedStr) {
                     const data = JSON.parse(savedStr);
-                    
                     lockedBodies.forEach(b => Composite.remove(engine.world, b));
                     if (activePiece) Composite.remove(engine.world, activePiece);
                     lockedBodies = [];
+                    resetClassicGrid();
+
+                    physicsEnabled = data.physicsEnabled !== undefined ? data.physicsEnabled : true;
+                    document.getElementById('physics-toggle').checked = physicsEnabled;
 
                     data.blocks.forEach(bData => {
                         const block = Bodies.rectangle(bData.x, bData.y, BLOCK_SIZE, BLOCK_SIZE, {
-                            angle: bData.angle,
-                            render: { fillStyle: bData.color, strokeStyle: '#000', lineWidth: 1 },
-                            chamfer: { radius: 5 },
-                            friction: 0.4,
-                            frictionStatic: 0.5,
-                            density: 0.01,
-                            restitution: 0.1,
-                            sleepThreshold: 480 // Синхронизировано с вашими настройками засыпания
+                            angle: bData.angle, render: { fillStyle: bData.color, strokeStyle: '#000', lineWidth: 1 },
+                            chamfer: { radius: 5 }, friction: 0.4, frictionStatic: 0.5, density: 0.01, restitution: 0.1, sleepThreshold: 480,
+                            isStatic: !physicsEnabled 
                         });
                         Composite.add(engine.world, block);
                         lockedBodies.push(block);
+                        
+                        if (!physicsEnabled) {
+                            let r = Math.round((bData.y - 15) / BLOCK_SIZE);
+                            let c = Math.round((bData.x - 15) / BLOCK_SIZE);
+                            if (r >= 0 && r < ROWS && c >= 0 && c < COLS) classicGrid[r][c] = block;
+                        }
                     });
                     
                     score = data.score || 0;
                     document.getElementById('score').innerText = score;
-                    isAccelerationMode = data.mode === 'accel';
+                    currentMode = data.mode || 'classic';
+                    
+                    if (data.baseGravity) {
+                        baseGravity = data.baseGravity;
+                        engine.world.gravity.y = physicsEnabled ? baseGravity : 0;
+                        document.getElementById('gravitySlider').value = baseGravity;
+                        document.getElementById('gravVal').innerText = parseFloat(baseGravity).toFixed(2);
+                    }
 
                     document.getElementById('start-screen').style.display = 'none';
                     document.getElementById('pause-screen').style.display = 'none';
-                    isGameStarted = true;
-                    isPaused = false;
+                    isGameStarted = true; isPaused = false;
                     engine.timing.timeScale = 1;
                     
                     wakeAll();
+                    nextShapeObj = getRandomPieceObj();
+                    drawNext();
                     spawnPiece();
+                    
+                    if(currentMode === 'survival') startSurvivalMode();
+                    
                     window.showToast("Игра загружена! 🚀");
-                } else {
-                    window.showToast("Нет сохранений 📂");
                 }
-            } catch(e) {
-                window.showToast("Ошибка загрузки");
-            }
+            } catch(e) { window.showToast("Ошибка загрузки"); }
         };
 
-        // --- ЗВУКОВОЙ ДВИЖОК ---
+        // --- ЗВУКИ ---
         let audioCtx = null;
         let isMuted = false;
-
-        window.initAudio = function() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        };
-
+        window.initAudio = function() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); };
         window.toggleMute = function() {
             isMuted = !isMuted;
             document.getElementById('mute-btn').innerText = isMuted ? '🔇 Звук: ВЫКЛ' : '🔊 Звук: ВКЛ';
@@ -352,135 +613,42 @@
             if (isMuted) return;
             window.initAudio();
             if (audioCtx.state === 'suspended') audioCtx.resume();
-
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
             const now = audioCtx.currentTime;
 
             if (type === 'start') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(440, now);
-                osc.frequency.setValueAtTime(554, now + 0.1);
-                osc.frequency.setValueAtTime(659, now + 0.2);
-                gainNode.gain.setValueAtTime(0.05, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-                osc.start(now);
-                osc.stop(now + 0.4);
+                osc.type = 'square'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(659, now + 0.2);
+                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
             } else if (type === 'lock') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
             } else if (type === 'clear') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, now);
-                osc.frequency.setValueAtTime(1760, now + 0.1);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-                osc.start(now);
-                osc.stop(now + 0.4);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now); osc.frequency.setValueAtTime(1760, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
             } else if (type === 'gameover') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.8);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-                osc.start(now);
-                osc.stop(now + 0.8);
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                osc.start(now); osc.stop(now + 0.8);
+            } else if (type === 'bonus') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(1175, now);
+                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
             }
         };
-        window.playSound = playSound;
 
-        const { Engine, Render, Runner, Bodies, Body, Composite, Events, Vector, Sleeping } = Matter;
-
-        const GAME_WIDTH = 360;
-        const GAME_HEIGHT = 600;
-        const BLOCK_SIZE = 30;
-
-        const engine = Engine.create({ enableSleeping: true });
-
-        engine.world.gravity.y = 0.5;
-        engine.positionIterations = 15;
-        engine.velocityIterations = 15;
-
-        const render = Render.create({
-            element: document.getElementById('canvas-container'),
-            engine: engine,
-            options: {
-                width: GAME_WIDTH,
-                height: GAME_HEIGHT,
-                wireframes: false,
-                background: '#050505'
+        document.getElementById('gravitySlider').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            document.getElementById('gravVal').innerText = val.toFixed(2);
+            baseGravity = val;
+            if (!isGameStarted || isPaused || isGameOver) {
+                if (physicsEnabled) engine.world.gravity.y = val;
             }
         });
-
-        // Убираем визуальное потускнение (моргание цвета) при засыпании блоков
-        Events.on(render, 'beforeRender', () => {
-            Composite.allBodies(engine.world).forEach(b => {
-                b.render._wasSleeping = b.isSleeping;
-                b.isSleeping = false; // Временно скрываем статус сна от рендерера
-            });
-        });
-        
-        Events.on(render, 'afterRender', () => {
-            Composite.allBodies(engine.world).forEach(b => {
-                if (b.render._wasSleeping !== undefined) {
-                    b.isSleeping = b.render._wasSleeping; // Возвращаем реальный статус физике
-                }
-            });
-        });
-
-        const wallOptions = { 
-            isStatic: true, 
-            friction: 0.0, 
-            frictionStatic: 0.0,
-            restitution: 0.0, 
-            render: { fillStyle: '#111' } 
-        };
-        const ground = Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT + 25, GAME_WIDTH + 100, 50, wallOptions);
-        const leftWall = Bodies.rectangle(-25, GAME_HEIGHT / 2, 50, GAME_HEIGHT * 2, wallOptions);
-        const rightWall = Bodies.rectangle(GAME_WIDTH + 25, GAME_HEIGHT / 2, 50, GAME_HEIGHT * 2, wallOptions);
-        Composite.add(engine.world, [ground, leftWall, rightWall]);
-
-        const shapes = [
-            [{x:0, y:0}, {x:30, y:0}, {x:60, y:0}, {x:90, y:0}], // I
-            [{x:0, y:0}, {x:30, y:0}, {x:0, y:30}, {x:30, y:30}], // O
-            [{x:30, y:0}, {x:0, y:30}, {x:30, y:30}, {x:60, y:30}], // T
-            [{x:0, y:0}, {x:0, y:30}, {x:30, y:30}, {x:60, y:30}], // J
-            [{x:60, y:0}, {x:0, y:30}, {x:30, y:30}, {x:60, y:30}], // L
-            [{x:30, y:0}, {x:60, y:0}, {x:0, y:30}, {x:30, y:30}], // S
-            [{x:0, y:0}, {x:30, y:0}, {x:30, y:30}, {x:60, y:30}]  // Z
-        ];
-        
-        const colors = ['#00f0f0', '#f0f000', '#a000f0', '#0000f0', '#f0a000', '#00f000', '#f00000'];
-
-        // НОВЫЕ РЕДКИЕ ФИГУРЫ
-        const rareShapes = [
-            [{x:30,y:0}, {x:0,y:30}, {x:30,y:30}, {x:60,y:30}, {x:30,y:60}], // Крест (Cross)
-            [{x:0,y:0}, {x:0,y:30}, {x:30,y:30}, {x:60,y:30}, {x:60,y:0}],  // U-форма
-            [{x:0,y:0}, {x:30,y:0}, {x:60,y:0}, {x:90,y:0}, {x:120,y:0}]    // Длинная палка 5 (Mega I)
-        ];
-        const rareColors = ['#FFD700', '#C0C0C0', '#FF1493']; // Золотой, Серебряный, Ярко-розовый
-
-        let activePiece = null;
-        let lockedBodies = [];
-        let score = 0;
-        let isGameOver = false;
-        let isGameStarted = false;
-        let isPaused = false;
-        let isAccelerationMode = false;
-        
-        const keys = { ArrowLeft: false, ArrowRight: false, ArrowDown: false };
-        let isRotatePressed = false;
-        
-        let lockTimer = null; 
-        const LOCK_DELAY = 1000; 
 
         window.togglePause = () => {
             if(!isGameStarted || isGameOver) return;
@@ -490,83 +658,136 @@
                 document.getElementById('pause-screen').style.display = 'flex';
                 if(lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
             } else {
-                engine.timing.timeScale = 1;
+                engine.timing.timeScale = (activeBonus && activeBonus.type === 'slow') ? 0.5 : 1;
                 document.getElementById('pause-screen').style.display = 'none';
             }
         };
+
+        function getRandomPieceObj() {
+            if (Math.random() < 0.05) return rareTetrominos[Math.floor(Math.random() * rareTetrominos.length)];
+            return tetrominos[Math.floor(Math.random() * tetrominos.length)];
+        }
+
+        function drawNext() {
+            ctxNext.clearRect(0, 0, nextCanvasEl.width, nextCanvasEl.height);
+            if (!nextShapeObj) return;
+
+            let m = nextShapeObj.matrix;
+            let shapeWidth = m[0].length * BLOCK_SIZE;
+            let shapeHeight = m.length * BLOCK_SIZE;
+            const offX = (nextCanvasEl.width - shapeWidth) / 2;
+            const offY = (nextCanvasEl.height - shapeHeight) / 2;
+
+            ctxNext.fillStyle = nextShapeObj.color;
+            ctxNext.strokeStyle = '#000';
+            ctxNext.lineWidth = 2;
+            for (let r = 0; r < m.length; r++) {
+                for (let c = 0; c < m[r].length; c++) {
+                    if (m[r][c]) {
+                        ctxNext.fillRect(offX + c * BLOCK_SIZE, offY + r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        ctxNext.strokeRect(offX + c * BLOCK_SIZE, offY + r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                }
+            }
+        }
         
         function spawnPiece() {
             if (isGameOver || isPaused) return;
             
-            let shape, color;
-            // 5% шанс на редкую фигуру
-            if (Math.random() < 0.05) {
-                const type = Math.floor(Math.random() * rareShapes.length);
-                shape = rareShapes[type];
-                color = rareColors[type];
+            if (!nextShapeObj) nextShapeObj = getRandomPieceObj();
+            const currentPiece = nextShapeObj;
+            nextShapeObj = getRandomPieceObj();
+            drawNext();
+
+            if (physicsEnabled) {
+                let parts = [];
+                currentPiece.matrix.forEach((row, r) => {
+                    row.forEach((val, c) => {
+                        if (val) {
+                            parts.push(Bodies.rectangle(c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, {
+                                render: { fillStyle: currentPiece.color, strokeStyle: '#000', lineWidth: 1 },
+                                chamfer: { radius: 5 }, friction: 0.0, frictionStatic: 0.0, restitution: 0.1, sleepThreshold: 480 
+                            }));
+                        }
+                    });
+                });
+                activePiece = Body.create({ parts: parts, frictionAir: 0.05, density: 0.001, restitution: 0.1, friction: 0.0, frictionStatic: 0.0 });
+                Body.setPosition(activePiece, { x: Math.round((GAME_WIDTH/2)/BLOCK_SIZE)*BLOCK_SIZE, y: -40 });
+                Composite.add(engine.world, activePiece);
+                wakeAll();
             } else {
-                const type = Math.floor(Math.random() * shapes.length);
-                shape = shapes[type];
-                color = colors[type];
+                activeMatrix = currentPiece.matrix;
+                activeColor = currentPiece.color;
+                classicX = Math.floor((COLS - activeMatrix[0].length) / 2);
+                classicY = -activeMatrix.length; 
             }
-
-            const parts = shape.map(p => Bodies.rectangle(p.x, p.y, BLOCK_SIZE, BLOCK_SIZE, {
-                render: { fillStyle: color, strokeStyle: '#000', lineWidth: 1 },
-                chamfer: { radius: 5 },
-                friction: 0.0, 
-                frictionStatic: 0.0,
-                restitution: 0.1,
-                sleepThreshold: 480 // Физика засыпает через ~8 секунд покоя
-            }));
-
-            activePiece = Body.create({
-                parts: parts,
-                frictionAir: 0.05,
-                density: 0.001,
-                restitution: 0.1,
-                friction: 0.0,
-                frictionStatic: 0.0
-            });
-            
-            Body.setPosition(activePiece, { x: Math.round(GAME_WIDTH / 2 / BLOCK_SIZE) * BLOCK_SIZE, y: -50 });
-            Composite.add(engine.world, activePiece);
-            wakeAll();
         }
 
         function wakeAll() {
-            const allBodies = Composite.allBodies(engine.world);
-            allBodies.forEach(body => {
-                if (!body.isStatic) Sleeping.set(body, false);
-            });
+            Composite.allBodies(engine.world).forEach(body => { if (!body.isStatic) Sleeping.set(body, false); });
         }
 
-        function lockPiece() {
-            if (!activePiece) return;
-            
+        function lockPiecePhysics() {
+            if (!activePiece || isGameOver) return;
             const piece = activePiece;
             activePiece = null;
-            if (lockTimer) {
-                clearTimeout(lockTimer);
-                lockTimer = null;
-            }
+            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
 
-            // Мягкое финальное выравнивание для башни
             const targetAngle = Math.round(piece.angle / (Math.PI / 2)) * (Math.PI / 2);
             Body.setAngle(piece, targetAngle);
             Body.setAngularVelocity(piece, 0);
 
             Body.setDensity(piece, 0.01);
-            piece.friction = 0.4; 
-            piece.frictionStatic = 0.5;
-            piece.parts.forEach(p => {
-                p.friction = 0.4;
-                p.frictionStatic = 0.5;
-            });
+            piece.friction = 0.4; piece.frictionStatic = 0.5;
+            piece.parts.forEach(p => { p.friction = 0.4; p.frictionStatic = 0.5; });
 
             lockedBodies.push(piece);
-            playSound('lock'); // Звук фиксации
-            checkGameOver();
-            setTimeout(() => { if (!isGameOver) spawnPiece(); }, 150);
+            playSound('lock'); 
+            checkGameOverPhysics();
+            setTimeout(() => { if (!isGameOver && !isPaused) spawnPiece(); }, 150);
+        }
+
+        // Фиксация классической фигуры с учетом выравнивания по сетке
+        function lockPieceClassic() {
+            if (!activeMatrix) return;
+            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+            
+            let overflow = false;
+            let cY = Math.round(classicY); // Жесткая привязка к ряду при фиксации
+
+            for (let r = 0; r < activeMatrix.length; r++) {
+                for (let c = 0; c < activeMatrix[r].length; c++) {
+                    if (activeMatrix[r][c]) {
+                        let gridX = classicX + c;
+                        let gridY = cY + r;
+                        if (gridY < 0) {
+                            overflow = true;
+                        } else {
+                            let body = Bodies.rectangle(
+                                gridX * BLOCK_SIZE + 15, gridY * BLOCK_SIZE + 15, BLOCK_SIZE, BLOCK_SIZE,
+                                { isStatic: true, render: { fillStyle: activeColor, strokeStyle: '#000', lineWidth: 1 }, chamfer: {radius: 5} }
+                            );
+                            Composite.add(engine.world, body);
+                            lockedBodies.push(body);
+                            classicGrid[gridY][gridX] = body;
+                        }
+                    }
+                }
+            }
+            playSound('lock');
+            activeMatrix = null;
+            
+            if (overflow) {
+                isGameOver = true;
+                playSound('gameover'); 
+                document.getElementById('final-score').innerText = score;
+                document.getElementById('game-over').style.display = 'flex';
+                if(survivalInterval) clearInterval(survivalInterval);
+                addScoreToLeaderboard(score, currentMode);
+            } else {
+                checkLinesClassic();
+                spawnPiece();
+            }
         }
 
         function shatterPiece(body, partsToRemove) {
@@ -575,41 +796,125 @@
             const survivingParts = body.parts.slice(1).filter(p => !partsToRemove.has(p));
             
             Composite.remove(engine.world, body);
-            
             const newBlocks = survivingParts.map(p => {
                 const block = Bodies.rectangle(p.position.x, p.position.y, BLOCK_SIZE, BLOCK_SIZE, {
-                    angle: p.angle,
-                    render: { fillStyle: color, strokeStyle: '#000', lineWidth: 1 },
-                    chamfer: { radius: 5 },
-                    friction: 0.4,
-                    frictionStatic: 0.5,
-                    density: 0.01,
-                    restitution: 0.1,
-                    sleepThreshold: 480 
+                    angle: p.angle, render: { fillStyle: color, strokeStyle: '#000', lineWidth: 1 },
+                    chamfer: { radius: 5 }, friction: 0.4, frictionStatic: 0.5, density: 0.01, restitution: 0.1, sleepThreshold: 480 
                 });
                 Composite.add(engine.world, block);
                 return block;
             });
-            
             wakeAll(); 
             return newBlocks;
         }
 
-        function checkLines() {
+        function activateBonus(type) {
+            if (activeBonus) {
+                if (bonusTimer) clearTimeout(bonusTimer);
+                if (activeBonus.type === 'magnet') {
+                    if (physicsEnabled) engine.world.gravity.y = activeBonus.originalGravity;
+                }
+                if (activeBonus.type === 'slow') engine.timing.timeScale = activeBonus.originalTimeScale;
+            }
+
+            if (type === 'lightning') {
+                if (physicsEnabled) {
+                    let occupiedY = [];
+                    for (let y = GAME_HEIGHT - 15; y > 50; y -= 20) {
+                        let partsInLine = [];
+                        lockedBodies.forEach(body => {
+                            if (!body || !body.parts) return;
+                            const cubes = body.parts.length > 1 ? body.parts.slice(1) : [body];
+                            cubes.forEach(part => { if (Math.abs(part.position.y - y) < 15) partsInLine.push({ body, part }); });
+                        });
+                        if (partsInLine.length > 0) occupiedY.push(partsInLine);
+                    }
+
+                    if (occupiedY.length > 0) {
+                        const targetRow = occupiedY[Math.floor(Math.random() * occupiedY.length)];
+                        let partsToRemove = new Set(); let affectedBodies = new Set();
+                        targetRow.forEach(p => { partsToRemove.add(p.part); affectedBodies.add(p.body); });
+
+                        let nextLockedBodies = [];
+                        lockedBodies.forEach(body => {
+                            if (affectedBodies.has(body)) {
+                                const fragments = shatterPiece(body, partsToRemove);
+                                nextLockedBodies.push(...fragments);
+                            } else if (body) { nextLockedBodies.push(body); }
+                        });
+                        lockedBodies = nextLockedBodies;
+                        updateScore(50); showToast("⚡ Молния! +50"); playSound('clear');
+                    }
+                } else {
+                    let occupiedRows = [];
+                    for(let r=0; r<ROWS; r++) { if(classicGrid[r].some(cell => cell !== null)) occupiedRows.push(r); }
+                    if(occupiedRows.length > 0) {
+                        let targetRow = occupiedRows[Math.floor(Math.random() * occupiedRows.length)];
+                        for(let c=0; c<COLS; c++) {
+                            if (classicGrid[targetRow][c]) {
+                                Composite.remove(engine.world, classicGrid[targetRow][c]);
+                                lockedBodies = lockedBodies.filter(b => b !== classicGrid[targetRow][c]);
+                            }
+                        }
+                        for(let row = targetRow; row > 0; row--) {
+                            for(let c=0; c<COLS; c++) {
+                                classicGrid[row][c] = classicGrid[row-1][c];
+                                if (classicGrid[row][c]) Body.translate(classicGrid[row][c], {x: 0, y: BLOCK_SIZE});
+                            }
+                        }
+                        for(let c=0; c<COLS; c++) classicGrid[0][c] = null;
+                        updateScore(50); showToast("⚡ Молния! +50"); playSound('clear');
+                    }
+                }
+                return;
+            }
+
+            const currentGrav = engine.world.gravity.y;
+            const currentTimeScale = engine.timing.timeScale;
+
+            if (type === 'magnet') {
+                if(physicsEnabled) engine.world.gravity.y = currentGrav * 2;
+                showToast("🧲 Магнит! Гравитация x2");
+                activeBonus = { type, originalGravity: currentGrav, originalTimeScale: currentTimeScale };
+                document.getElementById('bonusIcon').innerText = '🧲';
+                bonusTimer = setTimeout(() => {
+                    if(physicsEnabled) engine.world.gravity.y = activeBonus.originalGravity;
+                    activeBonus = null; document.getElementById('bonusIcon').innerText = '✨';
+                }, 6000);
+            } else if (type === 'slow') {
+                engine.timing.timeScale = 0.5;
+                showToast("🐢 Замедление времени");
+                activeBonus = { type, originalGravity: currentGrav, originalTimeScale: currentTimeScale };
+                document.getElementById('bonusIcon').innerText = '🐢';
+                bonusTimer = setTimeout(() => {
+                    engine.timing.timeScale = activeBonus.originalTimeScale;
+                    activeBonus = null; document.getElementById('bonusIcon').innerText = '✨';
+                }, 6000);
+            }
+            playSound('bonus');
+        }
+
+        function updateScore(add) {
+            score += add;
+            document.getElementById('score').innerText = score;
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('flexis_best', bestScore);
+                document.getElementById('recordValue').innerText = bestScore;
+            }
+        }
+
+        function checkLinesPhysics() {
             let linesToRemoveY = [];
             for (let y = GAME_HEIGHT - 15; y > 50; y -= 20) {
-                let partsInLine = [];
-                let cols = new Set();
+                let partsInLine = []; let cols = new Set();
                 lockedBodies.forEach(body => {
                     if (!body || !body.parts) return;
                     const cubes = body.parts.length > 1 ? body.parts.slice(1) : [body];
                     cubes.forEach(part => {
                         if (Math.abs(part.position.y - y) < 15) {
                             let col = Math.round((part.position.x - 15) / BLOCK_SIZE);
-                            if (col >= 0 && col < 12) {
-                                cols.add(col);
-                                partsInLine.push({ body, part });
-                            }
+                            if (col >= 0 && col < 12) { cols.add(col); partsInLine.push({ body, part }); }
                         }
                     });
                 });
@@ -617,39 +922,63 @@
             }
 
             if (linesToRemoveY.length > 0) {
-                let partsToRemove = new Set();
-                let affectedBodies = new Set();
-                linesToRemoveY.forEach(line => line.parts.forEach(p => {
-                    partsToRemove.add(p.part);
-                    affectedBodies.add(p.body);
-                }));
+                let partsToRemove = new Set(); let affectedBodies = new Set();
+                linesToRemoveY.forEach(line => line.parts.forEach(p => { partsToRemove.add(p.part); affectedBodies.add(p.body); }));
 
                 let nextLockedBodies = [];
                 lockedBodies.forEach(body => {
                     if (affectedBodies.has(body)) {
-                        const fragments = shatterPiece(body, partsToRemove);
-                        nextLockedBodies.push(...fragments);
-                    } else if (body) {
-                        nextLockedBodies.push(body);
-                    }
+                        const fragments = shatterPiece(body, partsToRemove); nextLockedBodies.push(...fragments);
+                    } else if (body) { nextLockedBodies.push(body); }
                 });
                 lockedBodies = nextLockedBodies;
-                score += partsToRemove.size * 10;
-                document.getElementById('score').innerText = score;
-                playSound('clear'); // Звук удаления линии
+                
+                updateScore(partsToRemove.size * 10); playSound('clear');
+                if (Math.random() < 0.25 && !activeBonus) activateBonus(['lightning', 'magnet', 'slow'][Math.floor(Math.random() * 3)]);
             }
         }
 
-        function checkGameOver() {
+        function checkLinesClassic() {
+            let linesCleared = 0;
+            for (let r = ROWS - 1; r >= 0; r--) {
+                let isFull = true;
+                for (let c = 0; c < COLS; c++) {
+                    if (!classicGrid[r][c]) { isFull = false; break; }
+                }
+                if (isFull) {
+                    for (let c = 0; c < COLS; c++) {
+                        Composite.remove(engine.world, classicGrid[r][c]);
+                        lockedBodies = lockedBodies.filter(b => b !== classicGrid[r][c]);
+                    }
+                    for (let row = r; row > 0; row--) {
+                        for (let c = 0; c < COLS; c++) {
+                            classicGrid[row][c] = classicGrid[row - 1][c];
+                            if (classicGrid[row][c]) Body.translate(classicGrid[row][c], {x: 0, y: BLOCK_SIZE});
+                        }
+                    }
+                    for (let c = 0; c < COLS; c++) classicGrid[0][c] = null;
+                    linesCleared++;
+                    r++; 
+                }
+            }
+            if (linesCleared > 0) {
+                updateScore(linesCleared * 100); playSound('clear');
+                if (Math.random() < 0.25 && !activeBonus) activateBonus(['lightning', 'magnet', 'slow'][Math.floor(Math.random() * 3)]);
+            }
+        }
+
+        function checkGameOverPhysics() {
             lockedBodies.forEach(body => {
                 if (!body) return;
                 const highestPoint = body.bounds.min.y;
                 if (highestPoint < 80 && Math.abs(body.velocity.y) < 0.1) {
-                    if (!isGameOver) { // Чтобы звук играл только один раз
+                    if (!isGameOver) { 
                         isGameOver = true;
-                        playSound('gameover'); // Звук проигрыша
+                        playSound('gameover'); 
                         document.getElementById('final-score').innerText = score;
                         document.getElementById('game-over').style.display = 'flex';
+                        if(survivalInterval) clearInterval(survivalInterval);
+                        addScoreToLeaderboard(score, currentMode);
                     }
                 }
             });
@@ -657,77 +986,167 @@
 
         Events.on(engine, 'beforeUpdate', () => {
             if (!isGameStarted || isGameOver || isPaused) return;
-            if (engine.timing.timestamp % 500 < 20) checkLines();
+            
+            let now = engine.timing.timestamp;
 
-            if (activePiece) {
-                let vx = 0;
-                
-                // Скольжение вдоль стен без зацепов
-                if (keys.ArrowLeft && activePiece.bounds.min.x > 2) vx = -5;
-                if (keys.ArrowRight && activePiece.bounds.max.x < GAME_WIDTH - 2) vx = 5;
+            if (physicsEnabled) {
+                if (engine.timing.timestamp % 500 < 20) checkLinesPhysics();
 
-                let vy = activePiece.velocity.y;
-                
-                // РЕЖИМ УСКОРЕНИЯ: Максимальная скорость растет с очками
-                let baseVyLimit = 1.1;
-                if (isAccelerationMode) {
-                    // Каждую 1000 очков скорость ощутимо растет, лимит поднят до 5.5
-                    baseVyLimit = Math.min(1.1 + (score / 1000) * 0.5, 5.5); 
-                }
+                if (activePiece) {
+                    let vx = 0;
+                    if (keys.ArrowLeft && activePiece.bounds.min.x > 2) vx = -5;
+                    if (keys.ArrowRight && activePiece.bounds.max.x < GAME_WIDTH - 2) vx = 5;
 
-                if (keys.ArrowDown) {
-                    vy = 8; 
-                } else {
-                    if (vy > baseVyLimit) vy = baseVyLimit; 
-                }
-                
-                Body.setVelocity(activePiece, { x: vx, y: vy });
+                    let vy = activePiece.velocity.y;
+                    let baseVyLimit = 1.1;
+                    if (currentMode === 'accel') baseVyLimit = Math.min(1.1 + (score / 1000) * 0.5, 5.5); 
+                    else if (currentMode === 'survival') baseVyLimit = Math.min(1.1 + (survivalMultiplier - 1), 6.0);
 
-                // Мягкое выравнивание угла (стабильная классика)
-                const targetAngle = Math.round(activePiece.angle / (Math.PI / 2)) * (Math.PI / 2);
-                const angleDiff = targetAngle - activePiece.angle;
-                Body.setAngle(activePiece, activePiece.angle + angleDiff * 0.15);
-                Body.setAngularVelocity(activePiece, activePiece.angularVelocity * 0.8);
+                    if (keys.ArrowDown) vy = 8; 
+                    else if (vy > baseVyLimit) vy = baseVyLimit; 
+                    
+                    Body.setVelocity(activePiece, { x: vx, y: vy });
+                    const targetAngle = Math.round(activePiece.angle / (Math.PI / 2)) * (Math.PI / 2);
+                    Body.setAngle(activePiece, activePiece.angle + (targetAngle - activePiece.angle) * 0.15);
+                    Body.setAngularVelocity(activePiece, activePiece.angularVelocity * 0.8);
 
-                // ПРОСТАЯ И НАДЕЖНАЯ ЛОГИКА ФИКСАЦИИ
-                // Если деталь на дне и почти не двигается, а игрок не давит вбок
-                if (activePiece.position.y > 50 && activePiece.speed < 0.2 && vx === 0) {
-                    if (!lockTimer) {
-                        lockTimer = setTimeout(lockPiece, keys.ArrowDown ? 100 : LOCK_DELAY);
+                    if (activePiece.position.y > 50 && activePiece.speed < 0.2 && vx === 0) {
+                        if (!lockTimer) lockTimer = setTimeout(lockPiecePhysics, keys.ArrowDown ? 100 : LOCK_DELAY);
+                    } else {
+                        if (lockTimer && (activePiece.velocity.y > 0.5 || vx !== 0)) { clearTimeout(lockTimer); lockTimer = null; }
                     }
-                } else {
-                    // Если деталь начала соскальзывать или игрок её двигает — отменяем таймер
-                    if (lockTimer && (activePiece.velocity.y > 0.5 || vx !== 0)) {
-                        clearTimeout(lockTimer);
-                        lockTimer = null;
+                }
+            } else {
+                // ПЛАВНОЕ ПАДЕНИЕ В КЛАССИКЕ
+                if (activeMatrix) {
+                    // Обработка движения по X
+                    if (now - lastMove > 100) {
+                        if (keys.ArrowLeft) {
+                            if (canMoveFloat(activeMatrix, classicX - 1, classicY)) {
+                                classicX--;
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; } // Сброс таймера задержки
+                            }
+                            lastMove = now;
+                        } else if (keys.ArrowRight) {
+                            if (canMoveFloat(activeMatrix, classicX + 1, classicY)) {
+                                classicX++;
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; } // Сброс таймера задержки
+                            }
+                            lastMove = now;
+                        }
+                    }
+
+                    // Вычисление скорости плавного падения
+                    let baseFallSpeed = 1 / 30; // базовая скорость ~1 ряд за 30 кадров
+                    if (currentMode === 'accel') {
+                        let ticks = Math.max(5, 30 - (score/1000)*8);
+                        baseFallSpeed = 1 / ticks;
+                    } else if (currentMode === 'survival') {
+                        let ticks = Math.max(5, 30 - (survivalMultiplier - 1)*10);
+                        baseFallSpeed = 1 / ticks;
+                    }
+
+                    // Применяем ползунок и бонусы
+                    let fallSpeed = baseFallSpeed * (baseGravity / 0.5);
+                    if (activeBonus) {
+                        if (activeBonus.type === 'magnet') fallSpeed *= 2;
+                        if (activeBonus.type === 'slow') fallSpeed *= 0.5;
+                    }
+
+                    if (keys.ArrowDown) fallSpeed = 0.5; // Быстрое падение
+
+                    let nextY = classicY + fallSpeed;
+                    
+                    // Защита от багов с float
+                    if (Math.abs(nextY - Math.round(nextY)) < 0.0001) {
+                        nextY = Math.round(nextY);
+                    }
+                    
+                    let nextFloor = Math.floor(nextY);
+                    let nextCeil = Math.ceil(nextY);
+
+                    // Проверка препятствий внизу
+                    let hittingGround = false;
+                    if (!canMove(activeMatrix, classicX, nextFloor) || !canMove(activeMatrix, classicX, nextCeil)) {
+                        hittingGround = true;
+                    }
+
+                    if (hittingGround) {
+                        // Если достигли дна, фиксируем четко на целый ряд
+                        if (canMove(activeMatrix, classicX, nextFloor)) {
+                            classicY = nextFloor;
+                        } else {
+                            classicY = Math.floor(classicY);
+                        }
+
+                        // Стартуем Lock Delay (даём долю секунды на движение)
+                        if (!lockTimer) {
+                            lockTimer = setTimeout(lockPieceClassic, keys.ArrowDown ? 50 : 400);
+                        }
+                    } else {
+                        // Если путь свободен, продолжаем плавное падение
+                        classicY = nextY;
+                        if (lockTimer) {
+                            clearTimeout(lockTimer);
+                            lockTimer = null;
+                        }
                     }
                 }
             }
         });
 
-        // Будим физику при любых соприкосновениях
         Events.on(engine, 'collisionStart', () => wakeAll());
 
+        function startSurvivalMode() {
+            if (survivalInterval) clearInterval(survivalInterval);
+            survivalMultiplier = 1.0;
+            survivalInterval = setInterval(() => {
+                if (isGameStarted && !isPaused && !isGameOver && currentMode === 'survival') {
+                    survivalMultiplier += 0.05;
+                    if (physicsEnabled && (!activeBonus || activeBonus.type !== 'magnet')) {
+                        engine.world.gravity.y = baseGravity * survivalMultiplier;
+                    }
+                    document.getElementById('survivalInfo').innerText = `🌪️ Скорость x${survivalMultiplier.toFixed(2)}`;
+                }
+            }, 10000);
+        }
+
         window.startGame = (mode) => {
-            window.initAudio(); 
-            window.playSound('start'); 
+            physicsEnabled = document.getElementById('physics-toggle').checked;
             
-            isAccelerationMode = (mode === 'accel');
-            score = 0;
-            document.getElementById('score').innerText = score;
+            window.initAudio(); playSound('start'); 
+            currentMode = mode; score = 0; document.getElementById('score').innerText = score;
             
-            // Очистка перед новым стартом
             lockedBodies.forEach(b => Composite.remove(engine.world, b));
             if (activePiece) Composite.remove(engine.world, activePiece);
             lockedBodies = [];
+            resetClassicGrid();
+
+            if(activeBonus) { clearTimeout(bonusTimer); activeBonus = null; document.getElementById('bonusIcon').innerText = '✨'; }
+            
+            if (physicsEnabled) {
+                engine.world.gravity.y = baseGravity;
+                engine.world.gravity.scale = 0.001;
+            } else {
+                engine.world.gravity.y = 0; 
+            }
 
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('pause-screen').style.display = 'none';
-            isGameStarted = true;
-            isPaused = false;
-            isGameOver = false;
+            document.getElementById('game-over').style.display = 'none';
+            
+            isGameStarted = true; isPaused = false; isGameOver = false;
             engine.timing.timeScale = 1;
 
+            if (mode === 'survival') {
+                document.getElementById('survivalInfo').innerText = `🌪️ Скорость x1.00`;
+                startSurvivalMode();
+            } else {
+                document.getElementById('survivalInfo').innerText = '';
+                if (survivalInterval) clearInterval(survivalInterval);
+            }
+
+            nextShapeObj = null;
             spawnPiece();
         };
 
@@ -737,25 +1156,44 @@
             const btn = document.getElementById(id);
             const start = (e) => { 
                 e.preventDefault(); 
-                if (!isGameStarted || isGameOver || !activePiece) return;
+                if (!isGameStarted || isGameOver || isPaused) return;
+                
                 if (key === 'rotate') {
                     if (!isRotatePressed) {
-                        if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
-                        Body.setAngle(activePiece, activePiece.angle + Math.PI/2);
+                        if (physicsEnabled && activePiece) {
+                            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                            Body.setAngle(activePiece, activePiece.angle + Math.PI/2);
+                            wakeAll();
+                        } else if (!physicsEnabled && activeMatrix) {
+                            let newMatrix = rotateMatrix(activeMatrix);
+                            if (canMoveFloat(newMatrix, classicX, classicY)) { 
+                                activeMatrix = newMatrix; 
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                            }
+                            else if (canMoveFloat(newMatrix, classicX - 1, classicY)) { 
+                                activeMatrix = newMatrix; classicX--; 
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                            }
+                            else if (canMoveFloat(newMatrix, classicX + 1, classicY)) { 
+                                activeMatrix = newMatrix; classicX++; 
+                                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                            }
+                        }
                         isRotatePressed = true;
-                        wakeAll();
                     }
-                } else keys[key] = true;
+                } else {
+                    keys[key] = true;
+                    if (key === 'ArrowLeft' || key === 'ArrowRight') lastMove = 0; 
+                }
             };
-            const stop = () => { 
+            const stop = (e) => { 
+                e.preventDefault();
                 if (key === 'rotate') isRotatePressed = false;
                 else keys[key] = false;
             };
-            btn.addEventListener('touchstart', start);
-            btn.addEventListener('touchend', stop);
-            btn.addEventListener('mousedown', start);
-            btn.addEventListener('mouseup', stop);
-            btn.addEventListener('mouseleave', stop);
+            btn.addEventListener('touchstart', start, {passive: false}); btn.addEventListener('touchend', stop, {passive: false});
+            btn.addEventListener('mousedown', start, {passive: false}); btn.addEventListener('mouseup', stop, {passive: false});
+            btn.addEventListener('mouseleave', stop, {passive: false});
         };
 
         setupControl('btn-left', 'ArrowLeft');
@@ -764,14 +1202,32 @@
         setupControl('btn-rotate', 'rotate');
 
         document.addEventListener('keydown', (e) => {
-            if (!activePiece || isGameOver) return;
-            if (keys.hasOwnProperty(e.code)) keys[e.code] = true;
+            if (isGameOver || isPaused || (!activePiece && !activeMatrix)) return;
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = true;
+                if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') lastMove = 0;
+            }
             if (e.code === 'ArrowUp') {
                 if (!isRotatePressed) {
-                    if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
-                    Body.setAngle(activePiece, activePiece.angle + Math.PI/2);
-                    isRotatePressed = true;
-                    wakeAll();
+                    if (physicsEnabled && activePiece) {
+                        if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                        Body.setAngle(activePiece, activePiece.angle + Math.PI/2); wakeAll();
+                    } else if (!physicsEnabled && activeMatrix) {
+                        let newMatrix = rotateMatrix(activeMatrix);
+                        if (canMoveFloat(newMatrix, classicX, classicY)) {
+                            activeMatrix = newMatrix;
+                            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                        }
+                        else if (canMoveFloat(newMatrix, classicX - 1, classicY)) { 
+                            activeMatrix = newMatrix; classicX--; 
+                            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                        }
+                        else if (canMoveFloat(newMatrix, classicX + 1, classicY)) { 
+                            activeMatrix = newMatrix; classicX++; 
+                            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+                        }
+                    }
+                    isRotatePressed = true; 
                 }
             }
         });
