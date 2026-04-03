@@ -13,7 +13,7 @@
 
         body {
             margin: 0;
-            padding: 10px 0 80px 0;
+            padding: 10px 0;
             background-color: #121212;
             color: #fff;
             font-family: 'Segoe UI', sans-serif;
@@ -21,8 +21,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            min-height: 100dvh;
-            overflow-x: hidden;
+            height: 100dvh; /* Жестко фиксируем высоту экрана */
+            overflow: hidden; /* Полностью блокируем скролл, чтобы элементы не прятались */
             touch-action: none;
         }
 
@@ -209,15 +209,17 @@
         .leaderboard th { color: #4CAF50; padding-bottom: 5px; }
 
         #mobile-controls {
+            position: fixed;
+            bottom: calc(env(safe-area-inset-bottom, 20px) + 40px); /* Прибиваем к низу экрана поверх всего */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
             display: flex;
             width: 100%;
             max-width: 400px;
             justify-content: space-between;
-            padding: 15px 20px;
+            padding: 0 20px;
             box-sizing: border-box;
-            margin-top: 5px;
-            /* Поднимаем кнопки на высоту самих кнопок (70px) + безопасная зона */
-            margin-bottom: calc(env(safe-area-inset-bottom, 20px) + 70px);
         }
         .control-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         #mobile-controls button {
@@ -256,13 +258,13 @@
         }
 
         @media (max-height: 800px) {
-            .main-container { transform: scale(0.9); transform-origin: center top; margin-bottom: -50px; }
+            .main-container { transform: scale(0.9); transform-origin: center top; margin-bottom: 0; }
             #mobile-controls button { width: 60px; height: 60px; font-size: 24px; }
         }
         @media (max-height: 650px) {
-            .main-container { transform: scale(0.75); transform-origin: center top; margin-bottom: -80px; }
+            .main-container { transform: scale(0.75); transform-origin: center top; margin-bottom: 0; }
             #mobile-controls button { width: 50px; height: 50px; font-size: 20px; border-radius: 12px; }
-            #mobile-controls { padding: 5px 10px; gap: 8px;}
+            #mobile-controls { bottom: calc(env(safe-area-inset-bottom, 10px) + 20px); padding: 0 10px; gap: 8px;}
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
