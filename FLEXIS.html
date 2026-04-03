@@ -13,65 +13,49 @@
 
         body {
             margin: 0;
-            padding: 10px 0;
             background-color: #121212;
             color: #fff;
             font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            height: 100dvh; /* Жестко фиксируем высоту экрана */
-            overflow: hidden; /* Полностью блокируем скролл, чтобы элементы не прятались */
+            /* Жестко фиксируем экран и блокируем скролл */
+            height: 100dvh;
+            overflow: hidden;
             touch-action: none;
         }
 
-        .main-container {
+        /* Главный контейнер всего приложения */
+        #app-root {
             display: flex;
             flex-direction: row;
-            gap: 20px;
-            align-items: flex-start;
+            align-items: stretch; /* Растягиваем колонки по высоте */
             justify-content: center;
-            transition: transform 0.3s ease;
-            margin: auto;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+            padding: env(safe-area-inset-top, 15px) 15px env(safe-area-inset-bottom, 15px) 15px;
         }
 
-        #game-wrapper {
-            position: relative;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
-            border-radius: 12px;
-            overflow: hidden;
-            background-color: #050505;
+        /* --- БОКОВЫЕ КОЛОНКИ (Для ПК и Планшетов) --- */
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 900px; /* Синхронизируем с максимальной высотой стакана */
+            margin: auto 0; /* Центрируем по вертикали */
+            width: 160px; /* Фиксированная ширина для идеальной центровки */
             flex-shrink: 0;
         }
 
-        #top-bar {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 105;
-        }
-
-        .btn-small {
-            padding: 8px 12px;
-            font-size: 14px;
-            background: #1a1a1a;
-            color: white;
-            border: 2px solid #333;
-            border-radius: 8px;
-            cursor: pointer;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.2s;
-            display: flex;
+        .left-column {
+            justify-content: flex-end; /* Кнопки прижаты к низу */
             align-items: center;
-            gap: 5px;
         }
-        .btn-small:active { background: #4CAF50; transform: translateY(2px); border-color: #4CAF50; }
 
+        .right-column {
+            justify-content: flex-start; /* Панель прижата к верху */
+            align-items: center;
+        }
+
+        /* Панель со счетом и следующей фигурой */
         .side-panel {
             background: rgba(17, 17, 17, 0.8);
             border-radius: 16px;
@@ -80,272 +64,298 @@
             flex-direction: column;
             align-items: center;
             gap: 20px;
-            min-width: 140px;
+            width: 100%;
             box-shadow: 0 8px 20px rgba(0,0,0,0.4);
             border: 1px solid #222;
-            flex-shrink: 0;
+            z-index: 10;
+            margin-bottom: auto; /* Выталкивает кнопки в правой колонке вниз */
         }
 
-        .stat-box {
-            text-align: center;
-            font-size: 14px;
-            color: #aaa;
-            letter-spacing: 1px;
-            font-weight: bold;
-        }
-
-        .stat-value {
-            font-size: 36px;
-            font-weight: 900;
-            color: #4CAF50;
-            line-height: 1.2;
-            text-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
-        }
-
+        .stat-box { text-align: center; font-size: 14px; color: #aaa; font-weight: bold; }
+        .stat-value { font-size: 36px; font-weight: 900; color: #4CAF50; line-height: 1.2; text-shadow: 0 0 10px rgba(76, 175, 80, 0.4); }
         .record-value { color: #FFD966; font-size: 28px; text-shadow: 0 0 10px rgba(255, 217, 102, 0.3); }
         
-        #nextCanvas {
-            background: #0a0a0a;
-            border-radius: 12px;
-            display: block;
-            margin: 10px auto 0;
-            border: 2px solid #333;
-            width: 80px; 
-            height: 80px;
-        }
-
+        #nextCanvas { background: #0a0a0a; border-radius: 12px; display: block; margin: 10px auto 0; border: 2px solid #333; width: 80px; height: 80px; }
         .bonus-icon { font-size: 32px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); transition: 0.3s; }
 
-        #game-over, #start-screen, #pause-screen {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.92);
+        /* --- ЦЕНТРАЛЬНАЯ КОЛОНКА (Стакан) --- */
+        .center-column {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            z-index: 100;
-            text-align: center;
-            padding: 20px;
-            backdrop-filter: blur(5px);
+            justify-content: center;
+            height: 100%;
+            flex: 1 1 auto;
+            min-height: 0; /* Обязательно для гибкости flexbox */
+        }
+
+        /* Игровой стакан - сам высчитывает свой размер */
+        #game-wrapper {
+            position: relative;
+            background-color: #050505;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+            max-height: 900px;
+            aspect-ratio: 360 / 600; /* Идеальные пропорции */
+            max-width: 100%;
+            flex-shrink: 1; 
+        }
+
+        #canvas-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+        #canvas-container canvas { width: 100% !important; height: 100% !important; display: block; object-fit: contain; }
+
+        #top-bar {
+            position: absolute; top: 15px; left: 15px; right: 15px;
+            display: flex; justify-content: space-between; z-index: 105;
+        }
+
+        /* Оверлеи и меню */
+        #game-over, #start-screen, #pause-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.92);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; text-align: center; padding: 20px; backdrop-filter: blur(5px);
         }
         #game-over { display: none; }
         #pause-screen { display: none; }
 
-        h1 { font-size: 42px; margin-bottom: 5px; letter-spacing: 2px; }
+        h1 { font-size: clamp(24px, 6vw, 42px); margin-bottom: 5px; letter-spacing: 2px; }
         .green { color: #4CAF50; }
         .red { color: #ff4444; }
 
         .btn {
-            padding: 12px 35px;
-            font-size: 18px;
-            background: linear-gradient(135deg, #4CAF50, #2e7d32);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-            transition: all 0.2s;
-            margin-bottom: 10px;
-            width: 100%;
-            max-width: 250px;
+            padding: clamp(8px, 2vh, 12px) clamp(15px, 4vw, 35px);
+            font-size: clamp(14px, 3vh, 18px);
+            background: linear-gradient(135deg, #4CAF50, #2e7d32); color: white; border: none; border-radius: 50px;
+            cursor: pointer; font-weight: bold; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s; margin-bottom: 10px; width: 100%; max-width: 250px;
         }
         .btn:active { transform: scale(0.95); }
+        .btn-exit { background: #444; margin-top: 15px; }
+
+        .btn-small {
+            padding: 6px 10px; font-size: 14px;
+            background: #1a1a1a; color: white; border: 2px solid #333; border-radius: 8px;
+            cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px;
+        }
+        .btn-small:active { background: #4CAF50; transform: translateY(2px); border-color: #4CAF50; }
 
         .toast {
-            position: absolute;
-            bottom: 25%; left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: #4CAF50;
-            padding: 12px 24px;
-            border-radius: 20px;
-            border: 2px solid #4CAF50;
-            z-index: 200;
-            display: none;
-            pointer-events: none;
-            font-weight: bold;
-            font-size: 18px;
-            transition: opacity 0.3s;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9); color: #4CAF50; padding: 12px 24px; border-radius: 20px; border: 2px solid #4CAF50;
+            z-index: 200; display: none; pointer-events: none; font-weight: bold; font-size: 16px;
+            transition: opacity 0.3s; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         }
 
-        .slider-container { margin: 10px 0; font-size: 14px; color: #ccc; }
+        .slider-container, #start-screen p { font-size: 13px; color: #ccc; margin: 10px 0;}
         input[type="range"] { vertical-align: middle; width: 120px; accent-color: #4CAF50; }
         
         .checkbox-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            font-size: 15px;
-            font-weight: bold;
-            color: #FFD966;
-            cursor: pointer;
-            background: rgba(255, 217, 102, 0.1);
-            padding: 10px 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 217, 102, 0.3);
+            display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;
+            font-size: 13px; font-weight: bold; color: #FFD966; cursor: pointer;
+            background: rgba(255, 217, 102, 0.1); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255, 217, 102, 0.3);
         }
-        .checkbox-container input {
-            width: 20px; height: 20px; accent-color: #4CAF50; cursor: pointer;
-        }
+        .checkbox-container input { width: 20px; height: 20px; accent-color: #4CAF50; cursor: pointer; }
 
         .leaderboard {
-            background: #1a1a1a;
-            border-radius: 12px;
-            padding: 10px;
-            margin-top: 15px;
-            width: 100%;
-            max-width: 250px;
-            font-size: 13px;
-            border: 1px solid #333;
+            background: #1a1a1a; border-radius: 12px; padding: 10px; margin-top: 15px; width: 100%; max-width: 250px;
+            font-size: 12px; border: 1px solid #333;
         }
         .leaderboard table { width: 100%; color: #ddd; text-align: left; }
         .leaderboard th { color: #4CAF50; padding-bottom: 5px; }
 
-        #mobile-controls {
-            position: fixed;
-            bottom: calc(env(safe-area-inset-bottom, 20px) + 40px); /* Прибиваем к низу экрана поверх всего */
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            display: flex;
-            width: 100%;
-            max-width: 400px;
-            justify-content: space-between;
-            padding: 0 20px;
-            box-sizing: border-box;
-        }
-        .control-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        #mobile-controls button {
-            background-color: #1a1a1a;
-            border: 2px solid #333;
-            color: white;
-            font-size: 28px;
-            width: 70px; height: 70px;
-            border-radius: 16px; 
+        /* --- БАЗОВЫЕ НАСТРОЙКИ СЕНСОРНЫХ КНОПОК --- */
+        .touch-controls { display: none; /* Скрыто на ПК */ }
+        
+        .touch-btn {
+            background-color: #1a1a1a; border: 2px solid #333; color: white;
+            font-size: 28px; border-radius: 16px; 
             display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 5px 0 #000;
-            padding: 0;
-            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 5px 0 #000; padding: 0; transition: transform 0.1s, box-shadow 0.1s;
+            cursor: pointer; flex-shrink: 0;
         }
-        #mobile-controls button:active { 
-            background-color: #4CAF50; transform: translateY(5px); box-shadow: 0 0px 0 #000;
-        }
+        .touch-btn:active { background-color: #4CAF50; transform: translateY(5px); box-shadow: 0 0px 0 #000; }
 
-        @media (min-height: 900px) and (min-width: 600px) {
-            .main-container { transform: scale(1.15); transform-origin: center top; margin-bottom: 90px; }
-            #mobile-controls button { width: 80px; height: 80px; font-size: 32px; border-radius: 20px; }
-            #mobile-controls { max-width: 480px; }
-        }
-
-        @media (max-width: 850px), (max-height: 750px) {
-            .main-container { flex-direction: column; align-items: center; gap: 10px; margin-top: 5px; }
-            .side-panel {
-                flex-direction: row; width: 100%; max-width: 360px; justify-content: space-between;
-                align-items: center; padding: 10px 15px; gap: 5px; min-width: unset;
+        /* --- АДАПТАЦИЯ ДЛЯ УСТРОЙСТВ С ТАЧСКРИНОМ --- */
+        @media (pointer: coarse) {
+            /* Альбомная ориентация (Планшеты/Телефоны на боку) */
+            @media (orientation: landscape) {
+                #left-controls.touch-controls, #right-controls.touch-controls {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    gap: 20px;
+                    width: 100%;
+                    align-items: center;
+                }
+                .touch-btn {
+                    width: clamp(60px, 8vw, 85px);
+                    height: clamp(60px, 8vw, 85px);
+                    font-size: clamp(24px, 4vw, 36px);
+                }
             }
-            .side-panel .stat-box { font-size: 11px; margin-bottom: 0; }
-            .stat-value { font-size: 24px; }
-            .record-value { font-size: 20px; }
-            #nextCanvas { width: 50px !important; height: 50px !important; margin-top: 0; }
-            .bonus-icon { font-size: 24px; margin: 0; }
-        }
 
-        @media (max-height: 800px) {
-            .main-container { transform: scale(0.9); transform-origin: center top; margin-bottom: 0; }
-            #mobile-controls button { width: 60px; height: 60px; font-size: 24px; }
-        }
-        @media (max-height: 650px) {
-            .main-container { transform: scale(0.75); transform-origin: center top; margin-bottom: 0; }
-            #mobile-controls button { width: 50px; height: 50px; font-size: 20px; border-radius: 12px; }
-            #mobile-controls { bottom: calc(env(safe-area-inset-bottom, 10px) + 20px); padding: 0 10px; gap: 8px;}
+            /* Вертикальная ориентация (Телефоны) */
+            @media (orientation: portrait) {
+                #app-root {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .left-column { display: none; }
+                .right-column { display: contents; } /* Распаковываем колонку для смены порядка */
+                
+                .side-panel {
+                    order: -1; /* Панель улетает на самый верх */
+                    flex-direction: row; 
+                    width: 100%; 
+                    max-width: 450px; 
+                    justify-content: space-between;
+                    padding: 10px 15px; 
+                    gap: 5px; 
+                    margin-bottom: 0;
+                }
+                .side-panel .stat-box { font-size: 11px; margin-bottom: 0; }
+                .stat-value { font-size: 24px; }
+                .record-value { font-size: 20px; }
+                #nextCanvas { width: 50px !important; height: 50px !important; margin-top: 0; }
+                .bonus-icon { font-size: 24px; margin: 0; }
+
+                .center-column {
+                    width: 100%;
+                    max-width: 450px;
+                }
+                #game-wrapper {
+                    height: auto;
+                    width: 100%;
+                    max-height: unset;
+                }
+
+                #right-controls { display: none !important; }
+                
+                #portrait-controls.touch-controls {
+                    display: flex;
+                    width: 100%;
+                    justify-content: space-between;
+                    padding: 10px 0;
+                    margin-top: auto;
+                }
+                .control-group { display: flex; gap: 15px; }
+                .touch-btn {
+                    width: clamp(55px, 15vw, 75px);
+                    height: clamp(55px, 15vw, 75px);
+                    font-size: clamp(22px, 6vw, 30px);
+                }
+            }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
 
-    <div class="main-container">
-        <div class="side-panel">
-            <div class="stat-box">СЧЕТ<br><div class="stat-value" id="score">0</div></div>
-            <div class="stat-box">РЕКОРД<br><div class="stat-value record-value" id="recordValue">0</div></div>
-            <div class="stat-box" style="display: flex; flex-direction: column; align-items: center;">
-                СЛЕДУЮЩАЯ
-                <canvas id="nextCanvas" width="160" height="160"></canvas>
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <div class="bonus-icon" id="bonusIcon">✨</div>
-                <div id="survivalInfo" style="font-size:12px; color:#ff9800; font-weight: bold; margin-top: 5px;"></div>
+    <div id="app-root">
+        
+        <!-- ЛЕВАЯ КОЛОНКА (Кнопки для Планшета) -->
+        <div class="left-column">
+            <div class="touch-controls" id="left-controls">
+                <button class="touch-btn" id="btn-left">⬅️</button>
+                <button class="touch-btn" id="btn-right">➡️</button>
             </div>
         </div>
 
-        <div id="game-wrapper">
-            <div id="top-bar">
-                <button id="top-menu-btn" class="btn-small" onclick="handleMenuBtn()">🚪 Выйти</button>
-                <button id="top-pause-btn" class="btn-small" onclick="togglePause()" style="display: none;">⏸ Пауза</button>
-            </div>
+        <!-- ЦЕНТРАЛЬНАЯ КОЛОНКА (Стакан + Кнопки для Телефона) -->
+        <div class="center-column">
             
-            <div id="start-screen">
-                <h1 class="green">FLEXIS</h1>
-                <p style="color: #888; margin-bottom: 15px; font-size: 14px;">Тетрис + Бонусы</p>
-                
-                <label class="checkbox-container">
-                    <input type="checkbox" id="physics-toggle" checked>
-                    ВКЛЮЧИТЬ ФИЗИКУ БЛОКОВ
-                </label>
-                
-                <button class="btn" onclick="startGame('classic')">КЛАССИКА</button>
-                <button class="btn" style="background: linear-gradient(135deg, #FF9800, #F57C00);" onclick="startGame('accel')">УСКОРЕНИЕ</button>
-                <button class="btn" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);" onclick="startGame('survival')">ВЫЖИВАНИЕ</button>
-                <button id="btn-load-main" class="btn" style="background: linear-gradient(135deg, #2196F3, #1976D2); display: none;" onclick="loadGame()">ПРОДОЛЖИТЬ</button>
-                
-                <div class="slider-container">
-                    <span>⚙️ Базовая скорость: </span><span id="gravVal" style="color:#fff; font-weight:bold;">0.50</span><br>
-                    <input type="range" id="gravitySlider" min="0.2" max="1.2" step="0.05" value="0.5">
+            <!-- Игровой стакан -->
+            <div id="game-wrapper">
+                <div id="top-bar">
+                    <button id="top-menu-btn" class="btn-small" onclick="handleMenuBtn()">🚪 Выйти</button>
+                    <button id="top-pause-btn" class="btn-small" onclick="togglePause()" style="display: none;">⏸ Пауза</button>
                 </div>
                 
-                <button id="mute-btn" class="btn-small" onclick="toggleMute()" style="margin-top: 5px;">🔊 Звук: ВКЛ</button>
+                <div id="start-screen">
+                    <h1 class="green">FLEXIS</h1>
+                    <p>Тетрис + Бонусы</p>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="physics-toggle" checked>
+                        ВКЛЮЧИТЬ ФИЗИКУ БЛОКОВ
+                    </label>
+                    
+                    <button class="btn" onclick="startGame('classic')">КЛАССИКА</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #FF9800, #F57C00);" onclick="startGame('accel')">УСКОРЕНИЕ</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);" onclick="startGame('survival')">ВЫЖИВАНИЕ</button>
+                    <button id="btn-load-main" class="btn" style="background: linear-gradient(135deg, #2196F3, #1976D2); display: none;" onclick="loadGame()">ПРОДОЛЖИТЬ</button>
+                    
+                    <div class="slider-container">
+                        <span>⚙️ Базовая скорость: </span><span id="gravVal" style="color:#fff; font-weight:bold;">0.50</span><br>
+                        <input type="range" id="gravitySlider" min="0.2" max="1.2" step="0.05" value="0.5">
+                    </div>
+                    
+                    <button id="mute-btn" class="btn-small" onclick="toggleMute()" style="margin-top: 5px;">🔊 Звук: ВКЛ</button>
+                    
+                    <div class="leaderboard">
+                        <div style="text-align: center; font-weight: bold; color: #4CAF50; margin-bottom: 5px;">🏆 ТОП-5 РЕКОРДОВ</div>
+                        <table id="leaderboardTable">
+                            <tr><th>#</th><th>Счёт</th><th>Режим</th></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="pause-screen">
+                    <h1 style="color: #FF9800; margin-bottom: 30px;">ПАУЗА</h1>
+                    <button class="btn" onclick="togglePause()">ПРОДОЛЖИТЬ</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #2196F3, #1976D2);" onclick="saveGame()">💾 СОХРАНИТЬ</button>
+                </div>
+
+                <div id="game-over">
+                    <h1 class="red">КОНЕЦ ИГРЫ</h1>
+                    <p>Ваш счет: <span id="final-score" style="font-weight: bold; color: white;">0</span></p>
+                    <button class="btn" style="background: #ff4444; margin-top: 15px;" onclick="restartGame()">ЗАНОВО</button>
+                </div>
                 
-                <div class="leaderboard">
-                    <div style="text-align: center; font-weight: bold; color: #4CAF50; margin-bottom: 5px;">🏆 ТОП-5 РЕКОРДОВ</div>
-                    <table id="leaderboardTable">
-                        <tr><th>#</th><th>Счёт</th><th>Режим</th></tr>
-                    </table>
+                <div id="canvas-container"></div>
+                <div id="toast" class="toast">Сообщение</div>
+            </div>
+
+            <!-- Кнопки СНИЗУ (Только Телефон/Вертикально) -->
+            <div id="portrait-controls" class="touch-controls">
+                <div class="control-group">
+                    <button class="touch-btn" id="btn-left-port">⬅️</button>
+                    <button class="touch-btn" id="btn-right-port">➡️</button>
+                </div>
+                <div class="control-group">
+                    <button class="touch-btn" id="btn-down-port">⬇️</button>
+                    <button class="touch-btn" id="btn-rotate-port">🔃</button>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА (Панель Счета + Кнопки для Планшета) -->
+        <div class="right-column">
+            <!-- Боковая панель -->
+            <div class="side-panel">
+                <div class="stat-box">СЧЕТ<br><div class="stat-value" id="score">0</div></div>
+                <div class="stat-box">РЕКОРД<br><div class="stat-value record-value" id="recordValue">0</div></div>
+                <div class="stat-box" style="display: flex; flex-direction: column; align-items: center;">
+                    СЛЕДУЮЩАЯ
+                    <canvas id="nextCanvas" width="160" height="160"></canvas>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="bonus-icon" id="bonusIcon">✨</div>
+                    <div id="survivalInfo" style="font-size:12px; color:#ff9800; font-weight: bold; margin-top: 5px;"></div>
                 </div>
             </div>
 
-            <div id="pause-screen">
-                <h1 style="color: #FF9800; margin-bottom: 30px;">ПАУЗА</h1>
-                <button class="btn" onclick="togglePause()">ПРОДОЛЖИТЬ</button>
-                <button class="btn" style="background: linear-gradient(135deg, #2196F3, #1976D2);" onclick="saveGame()">💾 СОХРАНИТЬ</button>
+            <!-- Кнопки СПРАВА -->
+            <div class="touch-controls" id="right-controls">
+                <button class="touch-btn" id="btn-down">⬇️</button>
+                <button class="touch-btn" id="btn-rotate">🔃</button>
             </div>
+        </div>
 
-            <div id="game-over">
-                <h1 class="red">КОНЕЦ ИГРЫ</h1>
-                <p>Ваш счет: <span id="final-score" style="font-size: 24px; font-weight: bold; color: white;">0</span></p>
-                <button class="btn" style="background: #ff4444; margin-top: 15px;" onclick="restartGame()">ЗАНОВО</button>
-            </div>
-            
-            <div id="canvas-container"></div>
-            <div id="toast" class="toast">Сообщение</div>
-        </div>
-    </div>
-
-    <div id="mobile-controls">
-        <div class="control-group">
-            <button id="btn-left">⬅️</button>
-            <button id="btn-right">➡️</button>
-        </div>
-        <div class="control-group">
-            <button id="btn-down">⬇️</button>
-            <button id="btn-rotate">🔃</button>
-        </div>
     </div>
 
     <script>
@@ -354,8 +364,8 @@
         const GAME_WIDTH = 360;
         const GAME_HEIGHT = 600;
         const BLOCK_SIZE = 30;
-        const COLS = GAME_WIDTH / BLOCK_SIZE; // 12
-        const ROWS = GAME_HEIGHT / BLOCK_SIZE; // 20
+        const COLS = GAME_WIDTH / BLOCK_SIZE; 
+        const ROWS = GAME_HEIGHT / BLOCK_SIZE;
 
         const engine = Engine.create({ enableSleeping: true });
         engine.world.gravity.y = 0.5;
@@ -369,13 +379,13 @@
         });
 
         const tetrominos = [
-            { matrix: [[1,1,1,1]], color: '#00e5f0' }, // I
-            { matrix: [[1,1],[1,1]], color: '#f0e000' }, // O
-            { matrix: [[0,1,0],[1,1,1]], color: '#c058f0' }, // T
-            { matrix: [[1,0,0],[1,1,1]], color: '#3a6eff' }, // J
-            { matrix: [[0,0,1],[1,1,1]], color: '#f0a030' }, // L
-            { matrix: [[0,1,1],[1,1,0]], color: '#30f030' }, // S
-            { matrix: [[1,1,0],[0,1,1]], color: '#f03050' }  // Z
+            { matrix: [[1,1,1,1]], color: '#00e5f0' },
+            { matrix: [[1,1],[1,1]], color: '#f0e000' },
+            { matrix: [[0,1,0],[1,1,1]], color: '#c058f0' },
+            { matrix: [[1,0,0],[1,1,1]], color: '#3a6eff' },
+            { matrix: [[0,0,1],[1,1,1]], color: '#f0a030' },
+            { matrix: [[0,1,1],[1,1,0]], color: '#30f030' },
+            { matrix: [[1,1,0],[0,1,1]], color: '#f03050' }
         ];
         const rareTetrominos = [
             { matrix: [[0,1,0],[1,1,1],[0,1,0]], color: '#FFD966' }, 
@@ -414,7 +424,6 @@
         let isRotatePressed = false;
         const LOCK_DELAY = 1000;
 
-        // Отслеживаем, находимся ли мы в главном меню
         let isInMainMenu = true;
 
         function updateTopBar() {
@@ -430,11 +439,8 @@
         }
 
         window.handleMenuBtn = () => {
-            if (isInMainMenu) {
-                window.location.href = 'index.html';
-            } else {
-                goToMenu();
-            }
+            if (isInMainMenu) window.location.href = 'index.html';
+            else goToMenu();
         };
 
         const wallOptions = { isStatic: true, friction: 0.0, restitution: 0.0, render: { fillStyle: '#111' } };
@@ -1184,8 +1190,7 @@
 
         window.restartGame = () => { location.reload(); };
 
-        const setupControl = (id, key) => {
-            const btn = document.getElementById(id);
+        const setupControl = (ids, key) => {
             const start = (e) => { 
                 e.preventDefault(); 
                 if (!isGameStarted || isGameOver || isPaused) return;
@@ -1223,15 +1228,24 @@
                 if (key === 'rotate') isRotatePressed = false;
                 else keys[key] = false;
             };
-            btn.addEventListener('touchstart', start, {passive: false}); btn.addEventListener('touchend', stop, {passive: false});
-            btn.addEventListener('mousedown', start, {passive: false}); btn.addEventListener('mouseup', stop, {passive: false});
-            btn.addEventListener('mouseleave', stop, {passive: false});
+
+            ids.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('touchstart', start, {passive: false}); 
+                    btn.addEventListener('touchend', stop, {passive: false});
+                    btn.addEventListener('mousedown', start, {passive: false}); 
+                    btn.addEventListener('mouseup', stop, {passive: false});
+                    btn.addEventListener('mouseleave', stop, {passive: false});
+                }
+            });
         };
 
-        setupControl('btn-left', 'ArrowLeft');
-        setupControl('btn-right', 'ArrowRight');
-        setupControl('btn-down', 'ArrowDown');
-        setupControl('btn-rotate', 'rotate');
+        // Подключаем управление к обеим группам кнопок (для телефонов и для планшетов)
+        setupControl(['btn-left', 'btn-left-port'], 'ArrowLeft');
+        setupControl(['btn-right', 'btn-right-port'], 'ArrowRight');
+        setupControl(['btn-down', 'btn-down-port'], 'ArrowDown');
+        setupControl(['btn-rotate', 'btn-rotate-port'], 'rotate');
 
         document.addEventListener('keydown', (e) => {
             if (isGameOver || isPaused || (!activePiece && !activeMatrix)) return;
